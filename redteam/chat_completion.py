@@ -15,6 +15,9 @@ class ChatCompletion:
     def __init__(self, config: ChatCompletionConfig):
         self.config = config
 
+    def create_message(prompt:str):
+        return {"role": "user", "content": prompt}
+
     def call_chat_completion(self, messages: list) -> dict:
         url = self.config.url
         headers = {
@@ -39,3 +42,4 @@ if __name__ == "__main__":
     chat_completion = ChatCompletion(config)
     response = chat_completion.call_chat_completion(messages)
     print(response)
+    
