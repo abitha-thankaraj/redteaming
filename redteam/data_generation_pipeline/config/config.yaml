@@ -1,3 +1,8 @@
-local_save_dir:
-in_context_examples_path: 
-harmful_prompts_dataset:
+seed: 69
+local_save_dir: /data/tir/projects/tir7/user_data/athankar/redteaming/data
+in_context_examples_path: /data/tir/projects/tir7/user_data/athankar/redteaming/redteam/data_generation_pipeline/json_files/in_context_examples_mistral.json
+harmful_prompts_dataset: 
+output_file: test_outputs
+# local_chat_completion: http://localhost:
+# local_server_port: 5000
+# local_server_completion_endpoint: 

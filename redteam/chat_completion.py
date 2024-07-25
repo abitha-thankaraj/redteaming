@@ -8,14 +8,11 @@ class ChatCompletionConfig:
     url: str = "http://localhost:8003/v1/chat/completions"
     model: str = "Mistral-7B-Instruct-v0.2"
 
-
-
-
 class ChatCompletion:
     def __init__(self, config: ChatCompletionConfig):
         self.config = config
 
-    def create_message(prompt:str):
+    def create_message(self, prompt:str):
         return {"role": "user", "content": prompt}
 
     def call_chat_completion(self, messages: list) -> dict:
