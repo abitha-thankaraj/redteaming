@@ -8,7 +8,7 @@ import datetime
 
 # from redteam.data_generation_pipeline.attack_prompts_dataset import get_dataset
 from redteam.chat_completion import ChatCompletion, ChatCompletionConfig
-from redteam.mt_attack_prompts_parser import parse_multiturn_attack_prompt
+from redteam.data_generation_pipeline.mt_attack_prompts_parser import parse_multiturn_attack_prompt
 
 
 @hydra.main(version_base=None, config_path="config", config_name="config")
