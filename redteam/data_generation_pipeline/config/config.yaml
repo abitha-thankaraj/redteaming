@@ -4,6 +4,6 @@ local_save_dir: /home/ftajwar/redteaming/data
 in_context_examples_path: /home/ftajwar/redteaming/redteam/data_generation_pipeline/json_files/in_context_examples_mistral.json
 output_file: test_outputs
 
-harmful_prompts_dataset: ???
+harmful_prompts_dataset: 
 
 num_turns: 3
