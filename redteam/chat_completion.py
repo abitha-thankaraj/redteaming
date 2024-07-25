@@ -12,8 +12,10 @@ class ChatCompletion:
     def __init__(self, config: ChatCompletionConfig):
         self.config = config
 
-    def create_message(self, prompt:str):
-        return {"role": "user", "content": prompt}
+    def create_message(self, prompt:str, role:str="user") -> dict:
+        """Message formatting for chat completion API. 
+        """
+        return {"role": role, "content": prompt}
 
     def call_chat_completion(self, messages: list) -> dict:
         url = self.config.url
@@ -28,15 +30,35 @@ class ChatCompletion:
         response = requests.post(url, headers=headers, data=json.dumps(data))
         
         if response.status_code == 200:
-            return response.json()
+            response = response.json()
+            return response["choices"][0]["message"]
         else:
             return {"error": response.status_code, "message": response.text}
+    
+    def multiturn_chat_completion(self, messages: list[str]) -> dict:
+        conversation_history = []
+        for message in messages:
+            # user prompt
+            conversation_history.append(self.create_message(message))
+            # prompt = history
+            response = self.call_chat_completion(conversation_history)
+            # assistant response
+            conversation_history.append(response)
+
+        return conversation_history
 
 if __name__ == "__main__":
     messages = [{"role": "user", "content": "Hello! What is your name?"}]
     config = ChatCompletionConfig()
 
     chat_completion = ChatCompletion(config)
-    response = chat_completion.call_chat_completion(messages)
-    print(response)
+    # chat_completion.multiturn_chat_completion(["hello", "have you heard of voldemort?", "is wizardry real?"])
+
+    # response = chat_completion.call_chat_completion(messages)
+
+    prompts = ["hello", "have you heard of voldemort?", "is wizardry real?"]
+    conversation = chat_completion.multiturn_chat_completion(prompts)
+
+    from IPython import embed; embed()
+    # print(response)
     
