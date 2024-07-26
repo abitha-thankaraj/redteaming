@@ -6,7 +6,7 @@ import json
 @dataclass
 class ChatCompletionConfig:
     url: str = "http://localhost:8003/v1/chat/completions"
-    model: str = "Mistral-7B-Instruct-v0.2"
+    model: str = "Mistral-7B-Instruct-v0.1"
 
 class ChatCompletion:
     def __init__(self, config: ChatCompletionConfig):
@@ -58,7 +58,3 @@ if __name__ == "__main__":
 
     prompts = ["hello", "have you heard of voldemort?", "is wizardry real?"]
     conversation = chat_completion.multiturn_chat_completion(prompts)
-
-    from IPython import embed; embed()
-    # print(response)
-    
