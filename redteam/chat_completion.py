@@ -58,3 +58,4 @@ if __name__ == "__main__":
 
     prompts = ["hello", "have you heard of voldemort?", "is wizardry real?"]
     conversation = chat_completion.multiturn_chat_completion(prompts)
+    from IPython import embed; embed()
