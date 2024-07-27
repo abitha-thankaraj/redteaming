@@ -7,3 +7,6 @@ output_file: test_outputs
 harmful_prompts_dataset: 
 
 num_turns: 3
+
+chat_url: http://localhost:8003/v1/chat/completions
+model_name: Mistral-7B-Instruct-v0.1
