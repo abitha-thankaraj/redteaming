@@ -8,6 +8,10 @@ class ChatCompletionConfig:
     url: str = "http://localhost:8003/v1/chat/completions"
     model: str = "Mistral-7B-Instruct-v0.1"
 
+    def __init__(self, given_url, given_model):
+        self.url = given_url
+        self.model = given_model
+
 class ChatCompletion:
     def __init__(self, config: ChatCompletionConfig):
         self.config = config

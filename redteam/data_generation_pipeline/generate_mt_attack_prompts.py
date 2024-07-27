@@ -27,7 +27,10 @@ def main(config: DictConfig):
     
     os.makedirs(config.local_save_dir, exist_ok=True)
     # API calling
-    cfg = ChatCompletionConfig()
+    cfg = ChatCompletionConfig(
+        given_url=config.chat_url,
+        given_model=config.model_name,
+    )
     chat_completion = ChatCompletion(cfg)
 
     assert os.path.isfile(config.in_context_examples_path)
