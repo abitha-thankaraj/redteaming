@@ -34,9 +34,7 @@ def main(config: DictConfig):
 
     all_multiturn_attacks = []
 
-    # for i in tqdm(range(len(harmful_questions_dataset))):
-    for i in tqdm(range(3)):
-
+    for i in tqdm(range(len(harmful_questions_dataset))):
         random_index = np.random.choice(a=len(in_context_example_prompts))
         in_context_example = in_context_example_prompts[random_index]
         harmful_question = harmful_questions_dataset[i]['prompt']
