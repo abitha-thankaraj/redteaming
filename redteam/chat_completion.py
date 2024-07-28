@@ -8,9 +8,6 @@ class ChatCompletionConfig:
     url: str = "http://localhost:8003/v1/chat/completions"
     model: str = "Mistral-7B-Instruct-v0.1"
 
-    def __init__(self, given_url, given_model):
-        self.url = given_url
-        self.model = given_model
 
 class ChatCompletion:
     def __init__(self, config: ChatCompletionConfig):
@@ -50,16 +47,3 @@ class ChatCompletion:
             conversation_history.append(response)
 
         return conversation_history
-
-if __name__ == "__main__":
-    messages = [{"role": "user", "content": "Hello! What is your name?"}]
-    config = ChatCompletionConfig()
-
-    chat_completion = ChatCompletion(config)
-    # chat_completion.multiturn_chat_completion(["hello", "have you heard of voldemort?", "is wizardry real?"])
-
-    # response = chat_completion.call_chat_completion(messages)
-
-    prompts = ["hello", "have you heard of voldemort?", "is wizardry real?"]
-    conversation = chat_completion.multiturn_chat_completion(prompts)
-    print(conversation)

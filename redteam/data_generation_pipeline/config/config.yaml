@@ -1,13 +1,29 @@
 seed: 69
 
-local_save_dir: /home/ftajwar/redteaming/data
-in_context_examples_path: /home/ftajwar/redteaming/redteam/data_generation_pipeline/json_files/in_context_examples_mistral.json
-output_file: test_outputs
+# Dirs
+repo_dir: ???
+data_dir: ${repo_dir}/data
 
-harmful_prompts_dataset: openai
-harmful_prompts_dataset_path: /home/ftajwar/redteaming/redteam/data_generation_pipeline/csv_files/harmbench_behaviors_text_all.csv
 
+chat_completion:
+  url: http://localhost:8003/v1/chat/completions
+  model: Mistral-7B-Instruct-v0.1
+
+in_context_examples_fname: ${data_dir}/cfg_multiturn_generation_prompts/json_files/in_context_examples_mistral.json
+# prompt configs
 num_turns: 3
 
-chat_url: http://localhost:8003/v1/chat/completions
-model_name: Mistral-7B-Instruct-v0.1
+dataset_configs:
+  
+  harmbench:
+    dataset_name: harmbench
+    dataset_path: ${data_dir}/cfg_multiturn_generation_prompts/csv_files/harmbench_behaviors_text_all.csv
+
+  openai:
+    dataset_name: openai
+    dataset_path: ${data_dir}/cfg_multiturn_generation_prompts/json_files/gpt4_redteaming_questions.json
+
+# directory to save the generated multiturn prompts
+# For now we try only harmbench
+out_dir: ${data_dir}/gen_multiturn_prompts
+save_file : ${out_dir}/${chat_completion.model}_${dataset_configs.harmbench.dataset_name}_generated_multiturn_prompts_${now:%H-%M-%s}.json 
