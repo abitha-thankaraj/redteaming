@@ -48,15 +48,3 @@ class ChatCompletion:
 
         return conversation_history
 
-# if __name__ == "__main__":
-#     messages = [{"role": "user", "content": "Hello! What is your name?"}]
-#     config = ChatCompletionConfig()
-
-#     chat_completion = ChatCompletion(config)
-#     # chat_completion.multiturn_chat_completion(["hello", "have you heard of voldemort?", "is wizardry real?"])
-
-#     # response = chat_completion.call_chat_completion(messages)
-
-#     prompts = ["hello", "have you heard of voldemort?", "is wizardry real?"]
-#     conversation = chat_completion.multiturn_chat_completion(prompts)
-#     print(conversation)
