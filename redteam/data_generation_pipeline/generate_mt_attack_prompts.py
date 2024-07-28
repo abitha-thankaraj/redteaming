@@ -5,45 +5,36 @@ import os
 from omegaconf import OmegaConf, DictConfig
 from typing import Set
 import datetime
+from tqdm import tqdm
+from redteam.constants import PARENT_DIR
+from redteam.utils.data_utils import write_json, read_json
 
 from redteam.data_generation_pipeline.attack_prompts_dataset import get_dataset
 from redteam.chat_completion import ChatCompletion, ChatCompletionConfig
 from redteam.data_generation_pipeline.mt_attack_prompts_parser import parse_multiturn_attack_prompt
 
 
-@hydra.main(version_base=None, config_path="config", config_name="config")
+@hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/redteam/data_generation_pipeline/config", config_name="config")
 def main(config: DictConfig):
     """
     Main entry point for running question generation.
     Follows the method of this paper: Leveraging the Context through Multi-Round Interactions for Jailbreaking Attacks (https://arxiv.org/abs/2402.09177)
     """
+    config.repo_dir=PARENT_DIR
     OmegaConf.resolve(config)
-
     np.random.seed(config.seed)
 
     missing_keys: Set[str] = OmegaConf.missing_keys(config)
     if missing_keys:
         raise ValueError(f"Got missing keys in config:\n{missing_keys}")
     
-    os.makedirs(config.local_save_dir, exist_ok=True)
-    # API calling
-    cfg = ChatCompletionConfig(
-        given_url=config.chat_url,
-        given_model=config.model_name,
-    )
-    chat_completion = ChatCompletion(cfg)
-
-    assert os.path.isfile(config.in_context_examples_path)
-    with open(config.in_context_examples_path, 'r') as f:
-        in_context_example_prompts = json.load(f)["in_context_examples_list"]
-
-    harmful_questions_dataset = get_dataset(
-        dataset_name=config.harmful_prompts_dataset,
-        dataset_path=config.harmful_prompts_dataset_path,
-    )   
+    chat_completion = ChatCompletion(ChatCompletionConfig(**config.chat_completion))
+    in_context_example_prompts = read_json(config.in_context_examples_fname)["in_context_examples"]
+    harmful_questions_dataset = get_dataset(**config.dataset_configs.harmbench)
 
     all_multiturn_attacks = []
-    for i in range(len(harmful_questions_dataset)):
+
+    for i in tqdm(range(len(harmful_questions_dataset))):
         random_index = np.random.choice(a=len(in_context_example_prompts))
         in_context_example = in_context_example_prompts[random_index]
         harmful_question = harmful_questions_dataset[i]['prompt']
@@ -62,9 +53,8 @@ def main(config: DictConfig):
         }
         all_multiturn_attacks.append(attack_output_dict)
 
-    with open(os.path.join(config.local_save_dir, config.output_file + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")+ ".json"), 'w') as f:
-        print(all_multiturn_attacks)
-        json.dump(all_multiturn_attacks, f, ensure_ascii=False, indent=4)
+    os.makedirs(config.out_dir, exist_ok=True)
+    write_json(all_multiturn_attacks, config.save_file)
 
 if __name__ == "__main__":
     main()
