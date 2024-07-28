@@ -47,4 +47,3 @@ class ChatCompletion:
             conversation_history.append(response)
 
         return conversation_history
-
