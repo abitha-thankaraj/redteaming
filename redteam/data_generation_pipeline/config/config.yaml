@@ -27,4 +27,3 @@ dataset_configs:
 # For now we try only harmbench
 out_dir: ${data_dir}/gen_multiturn_prompts
 save_file : ${out_dir}/${chat_completion.model}_${dataset_configs.harmbench.dataset_name}_generated_multiturn_prompts_${now:%H-%M-%s}.json 
-
