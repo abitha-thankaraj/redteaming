@@ -38,6 +38,24 @@ def get_harmbench_dataset(dataset_path: str) -> ArrowDataset:
     ).rename_column("Behavior", "prompt")
 
 
+def get_advbench_dataset(dataset_path: str) -> ArrowDataset:
+    """
+    Loads the 500 harmful prompts from the AdvBench dataset.
+    Paper: https://arxiv.org/abs/2307.15043
+    Data: https://github.com/llm-attacks/llm-attacks/tree/main/data/advbench
+
+    Example Usage:
+        dataset = get_advbench_dataset(dataset_path)
+        for i in range(len(dataset)):
+            print(dataset[i]['prompt'])
+    """
+    return load_dataset(
+        "csv",
+        data_files=dataset_path,
+        split="train"
+    ).rename_column("goal", "prompt")
+
+
 def get_dataset(
     dataset_name: str,
     dataset_path: str,
@@ -45,10 +63,10 @@ def get_dataset(
     """
     Wrapper function unifying all the individual dataset loading functions
     """
-
     dataset_loading_functions = {
         "openai": get_openai_redteaming_dataset,
         "harmbench": get_harmbench_dataset,
+        "advbench": get_advbench_dataset,
     }
 
     dataset_loading_kwargs = {
