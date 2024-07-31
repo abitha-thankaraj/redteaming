@@ -1,21 +1,18 @@
 import hydra
 import numpy as np
-import json
 import os
 from omegaconf import OmegaConf, DictConfig
 from typing import Set
-import datetime
 from tqdm import tqdm
 from redteam.constants import PARENT_DIR, DATAGEN_CONFIG_DIR
 from redteam.utils.data_utils import write_json, read_json
 
-from redteam.data_generation.attack_prompts_dataset import get_dataset
+from redteam.attack_prompts_dataset import get_dataset
 from redteam.chat_completion import (
-    ChatCompletion, 
     ChatCompletionConfig,
     OAIChatCompletion,
 )
-from redteam.data_generation.mt_attack_prompts_parser import (
+from redteam.parsers import (
     parse_multiturn_attack_prompt,
     is_valid_question,
 )
