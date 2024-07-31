@@ -48,6 +48,7 @@ def main(config: DictConfig):
 
         response = chat_completion.multiturn_chat_completion(system_prompt=None, messages=[user_message])
         attack_output_dict = {
+            "goal": harmful_question,
             "response": response,
             "questions": parse_multiturn_attack_prompt(
                 chat_completion_dict=response[-1],
