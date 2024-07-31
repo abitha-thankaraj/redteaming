@@ -13,7 +13,7 @@ data_dir: ${repo_dir}/data
 chat_completion:
   url: None
   model: gpt-3.5-turbo-0125
-  temperature: 1.5
+  temperature: 1.
 
 
 in_context_examples_fname: ${data_dir}/cfg_multiturn_generation_prompts/json_files/in_context_examples_mistral.json
