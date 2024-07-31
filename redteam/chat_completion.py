@@ -1,19 +1,18 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import requests
-import json
 import os
 import openai
 from openai import OpenAI
 from fastchat.model import get_conversation_template
+from typing import List
 
 """
-    #OAI Usage
+    # OAI Usage
     oai_config = ChatCompletionConfig(model="gpt-3.5-turbo")
     oai_chat_completion = OAIChatCompletion(oai_config)
     oai_cc = oai_chat_completion.multiturn_chat_completion(system_prompt=None, messages=["hello", "have you heard of voldemort?", "is wizardry real?"])
 
-    #Fastchat Usage
+    # Fastchat Usage
     config = ChatCompletionConfig()
     chat_completion = OAIChatCompletion(config)
     mistral_cc = chat_completion.multiturn_chat_completion(system_prompt=None, messages=["hello", "have you heard of voldemort?", "is wizardry real?"])
@@ -30,7 +29,7 @@ class ChatCompletionConfig:
 
 class ChatCompletion(ABC):
     @abstractmethod
-    def multiturn_chat_completion(self, messages: list[str]):
+    def multiturn_chat_completion(self, messages: List[str]):
         pass
 
 
@@ -54,8 +53,8 @@ class OAIChatCompletion(ChatCompletion):
         self.system_prompt = system_prompt
 
     def multiturn_chat_completion(
-        self, system_prompt=None, messages: list[str] = []
-    ) -> list[str]:
+        self, system_prompt=None, messages: List[str] = []
+    ) -> List[str]:
         self._init_conversation()
 
         if system_prompt is not None:

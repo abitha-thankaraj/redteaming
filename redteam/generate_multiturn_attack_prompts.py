@@ -10,8 +10,15 @@ from redteam.constants import PARENT_DIR, DATAGEN_CONFIG_DIR
 from redteam.utils.data_utils import write_json, read_json
 
 from redteam.data_generation.attack_prompts_dataset import get_dataset
-from redteam.chat_completion import ChatCompletion, ChatCompletionConfig, OAIChatCompletion
-from redteam.data_generation.mt_attack_prompts_parser import parse_multiturn_attack_prompt
+from redteam.chat_completion import (
+    ChatCompletion, 
+    ChatCompletionConfig,
+    OAIChatCompletion,
+)
+from redteam.data_generation.mt_attack_prompts_parser import (
+    parse_multiturn_attack_prompt,
+    is_valid_question,
+)
 from redteam.templates import GENERATE_MULTITURN_ATTACK_QUESTIONS_PROMPTS
 
 
@@ -57,17 +64,23 @@ def main(config: DictConfig):
             num_turns=config.num_turns,
         )
 
-        response = chat_completion.multiturn_chat_completion(
-            system_prompt=system_prompt, messages=[user_message]
-        )
+        all_valid_questions = False
+        while not all_valid_questions:
+            response = chat_completion.multiturn_chat_completion(
+                system_prompt=system_prompt, messages=[user_message]
+            )
+            all_questions = parse_multiturn_attack_prompt(
+                chat_completion_dict=response[-1],
+                num_turns=config.num_turns,
+            )
+            all_valid_questions = all([is_valid_question(question=all_questions[key]) for key in all_questions])
+
         attack_output_dict = {
             "goal": harmful_question,
             "response": response,
-            "questions": parse_multiturn_attack_prompt(
-                chat_completion_dict=response[-1],
-                num_turns=config.num_turns,
-            ),
+            "questions": all_questions,
         }
+
         all_multiturn_attacks.append(attack_output_dict)
 
         if i % 10 == 0:

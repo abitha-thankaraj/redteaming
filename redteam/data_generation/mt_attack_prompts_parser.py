@@ -1,5 +1,5 @@
 import re
-from typing import List, Dict
+from typing import List, Dict 
 
 
 def find_between(s, start_token, end_token):
@@ -19,6 +19,20 @@ def find_between(s, start_token, end_token):
     if result:
         return result.group(1)
     return ""
+
+
+def is_valid_question(question: str) -> bool:
+    """
+    Basic tests to check if a question has valid formatting.
+    Keep adding in case other type checks come up.
+    """
+    if question == "":
+        return False
+    
+    if question[0] == "[" or question[-1] == "]":
+        return False
+    
+    return True
 
 
 def parse_multiturn_attack_prompt(
