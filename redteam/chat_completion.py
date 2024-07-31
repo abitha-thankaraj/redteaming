@@ -7,6 +7,20 @@ import openai
 from openai import OpenAI
 from fastchat.model import get_conversation_template
 
+"""
+    #OAI Usage
+    oai_config = ChatCompletionConfig(model="gpt-3.5-turbo")
+    oai_chat_completion = OAIChatCompletion(oai_config)
+    oai_cc = oai_chat_completion.multiturn_chat_completion(system_prompt=None, messages=["hello", "have you heard of voldemort?", "is wizardry real?"])
+
+    #Fastchat Usage
+    config = ChatCompletionConfig()
+    chat_completion = OAIChatCompletion(config)
+    mistral_cc = chat_completion.multiturn_chat_completion(system_prompt=None, messages=["hello", "have you heard of voldemort?", "is wizardry real?"])
+
+"""
+
+
 @dataclass
 class ChatCompletionConfig:
     url: str = "http://localhost:8003/v1/"
@@ -62,18 +76,3 @@ class OAIChatCompletion(ChatCompletion):
     
 
 
-if __name__ == "__main__":
-    pass
-
-    # #OAI Usage
-    # oai_config = ChatCompletionConfig(model="gpt-3.5-turbo")
-    # oai_chat_completion = OAIChatCompletion(oai_config)
-    # oai_cc = oai_chat_completion.multiturn_chat_completion(system_prompt=None, messages=["hello", "have you heard of voldemort?", "is wizardry real?"])
-
-    # #Fastchat Usage
-    # config = ChatCompletionConfig()
-    # chat_completion = OAIChatCompletion(config)
-    # mistral_cc = chat_completion.multiturn_chat_completion(system_prompt=None, messages=["hello", "have you heard of voldemort?", "is wizardry real?"])
-
-
-    # from IPython import embed; embed()
