@@ -9,9 +9,9 @@ from tqdm import tqdm
 from redteam.constants import PARENT_DIR
 from redteam.utils.data_utils import write_json, read_json
 
-from redteam.data_generation_pipeline.attack_prompts_dataset import get_dataset
+from redteam.data_generation.attack_prompts_dataset import get_dataset
 from redteam.chat_completion import ChatCompletion, ChatCompletionConfig
-from redteam.data_generation_pipeline.mt_attack_prompts_parser import parse_multiturn_attack_prompt
+from redteam.data_generation.mt_attack_prompts_parser import parse_multiturn_attack_prompt
 
 
 @hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/redteam/data_generation_pipeline/config", config_name="config")
