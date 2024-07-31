@@ -9,7 +9,7 @@ from tqdm import tqdm
 from redteam.constants import PARENT_DIR, DATAGEN_CONFIG_DIR
 from redteam.utils.data_utils import write_json, read_json
 
-from redteam.chat_completion import ChatCompletionConfig, OAIChatCompletion
+from redteam.common.chat_completion import ChatCompletionConfig, OAIChatCompletion
 
 @hydra.main(version_base=None, config_path=DATAGEN_CONFIG_DIR, config_name="evaluate_multiturn_config")
 def main(config: DictConfig):

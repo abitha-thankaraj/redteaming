@@ -8,9 +8,9 @@ import datetime
 from tqdm import tqdm
 from redteam.constants import PARENT_DIR, DATAGEN_CONFIG_DIR
 from redteam.utils.data_utils import write_json, read_json
-from redteam.templates import MULTITURN_CONVERSATION_JUDGE_PROMPTS
+from redteam.data_generation.templates import MULTITURN_CONVERSATION_JUDGE_PROMPTS
 
-from redteam.chat_completion import ChatCompletionConfig, OAIChatCompletion
+from redteam.common.chat_completion import ChatCompletionConfig, OAIChatCompletion
 
 @hydra.main(version_base=None, config_path=DATAGEN_CONFIG_DIR, config_name="judge_multiturn_conversation_config")
 def main(config: DictConfig):
