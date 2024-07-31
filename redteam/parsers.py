@@ -1,5 +1,5 @@
 import re
-from typing import List, Dict 
+from typing import List, Dict
 
 
 def find_between(s, start_token, end_token):
@@ -28,10 +28,10 @@ def is_valid_question(question: str) -> bool:
     """
     if question == "":
         return False
-    
+
     if question[0] == "[" or question[-1] == "]":
         return False
-    
+
     return True
 
 

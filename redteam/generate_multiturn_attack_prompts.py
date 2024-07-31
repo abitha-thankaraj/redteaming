@@ -70,7 +70,9 @@ def main(config: DictConfig):
                     chat_completion_dict=response[-1],
                     num_turns=config.num_turns,
                 )
-                all_valid_questions = all([is_valid_question(question=all_questions[key]) for key in all_questions])
+                all_valid_questions = all(
+                    [is_valid_question(question=all_questions[key]) for key in all_questions]
+                )
 
             attack_output_dict = {
                 "goal": harmful_question,
