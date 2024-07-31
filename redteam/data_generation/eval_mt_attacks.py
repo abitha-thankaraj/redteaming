@@ -11,39 +11,48 @@ from redteam.utils.data_utils import write_json, read_json
 
 # from redteam.data_generation_pipeline.attack_prompts_dataset import get_dataset
 from redteam.chat_completion import ChatCompletion, ChatCompletionConfig
+
 # from redteam.data_generation_pipeline.mt_attack_prompts_parser import parse_multiturn_attack_prompt
 
 
-@hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/redteam/data_generation_pipeline/config", config_name="config")
+@hydra.main(
+    version_base=None,
+    config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/redteam/data_generation_pipeline/config",
+    config_name="config",
+)
 def main(config: DictConfig):
     """
     Main entry point for running question generation.
     Follows the method of this paper: Leveraging the Context through Multi-Round Interactions for Jailbreaking Attacks (https://arxiv.org/abs/2402.09177)
     """
-    config.repo_dir=PARENT_DIR
+    config.repo_dir = PARENT_DIR
     OmegaConf.resolve(config)
     np.random.seed(config.seed)
 
     missing_keys: Set[str] = OmegaConf.missing_keys(config)
     if missing_keys:
         raise ValueError(f"Got missing keys in config:\n{missing_keys}")
-    
+
     chat_completion = ChatCompletion(ChatCompletionConfig(**config.chat_completion))
-    mt_attacks = read_json("/data/tir/projects/tir7/user_data/athankar/redteaming/data/gen_multiturn_prompts/harmbench/Mistral-7B-Instruct-v0.1/Mistral-7B-Instruct-v0.1_harmbench_generated_multiturn_prompts_20240728142013_390.json")
+    mt_attacks = read_json(
+        "/data/tir/projects/tir7/user_data/athankar/redteaming/data/gen_multiturn_prompts/harmbench/Mistral-7B-Instruct-v0.1/Mistral-7B-Instruct-v0.1_harmbench_generated_multiturn_prompts_20240728142013_390.json"
+    )
 
     attack_response_pairs = []
     for i in range(len(mt_attacks)):
         attack = mt_attacks[i]
         # Get questions
-        questions = [attack["questions"][f"Question {i}"] for i in range(1, config.num_turns+1)]
+        questions = [
+            attack["questions"][f"Question {i}"] for i in range(1, config.num_turns + 1)
+        ]
         attack["response"] = chat_completion.multiturn_chat_completion(questions)
 
         attack_response_pairs.append(attack)
-        
-        from IPython import embed; embed()
+
+        from IPython import embed
+
+        embed()
         # write_json(attack_response_pairs, config.save_file)
-
-
 
     # in_context_example_prompts = read_json(config.in_context_examples_fname)["in_context_examples"]
     # harmful_questions_dataset = get_dataset(**config.dataset_configs.harmbench)
@@ -71,6 +80,7 @@ def main(config: DictConfig):
 
     # os.makedirs(config.out_dir, exist_ok=True)
     # write_json(all_multiturn_attacks, config.save_file)
+
 
 if __name__ == "__main__":
     main()

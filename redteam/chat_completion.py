@@ -25,24 +25,25 @@ from fastchat.model import get_conversation_template
 class ChatCompletionConfig:
     url: str = "http://localhost:8003/v1/"
     model: str = "Mistral-7B-Instruct-v0.1"
-    temperature: float = 1.
+    temperature: float = 1.0
 
 
-class ChatCompletion(ABC):    
+class ChatCompletion(ABC):
     @abstractmethod
     def multiturn_chat_completion(self, messages: list[str]):
         pass
+
 
 class OAIChatCompletion(ChatCompletion):
     def __init__(self, config) -> None:
         self.config = config
         if config.model.startswith("gpt"):
             openai.api_key = os.getenv("OAI_KEY")
-            openai.base_url = None #OpenAI API completion
+            openai.base_url = None  # OpenAI API completion
         else:
             openai.api_key = "EMPTY"
-            openai.base_url = config.url #Local Fastchat server completion
-        
+            openai.base_url = config.url  # Local Fastchat server completion
+
         self.system_prompt = None
         self._init_conversation()
 
@@ -51,28 +52,26 @@ class OAIChatCompletion(ChatCompletion):
 
     def set_system_prompt(self, system_prompt):
         self.system_prompt = system_prompt
-    
-    def multiturn_chat_completion(self, system_prompt = None, messages: list[str]=[]) -> list[str]:
-        
+
+    def multiturn_chat_completion(
+        self, system_prompt=None, messages: list[str] = []
+    ) -> list[str]:
         self._init_conversation()
-    
+
         if system_prompt is not None:
             self.conv.set_system_message(system_prompt)
-        elif self.system_prompt is not None: #Preset for a batch of messages
+        elif self.system_prompt is not None:  # Preset for a batch of messages
             self.conv.set_system_message(self.system_prompt)
 
         for message in messages:
-            self.conv.append_message(role = "user", message = message)
+            self.conv.append_message(role="user", message=message)
 
             res = openai.chat.completions.create(
-                model=self.config.model, 
+                model=self.config.model,
                 messages=self.conv.to_openai_api_messages(),
-                temperature=self.config.temperature
-                )
+                temperature=self.config.temperature,
+            )
 
-            self.conv.append_message(role = "assistant", message = res.choices[0].message.content)
-        
+            self.conv.append_message(role="assistant", message=res.choices[0].message.content)
+
         return self.conv.to_openai_api_messages()
-    
-
-

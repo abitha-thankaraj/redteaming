@@ -13,10 +13,10 @@ def get_openai_redteaming_dataset(dataset_path: str) -> ArrowDataset:
             print(dataset[i]['prompt'])
     """
     return load_dataset(
-        "json", 
-        data_files=dataset_path, 
-        field="Questions", 
-        split='train',
+        "json",
+        data_files=dataset_path,
+        field="Questions",
+        split="train",
     )
 
 
@@ -32,8 +32,8 @@ def get_harmbench_dataset(dataset_path: str) -> ArrowDataset:
             print(dataset[i]['prompt'])
     """
     return load_dataset(
-        "csv", 
-        data_files=dataset_path, 
+        "csv",
+        data_files=dataset_path,
         split="train",
     ).rename_column("Behavior", "prompt")
 
@@ -49,11 +49,9 @@ def get_advbench_dataset(dataset_path: str) -> ArrowDataset:
         for i in range(len(dataset)):
             print(dataset[i]['prompt'])
     """
-    return load_dataset(
-        "csv",
-        data_files=dataset_path,
-        split="train"
-    ).rename_column("goal", "prompt")
+    return load_dataset("csv", data_files=dataset_path, split="train").rename_column(
+        "goal", "prompt"
+    )
 
 
 def get_dataset(
