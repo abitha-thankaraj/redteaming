@@ -46,7 +46,7 @@ def main(config: DictConfig):
 
         user_message = user_message_template.format(in_context_examples = in_context_example, goal = harmful_question, num_turns = config.num_turns)   
 
-        response = chat_completion.multiturn_chat_completion(system_prompt=None, messages=[user_message])
+        response = chat_completion.multiturn_chat_completion(system_prompt=system_prompt, messages=[user_message])
         attack_output_dict = {
             "goal": harmful_question,
             "response": response,
