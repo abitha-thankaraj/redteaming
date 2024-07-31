@@ -1,6 +1,9 @@
 import os
 
 PARENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+DATAGEN_CONFIG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
+
 DATA_DIR = os.path.join(PARENT_DIR, 'data')
 SCRIPTS_DIR = os.path.join(PARENT_DIR, 'scripts')
 
