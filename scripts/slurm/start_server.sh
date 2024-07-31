@@ -15,5 +15,5 @@
 model="mistralai/Mistral-7B-Instruct-v0.1"
 port=8003
 
-cd /data/tir/projects/tir7/user_data/athankar/redteaming/scripts
+cd /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/slurm
 ./deploy_api.sh $model $port

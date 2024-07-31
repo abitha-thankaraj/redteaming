@@ -7,6 +7,7 @@ import json
 class ChatCompletionConfig:
     url: str = "http://localhost:8003/v1/chat/completions"
     model: str = "Mistral-7B-Instruct-v0.1"
+    temperature: float = 0.7
 
 
 class ChatCompletion:
