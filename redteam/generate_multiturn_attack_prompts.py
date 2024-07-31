@@ -57,11 +57,12 @@ def main(config: DictConfig):
         }
         all_multiturn_attacks.append(attack_output_dict)
 
-        if i%10 == 0:
+        if i%2 == 0:
             os.makedirs(config.out_dir, exist_ok=True)
             write_json(all_multiturn_attacks, config.save_file)
-    
+
     write_json(all_multiturn_attacks, config.save_file)
+
 
 
 if __name__ == "__main__":
