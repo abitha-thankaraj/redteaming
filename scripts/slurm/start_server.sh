@@ -17,3 +17,9 @@ port=8003
 
 cd /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/slurm
 ./deploy_api.sh $model $port
+sleep 500
+
+source ~/.bashrc
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate redteam
+python /data/tir/projects/tir7/user_data/athankar/redteaming/redteam/data_generation/evaluate_multiturn_attacks.py
