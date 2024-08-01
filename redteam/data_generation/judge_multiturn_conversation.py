@@ -6,11 +6,24 @@ from omegaconf import OmegaConf, DictConfig
 from typing import Set
 import datetime
 from tqdm import tqdm
-from redteam.constants import PARENT_DIR, DATAGEN_CONFIG_DIR
-from redteam.utils.data_utils import write_json, read_json
-from redteam.data_generation.templates import MULTITURN_CONVERSATION_JUDGE_PROMPTS
 
-from redteam.common.chat_completion import ChatCompletionConfig, OAIChatCompletion
+from redteam.constants import (
+    PARENT_DIR, 
+    DATAGEN_CONFIG_DIR,
+)
+from redteam.utils.data_utils import (
+    write_json, 
+    read_json,
+)
+from redteam.data_generation.templates import MULTITURN_CONVERSATION_JUDGE_PROMPTS
+from redteam.common.chat_completion import (
+    ChatCompletionConfig, 
+    OAIChatCompletion,
+)
+from redteam.data_generation.parsers import (
+    parse_llm_judge_evaluation,
+    is_valid_llm_judge_trace,
+)
 
 
 @hydra.main(
@@ -41,7 +54,6 @@ def main(config: DictConfig):
     user_template = MULTITURN_CONVERSATION_JUDGE_PROMPTS[config.chat_completion.model][
         "user_template"
     ]
-    # No system prompt for evals
 
     multiturn_conversations = read_json(config.multiturn_conversations_fname)
 
@@ -55,11 +67,23 @@ def main(config: DictConfig):
                 conversation=multiturn_conversation["conversation"],
             )
         ]
-        response = chat_completion.multiturn_chat_completion(
-            system_prompt=system_prompt, messages=messages
-        )
 
-        all_multiturn_judgements.append(response)
+        valid_judge_response = False
+        while not valid_judge_response:
+            response = chat_completion.multiturn_chat_completion(
+                system_prompt=system_prompt, messages=messages
+            )
+            llm_judge_trace = parse_llm_judge_evaluation(
+                chat_completion_dict=response[-1],
+            )
+            valid_judge_response = is_valid_llm_judge_trace(
+                llm_judge_trace=llm_judge_trace,
+            )
+        
+        output_dict = {key: llm_judge_trace[key] for key in llm_judge_trace}
+        output_dict["conversation"] = response
+
+        all_multiturn_judgements.append(output_dict)
 
         if i % 2 == 0:
             write_json(all_multiturn_judgements, config.save_file)
