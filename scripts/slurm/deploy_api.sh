@@ -15,6 +15,6 @@ export LOGDIR="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/log
 # Starting the controller
 python3 -m fastchat.serve.controller &
 # Starting the model worker with the specified model path
-python3 -m fastchat.serve.model_worker --model-path mistralai/Mistral-7B-Instruct-v0.1 &
+python3 -m fastchat.serve.model_worker --model-path $1 &
 
-python3 -m fastchat.serve.openai_api_server --host 0.0.0.0 --port 8003
+python3 -m fastchat.serve.openai_api_server --host 0.0.0.0 --port $2

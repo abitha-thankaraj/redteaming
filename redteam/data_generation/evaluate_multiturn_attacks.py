@@ -11,6 +11,11 @@ from redteam.utils.data_utils import write_json, read_json
 
 from redteam.common.chat_completion import ChatCompletionConfig, OAIChatCompletion
 
+def rename_savefile(save_file, input_file):
+    input_file = input_file.split("/")[-1]
+    save_file = save_file.replace(".json",f"_input_{input_file}")
+    return save_file
+
 
 @hydra.main(
     version_base=None, config_path=DATAGEN_CONFIG_DIR, config_name="evaluate_multiturn_config"
@@ -28,6 +33,9 @@ def main(config: DictConfig):
     if missing_keys:
         raise ValueError(f"Got missing keys in config:\n{missing_keys}")
     os.makedirs(config.out_dir, exist_ok=True)
+    
+    # rename so that we know what input file was used
+    config.save_file = rename_savefile(config.save_file, config.multiturn_generated_attack_prompts_fname)
 
     chat_completion = OAIChatCompletion(ChatCompletionConfig(**config.chat_completion))
     # No system prompt for evals
@@ -49,9 +57,8 @@ def main(config: DictConfig):
         }
         all_multiturn_attacks.append(attack_output_dict)
 
-        if i % 2 == 0:
+        if i % 10 == 0:
             write_json(all_multiturn_attacks, config.save_file)
-
     write_json(all_multiturn_attacks, config.save_file)
 
 

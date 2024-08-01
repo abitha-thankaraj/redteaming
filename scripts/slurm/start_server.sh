@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=launch_server
+#SBATCH --job-name=llama
 #SBATCH --output=/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/slurm/%A_%a.out
 #SBATCH --error=/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/slurm/%A_%a.err
 #SBATCH --time=23:00:00
@@ -12,7 +12,7 @@
 #SBATCH --mail-type=END,FAIL
 
 
-model="mistralai/Mistral-7B-Instruct-v0.1"
+model="meta-llama/Meta-Llama-3.1-8B-Instruct"
 port=8003
 
 cd /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/slurm

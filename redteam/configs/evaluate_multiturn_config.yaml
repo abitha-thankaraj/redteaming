@@ -1,5 +1,7 @@
-# /data/tir/projects/tir7/user_data/athankar/redteaming/data/gen_multiturn_prompts/gpt-3.5-turbo-0125_harmbench_generated_multiturn_prompts_15-52-1722455570.json
 
+defaults:
+  - _self_
+  - chat_completion: ???
 
 seed: 69
 
@@ -8,12 +10,13 @@ repo_dir: ???
 data_dir: /data/group_data/rl/datasets/redteaming
 
 
-chat_completion:
-  url: http://localhost:8003/v1/
-  model: Mistral-7B-Instruct-v0.1
-  temperature: 0.7
+# chat_completion:
+#   url: http://localhost:8003/v1/
+#   model: Mistral-7B-Instruct-v0.1
+#   temperature: 0.7
 
-multiturn_generated_attack_prompts_fname: ${data_dir}/gen_multiturn_prompts/gpt-3.5-turbo-0125_harmbench_generated_multiturn_prompts_15-52-1722455570.json
+multiturn_generated_attack_prompts_fname: ???
+# ${data_dir}/gen_multiturn_prompts/gpt-3.5-turbo-0125_harmbench_generated_multiturn_prompts_15-52-1722455570.json
 
 # directory to save the generated multiturn prompts
 # For now we try only harmbench

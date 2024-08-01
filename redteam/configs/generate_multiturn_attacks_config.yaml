@@ -1,22 +1,21 @@
+
+defaults:
+  - _self_
+  - dataset_configs: ???
+  - chat_completion: gpt-3.5-turbo-0125
+
 seed: 69
 
 # Dirs
 repo_dir: ???
 data_dir: /data/group_data/rl/datasets/redteaming
 
-chat_completion:
-  url: None
-  model: gpt-3.5-turbo-0125
-  temperature: 1.0
 
 
 in_context_examples_fname: ${data_dir}/cfg_multiturn_generation_prompts/json_files/in_context_examples_mistral.json
 # prompt configs
 num_turns: 3
 
-defaults:
-- _self_
-- dataset_configs: ???
 
 # directory to save the generated multiturn prompts
 # For now we try only harmbench
