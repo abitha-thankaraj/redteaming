@@ -1,6 +1,8 @@
 #!/bin/bash
 
 #SBATCH --job-name=mistral_$SLURM_ARRAY_TASK_ID
+#SBATCH --output=/home/athankar/slurm/%A_%a.out
+#SBATCH --error=/home/athankar/slurm/%A_%a.err
 #SBATCH --time=6:00:00
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=16G
@@ -19,7 +21,10 @@ FILES=($(find $HARMBENCH_DIR $OPENAI_DIR -type f -name "*.json"))
 
 # Variables
 FAST_CHAT_MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.1";
-FAST_CHAT_API_PORT=8003;
+FAST_CHAT_API_PORT=$((9003 + SLURM_ARRAY_TASK_ID))
+CONTROLLER_PORT=$((23000 + SLURM_ARRAY_TASK_ID))
+WORKER_PORT=$((24000 + SLURM_ARRAY_TASK_ID))
+
 REPO_DIR="/data/tir/projects/tir7/user_data/athankar/redteaming"; #TODO: FAHIM
 CHAT_COMPLETION_MODEL="mistral-7b-instruct-v0.1.yaml";
 
@@ -27,4 +32,4 @@ CHAT_COMPLETION_MODEL="mistral-7b-instruct-v0.1.yaml";
 cd $REPO_DIR/scripts/slurm/
 
 # Deploy and infer
-./deploy_and_infer_ft.sh $FAST_CHAT_MODEL_PATH $FAST_CHAT_API_PORT $REPO_DIR $CHAT_COMPLETION_MODEL "${FILES[$SLURM_ARRAY_TASK_ID]}"
+./deploy_and_infer_ft.sh $FAST_CHAT_MODEL_PATH $FAST_CHAT_API_PORT $REPO_DIR $CHAT_COMPLETION_MODEL "${FILES[$SLURM_ARRAY_TASK_ID]}" $CONTROLLER_PORT $WORKER_PORT
