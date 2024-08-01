@@ -1,0 +1,2 @@
+dataset_name: harmbench
+dataset_path: /data/group_data/rl/datasets/redteaming/cfg_multiturn_generation_prompts/csv_files/harmbench_behaviors_text_all.csv

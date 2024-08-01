@@ -1,0 +1,2 @@
+dataset_name: advbench
+dataset_path: /data/group_data/rl/datasets/redteaming/cfg_multiturn_generation_prompts/csv_files/advbench_harmful_behavior.csv

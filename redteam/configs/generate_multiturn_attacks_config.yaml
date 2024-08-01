@@ -7,24 +7,18 @@ data_dir: /data/group_data/rl/datasets/redteaming
 chat_completion:
   url: None
   model: gpt-3.5-turbo-0125
-  temperature: 1.
+  temperature: 1.0
 
 
 in_context_examples_fname: ${data_dir}/cfg_multiturn_generation_prompts/json_files/in_context_examples_mistral.json
 # prompt configs
 num_turns: 3
 
-dataset_configs:
-  
-  harmbench:
-    dataset_name: harmbench
-    dataset_path: ${data_dir}/cfg_multiturn_generation_prompts/csv_files/harmbench_behaviors_text_all.csv
-
-  openai:
-    dataset_name: openai
-    dataset_path: ${data_dir}/cfg_multiturn_generation_prompts/json_files/gpt4_redteaming_questions.json
+defaults:
+- _self_
+- dataset_configs: ???
 
 # directory to save the generated multiturn prompts
 # For now we try only harmbench
 out_dir: ${data_dir}/gen_multiturn_prompts
-save_file : ${out_dir}/${chat_completion.model}_${dataset_configs.harmbench.dataset_name}_generated_multiturn_prompts_${now:%H-%M-%s}.json 
+save_file : ${out_dir}/${chat_completion.model}_${dataset_configs.dataset_name}_generated_multiturn_prompts_${now:%H-%M-%s}.json 

@@ -1,0 +1,2 @@
+dataset_name: openai
+dataset_path: /data/group_data/rl/datasets/redteaming/cfg_multiturn_generation_prompts/json_files/gpt4_redteaming_questions.json
