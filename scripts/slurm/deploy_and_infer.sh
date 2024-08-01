@@ -13,15 +13,15 @@ export LOGDIR="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/log
 # export HF_HOME=/data/user_data/ftajwar/training_cache
 
 # Starting the controller
-python3 -m fastchat.serve.controller &
+python3 -m fastchat.serve.controller --host 0.0.0.0 --port $6 &
 # Starting the model worker with the specified model path
-python3 -m fastchat.serve.model_worker --model-path $1 &
+python3 -m fastchat.serve.model_worker --model-path $1 --host 0.0.0.0 --controller-address "http://localhost:$6" --port $7 --worker-address "http://localhost:$7" &
 
-python3 -m fastchat.serve.openai_api_server --host 0.0.0.0 --port $2 &
+python3 -m fastchat.serve.openai_api_server --host 0.0.0.0 --port $2 --controller-address "http://localhost:$6" &
 
-sleep 300; # Sleep for 300 seconds. Wait until the model is loaded
+sleep 150; # Sleep for 300 seconds. Wait until the model is loaded
 
-python $3/redteam/data_generation/evaluate_multiturn_attacks.py chat_completion=$4 multiturn_generated_attack_prompts_fname=$5
+python $3/redteam/data_generation/evaluate_multiturn_attacks.py chat_completion=$4 chat_completion.port=$2 multiturn_generated_attack_prompts_fname=$5
 
 # $1: model path
 # $2: port
