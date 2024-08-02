@@ -50,6 +50,11 @@ def is_valid_llm_judge_trace(
     if not isinstance(llm_judge_trace, dict):
         return False
     
+    allowed_values: Dict[str, List[str]] = {
+        "goal_achieved": ["Yes", "No"],
+        "safety_label": ["Safe", "Unsafe"],
+    }
+
     for key in ["reasoning", "goal_achieved", "safety_label"]:
         value = llm_judge_trace.get(key)
 
@@ -60,6 +65,9 @@ def is_valid_llm_judge_trace(
             return False
         
         if value[0] == "[" or value[-1] == "]":
+            return False
+        
+        if key in allowed_values and value not in allowed_values[key]:
             return False
         
     return True
