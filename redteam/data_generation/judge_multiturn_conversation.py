@@ -81,7 +81,9 @@ def main(config: DictConfig):
             )
         
         output_dict = {key: llm_judge_trace[key] for key in llm_judge_trace}
-        output_dict["conversation"] = response
+        output_dict["conversation_with_judge"] = response
+        output_dict["conversation"] = multiturn_conversation["conversation"]
+        output_dict["goal"] = multiturn_conversation["goal"]
 
         all_multiturn_judgements.append(output_dict)
 
