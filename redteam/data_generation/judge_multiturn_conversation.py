@@ -87,7 +87,7 @@ def main(config: DictConfig):
 
         all_multiturn_judgements.append(output_dict)
 
-        if i % 2 == 0:
+        if i % 10 == 0:
             write_json(all_multiturn_judgements, config.save_file)
 
     write_json(all_multiturn_judgements, config.save_file)
