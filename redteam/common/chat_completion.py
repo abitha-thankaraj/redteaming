@@ -21,6 +21,7 @@ from fastchat.model import get_conversation_template
 
 @dataclass
 class ChatCompletionConfig:
+    port:int = 8003
     url: str = "http://localhost:8003/v1/"
     model: str = "Mistral-7B-Instruct-v0.1"
     temperature: float = 1.0

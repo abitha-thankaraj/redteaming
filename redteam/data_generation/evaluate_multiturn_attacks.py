@@ -32,10 +32,10 @@ def main(config: DictConfig):
     missing_keys: Set[str] = OmegaConf.missing_keys(config)
     if missing_keys:
         raise ValueError(f"Got missing keys in config:\n{missing_keys}")
-    os.makedirs(config.out_dir, exist_ok=True)
     
     # rename so that we know what input file was used
     config.save_file = rename_savefile(config.save_file, config.multiturn_generated_attack_prompts_fname)
+    print(config)
 
     chat_completion = OAIChatCompletion(ChatCompletionConfig(**config.chat_completion))
     # No system prompt for evals
