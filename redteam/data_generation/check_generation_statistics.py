@@ -53,7 +53,8 @@ def collate_statistics(root_dir: str) -> None:
         },
     }
 
-    all_files = find_all_files(root_dir=root_dir)
+    all_files = find_all_files(root_dir=root_dir, file_suffix=".json")
+    print(all_files)
     for filename in all_files:
         stats = get_statistics(filename=filename)
         for key in stats["counter"]:
