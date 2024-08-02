@@ -46,11 +46,9 @@ def find_all_files(
 
     all_files = []
     for sub_file_or_dir in all_sub_file_or_dirs:
-        if os.path.isfile(sub_file_or_dir):
-            print(sub_file_or_dir)
-            print(sub_file_or_dir.endswith(file_suffix))
-            if file_suffix is None or sub_file_or_dir.endswith(file_suffix):
-                absolute_path = os.path.join(root_dir, sub_file_or_dir)
+        absolute_path = os.path.join(root_dir, sub_file_or_dir)
+        if os.path.isfile(absolute_path):
+            if file_suffix is None or absolute_path.endswith(file_suffix):
                 all_files.append(absolute_path)
 
     return all_files
