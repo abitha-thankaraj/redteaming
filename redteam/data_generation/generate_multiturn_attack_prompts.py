@@ -18,10 +18,6 @@ from redteam.data_generation.parsers import (
 )
 from redteam.data_generation.templates import GENERATE_MULTITURN_ATTACK_QUESTIONS_PROMPTS
 
-def rename_savefile(save_file, input_file):
-    input_file = input_file.split("/")[-1]
-    save_file = save_file.replace(".json",f"_input_{input_file}")
-    return save_file
 
 @hydra.main(
     version_base=None,
@@ -42,7 +38,6 @@ def main(config: DictConfig):
     if missing_keys:
         raise ValueError(f"Got missing keys in config:\n{missing_keys}")
     
-    config.save_file = rename_savefile(config.save_file, config.multiturn_conversations_fname)
 
     chat_completion = OAIChatCompletion(ChatCompletionConfig(**config.chat_completion))
     system_prompt = GENERATE_MULTITURN_ATTACK_QUESTIONS_PROMPTS[config.chat_completion.model][
