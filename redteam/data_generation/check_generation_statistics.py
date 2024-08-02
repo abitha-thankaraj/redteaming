@@ -59,7 +59,7 @@ def collate_statistics(root_dir: str) -> None:
         for key in stats["counter"]:
             collated_stats[stats["model_name"]]["stats"][key] += stats["counter"][key]
 
-    print(collate_statistics)
+    print(collated_stats)
 
 
 def main():
