@@ -113,7 +113,8 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: st
 #     return conversations, conv
 
 def apply_prompt_template(sources, template_id, systems=None):
-    conv = get_conversation_template(template_id)
+    conv = get_conversation_template(template_id)\
+    # Changed this to match nthe oai format we store data in
     roles = {"user": conv.roles[0], "assistant": conv.roles[1]}
     conversations = []
     for i, source in enumerate(sources):
