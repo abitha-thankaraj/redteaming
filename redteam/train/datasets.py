@@ -8,15 +8,16 @@ from fastchat.model.model_adapter import get_conversation_template
 
 
 class MultiturnDataset(Dataset):
-    def __init__(self, data_dir:str, agent_type:str):
+    def __init__(self, data_dir: str, agent_type: str):
         self.conversations = get_conversations(data_dir, agent_type)
-        #TODO: Add mask logic here
-    
+        # TODO: Add mask logic here
+
     def __len__(self):
         return len(self.conversations)
-    
+
     def __getitem__(self, idx):
         return self.conversations[idx]
+
 
 def get_conversations(data_dir: str, agent_type: str) -> List[Dict]:
     # if is directory, read all files in the directory
@@ -28,6 +29,7 @@ def get_conversations(data_dir: str, agent_type: str) -> List[Dict]:
         data = read_json(data_dir)
 
     return filter_messages(data, agent_type)
+
 
 def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
     """
