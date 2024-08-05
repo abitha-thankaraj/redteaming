@@ -37,7 +37,6 @@ def main(config: DictConfig):
     missing_keys: Set[str] = OmegaConf.missing_keys(config)
     if missing_keys:
         raise ValueError(f"Got missing keys in config:\n{missing_keys}")
-    
 
     chat_completion = OAIChatCompletion(ChatCompletionConfig(**config.chat_completion))
     system_prompt = GENERATE_MULTITURN_ATTACK_QUESTIONS_PROMPTS[config.chat_completion.model][
@@ -76,7 +75,9 @@ def main(config: DictConfig):
                     chat_completion_dict=response[-1],
                     num_turns=config.num_turns,
                 )
-                all_valid_questions = all([is_valid_question(question=all_questions[key]) for key in all_questions])
+                all_valid_questions = all(
+                    [is_valid_question(question=all_questions[key]) for key in all_questions]
+                )
 
             attack_output_dict = {
                 "goal": harmful_question,

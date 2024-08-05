@@ -8,16 +8,16 @@ import datetime
 from tqdm import tqdm
 
 from redteam.constants import (
-    PARENT_DIR, 
+    PARENT_DIR,
     DATAGEN_CONFIG_DIR,
 )
 from redteam.utils.data_utils import (
-    write_json, 
+    write_json,
     read_json,
 )
 from redteam.data_generation.templates import MULTITURN_CONVERSATION_JUDGE_PROMPTS
 from redteam.common.chat_completion import (
-    ChatCompletionConfig, 
+    ChatCompletionConfig,
     OAIChatCompletion,
 )
 from redteam.data_generation.parsers import (
@@ -25,10 +25,12 @@ from redteam.data_generation.parsers import (
     is_valid_llm_judge_trace,
 )
 
+
 def rename_savefile(save_file, input_file):
     input_file = input_file.split("/")[-1]
-    save_file = save_file.replace(".json",f"_input_{input_file}")
+    save_file = save_file.replace(".json", f"_input_{input_file}")
     return save_file
+
 
 @hydra.main(
     version_base=None,
@@ -84,7 +86,7 @@ def main(config: DictConfig):
             valid_judge_response = is_valid_llm_judge_trace(
                 llm_judge_trace=llm_judge_trace,
             )
-        
+
         output_dict = {key: llm_judge_trace[key] for key in llm_judge_trace}
         output_dict["conversation_with_judge"] = response
         output_dict["conversation"] = multiturn_conversation["conversation"]
