@@ -1,19 +1,5 @@
 from redteam.utils.data_utils import read_json
 
-
-
-def load_conversations(fname, keys_to_keep):
-    data = read_json(fname)
-    filtered_data = list(map(lambda d: {k: d[k] for k in keys_to_keep if k in d}, data))
-    conversations = list(map(lambda d: d["conversation"], filtered_data))
-
-    # convert conversations to template
-    
-    return conversations
-
-
-    
-
 # This code is based on tatsu-lab/stanford_alpaca. Below is the original copyright:
 #
 #    Copyright 2023 Rohan Taori, Ishaan Gulrajani, Tianyi Zhang, Yann Dubois, Xuechen Li
@@ -91,26 +77,6 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: st
         cpu_state_dict = {key: value.cpu() for key, value in state_dict.items()}
         del state_dict
         trainer._save(output_dir, state_dict=cpu_state_dict)  # noqa
-
-
-# def apply_prompt_template(sources, template_id, systems=None):
-#     conv = get_conversation_template(template_id)
-#     roles = {"human": conv.roles[0], "gpt": conv.roles[1]}
-#     conversations = []
-#     for i, source in enumerate(sources):
-#         if roles[source[0]["from"]] != conv.roles[0]:
-#             source = source[1:]
-
-#         conv.messages = []
-#         for j, sentence in enumerate(source):
-#             role = roles[sentence["from"]]
-#             assert role == conv.roles[j % 2], f"{i}"
-#             conv.append_message(role, sentence["value"])
-#         if systems and systems[i]:
-#             conv.set_system_message(systems[i])
-#         prompt = conv.get_prompt()
-#         conversations.append(prompt)
-#     return conversations, conv
 
 def apply_prompt_template(sources, template_id, systems=None):
     conv = get_conversation_template(template_id)
