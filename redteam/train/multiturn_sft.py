@@ -113,14 +113,14 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: st
 #     return conversations, conv
 
 def apply_prompt_template(sources, template_id, systems=None):
-    conv = get_conversation_template(template_id)\
-    # Changed this to match nthe oai format we store data in
+    conv = get_conversation_template(template_id)
+    # Changed this to match the oai format we store data in
     roles = {"user": conv.roles[0], "assistant": conv.roles[1]}
+
     conversations = []
     for i, source in enumerate(sources):
         if roles[source[0]["role"]] != conv.roles[0]:
             source = source[1:]
-
         conv.messages = []
         for j, sentence in enumerate(source):
             role = roles[sentence["role"]]
@@ -139,45 +139,28 @@ def tokenize_conversations(conversations, tokenizer):
         padding="max_length",
         max_length=tokenizer.model_max_length,
         truncation=True,
+        add_special_tokens=False,
     ).input_ids
     targets = input_ids.clone()
     return input_ids, targets
 
 
 def get_prompt_separator(conv):
-    if conv.sep_style == SeparatorStyle.ADD_COLON_SINGLE:
-        user_turn_separator = conv.sep2
-        assistant_turn_separator = conv.roles[1] + ": "
-
-    elif conv.sep_style == SeparatorStyle.ADD_COLON_TWO:
-        user_turn_separator = conv.sep2
-        assistant_turn_separator = conv.roles[1] + ": "
-
-    elif conv.sep_style == SeparatorStyle.ADD_COLON_SPACE_SINGLE:
-        if conv.sep2 is None:
-            user_turn_separator = conv.roles[0] + ": "
-        else:
-            user_turn_separator = conv.sep2
-
-        assistant_turn_separator = conv.roles[1] + ": "
-
-    elif conv.sep_style == SeparatorStyle.LLAMA2:
+    if conv.sep_style == SeparatorStyle.LLAMA2:
         user_turn_separator = conv.sep2
         assistant_turn_separator = conv.roles[1] + " "
-
-    elif conv.sep_style == SeparatorStyle.CHATML:
-        if conv.sep2 is None:
-            user_turn_separator = conv.sep + "\n"
-        else:
-            user_turn_separator = conv.sep2 + "\n"
-
-        assistant_turn_separator = conv.roles[1] + "\n"
 
     return user_turn_separator, assistant_turn_separator
 
 
 def mask_targets(conversations, targets, tokenizer, conv):
     for conversation, target in zip(conversations, targets):
+        # import ipdb; ipdb.set_trace()
+        if tokenizer.name_or_path == 'mistralai/Mistral-7B-Instruct-v0.1':
+            OFFSET = 1
+        else:
+            raise Exception("Tokenizer not supported")
+
         total_len = int(target.ne(tokenizer.pad_token_id).sum())
         if tokenizer.eos_token is None:
             cur_len = 0
@@ -190,6 +173,7 @@ def mask_targets(conversations, targets, tokenizer, conv):
         user_turn_separator, assistant_turn_separator = get_prompt_separator(conv)
         turns = conversation.split(user_turn_separator)
         for i, turn in enumerate(turns):
+            print(i, turn, len(turn))
             if (
                 i < len(turns) - 1 and turn == ""
             ):  # Last turn is the user_turn_separator
@@ -197,20 +181,19 @@ def mask_targets(conversations, targets, tokenizer, conv):
 
             if i != 0:
                 turn = user_turn_separator + turn
-
             turn_len = len(tokenizer(turn, add_special_tokens=False).input_ids)
 
             if assistant_turn_separator in turn:
                 parts = turn.rsplit(assistant_turn_separator)
-                parts[0] += assistant_turn_separator
+                parts[0] += assistant_turn_separator.strip()
             else:
                 parts = [turn]
 
             instruction_len = len(
                 tokenizer(parts[0], add_special_tokens=False).input_ids
-            )
-
-            target[cur_len : cur_len + instruction_len] = IGNORE_TOKEN_ID
+            ) 
+            # +2 offset for llama tokenizers
+            target[cur_len + OFFSET: cur_len + instruction_len] = IGNORE_TOKEN_ID
             cur_len += turn_len
 
         target[cur_len:] = IGNORE_TOKEN_ID
@@ -270,6 +253,8 @@ class SupervisedDataset(Dataset):
         super(SupervisedDataset, self).__init__()
 
         rank0_print("Formatting inputs...")
+        # Modify to 
+        # systems = [example["conversations"].get("system", "") for example in raw_data]
         systems = [example.get("system", "") for example in raw_data]
         sources = [example["conversations"] for example in raw_data]
 
