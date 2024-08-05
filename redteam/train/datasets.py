@@ -1,16 +1,33 @@
+import os
+import glob
+from tqdm import tqdm
+from torch.utils.data import Dataset
 from typing import Dict, Any, List
 from redteam.utils.data_utils import read_json
 from fastchat.model.model_adapter import get_conversation_template
 
 
-class MultiturnDataset:
-    def __init__(self):
-        pass
+class MultiturnDataset(Dataset):
+    def __init__(self, data_dir:str, agent_type:str):
+        self.conversations = get_conversations(data_dir, agent_type)
+        #TODO: Add mask logic here
+    
+    def __len__(self):
+        return len(self.conversations)
+    
+    def __getitem__(self, idx):
+        return self.conversations[idx]
 
+def get_conversations(data_dir: str, agent_type: str) -> List[Dict]:
+    # if is directory, read all files in the directory
+    if os.path.isdir(data_dir):
+        data = []
+        for file in sorted(glob.glob(data_dir + "/*.json")):
+            data.extend(read_json(file))
+    elif os.path.isfile(data_dir):
+        data = read_json(data_dir)
 
-def get_attacker_dataset(fname):
-    pass
-
+    return filter_messages(data, agent_type)
 
 def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
     """
