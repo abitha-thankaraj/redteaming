@@ -8,22 +8,28 @@ import datetime
 from tqdm import tqdm
 
 from redteam.constants import (
-    PARENT_DIR, 
+    PARENT_DIR,
     DATAGEN_CONFIG_DIR,
 )
 from redteam.utils.data_utils import (
-    write_json, 
+    write_json,
     read_json,
 )
 from redteam.data_generation.templates import MULTITURN_CONVERSATION_JUDGE_PROMPTS
 from redteam.common.chat_completion import (
-    ChatCompletionConfig, 
+    ChatCompletionConfig,
     OAIChatCompletion,
 )
 from redteam.data_generation.parsers import (
     parse_llm_judge_evaluation,
     is_valid_llm_judge_trace,
 )
+
+
+def rename_savefile(save_file, input_file):
+    input_file = input_file.split("/")[-1]
+    save_file = save_file.replace(".json", f"_input_{input_file}")
+    return save_file
 
 
 @hydra.main(
@@ -44,6 +50,7 @@ def main(config: DictConfig):
     if missing_keys:
         raise ValueError(f"Got missing keys in config:\n{missing_keys}")
     os.makedirs(config.out_dir, exist_ok=True)
+    config.save_file = rename_savefile(config.save_file, config.multiturn_conversations_fname)
 
     chat_completion = OAIChatCompletion(ChatCompletionConfig(**config.chat_completion))
     system_prompt = MULTITURN_CONVERSATION_JUDGE_PROMPTS[config.chat_completion.model][
@@ -79,7 +86,7 @@ def main(config: DictConfig):
             valid_judge_response = is_valid_llm_judge_trace(
                 llm_judge_trace=llm_judge_trace,
             )
-        
+
         output_dict = {key: llm_judge_trace[key] for key in llm_judge_trace}
         output_dict["conversation_with_judge"] = response
         output_dict["conversation"] = multiturn_conversation["conversation"]

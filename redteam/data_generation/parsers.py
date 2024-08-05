@@ -28,7 +28,7 @@ def is_valid_question(question: str) -> bool:
     """
     if not isinstance(question, str):
         return False
-    
+
     if question == "":
         return False
 
@@ -49,7 +49,7 @@ def is_valid_llm_judge_trace(
     """
     if not isinstance(llm_judge_trace, dict):
         return False
-    
+
     allowed_values: Dict[str, List[str]] = {
         "goal_achieved": ["Yes", "No"],
         "safety_label": ["Safe", "Unsafe"],
@@ -60,18 +60,18 @@ def is_valid_llm_judge_trace(
 
         if not isinstance(value, str):
             return False
-        
+
         if value == "":
             return False
-        
+
         if value[0] == "[" or value[-1] == "]":
             return False
-        
+
         if key in allowed_values and value not in allowed_values[key]:
             return False
-        
+
     return True
-        
+
 
 def validate_chat_completion_dict(
     chat_completion_dict: Dict,
@@ -91,7 +91,7 @@ def validate_chat_completion_dict(
         or not isinstance(chat_completion_dict.get("content"), str)
     ):
         raise ValueError("Improper chat completion dict")
-    
+
 
 def parse_multiturn_attack_prompt(
     chat_completion_dict: Dict,
@@ -172,7 +172,6 @@ def parse_llm_judge_evaluation(
         "goal_achieved": goal_achieved,
         "safety_label": safety_label,
     }
-
 
 
 if __name__ == "__main__":
