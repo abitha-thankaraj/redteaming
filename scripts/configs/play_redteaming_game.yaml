@@ -7,14 +7,14 @@ data_dir: /data/group_data/rl/datasets/redteaming
 
 attacker:
   chat_completion_config:
-    port: 8003
+    port: ???
     url: http://localhost:${attacker.chat_completion_config.port}/v1/
     model: Mistral-7B-Instruct-v0.1
     temperature: 0.7
 
 defender:
   chat_completion_config:
-    port: 8004
+    port: ???
     url: http://localhost:${defender.chat_completion_config.port}/v1/
     model: Mistral-7B-Instruct-v0.1
     temperature: 0.7
@@ -30,5 +30,8 @@ judge:
 # Game
 goals_fname: None
 max_turns: 3
-
 num_simulations: 10
+
+# Result of simulating the gamer will be saved in this file
+out_dir: ${data_dir}/redteaming_evals/${}
+out_fname: None

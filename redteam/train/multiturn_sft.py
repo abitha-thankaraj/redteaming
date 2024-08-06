@@ -33,13 +33,14 @@ from transformers.trainer_pt_utils import LabelSmoother
 
 from fastchat.conversation import SeparatorStyle
 from fastchat.model.model_adapter import get_conversation_template
+from redteam.train.datasets import get_conversations
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
 
 @dataclass
 class ModelArguments:
-    model_name_or_path: Optional[str] = field(default="facebook/opt-125m")
+    model_name_or_path: Optional[str] = field(default="mistralai/Mistral-7B-Instruct-v0.1")
 
 
 @dataclass
@@ -50,10 +51,10 @@ class DataArguments:
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
-    cache_dir: Optional[str] = field(default=None)
+    cache_dir: Optional[str] = field(default="/data/tir/projects/tir6/bisk/athankar/projects/.cache")
     optim: str = field(default="adamw_torch")
     model_max_length: int = field(
-        default=512,
+        default=1024,
         metadata={
             "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
         },
@@ -155,7 +156,11 @@ def mask_targets(conversations, targets, tokenizer, conv):
 
             instruction_len = len(tokenizer(parts[0], add_special_tokens=False).input_ids)
             # +2 offset for llama tokenizers
-            target[cur_len + OFFSET : cur_len + instruction_len] = IGNORE_TOKEN_ID
+            if i>0:
+                target[cur_len + OFFSET : cur_len + instruction_len] = IGNORE_TOKEN_ID
+            else: # first turn; weird [ decoding.
+                target[cur_len : cur_len + instruction_len] = IGNORE_TOKEN_ID
+            
             cur_len += turn_len
 
         target[cur_len:] = IGNORE_TOKEN_ID
@@ -214,10 +219,9 @@ class SupervisedDataset(Dataset):
         rank0_print("Formatting inputs...")
         # Modify to
         # systems = [example["conversations"].get("system", "") for example in raw_data]
-        systems = [example.get("system", "") for example in raw_data]
-        sources = [example["conversations"] for example in raw_data]
-
-        data_dict = preprocess(sources, tokenizer, template_id, systems=systems)
+        # sources = [example["conversations"] for example in raw_data]
+        sources = raw_data
+        data_dict = preprocess(sources, tokenizer, template_id, systems=None)
 
         self.input_ids = data_dict["input_ids"]
         self.labels = data_dict["labels"]
@@ -279,13 +283,17 @@ def make_supervised_data_module(
     train_ratio = min(train_ratio, 1.0)
     dataset_cls = LazySupervisedDataset if data_args.lazy_preprocess else SupervisedDataset
     rank0_print("Loading data...")
-    data_path = data_args.data_path
-    if data_path.endswith(".json"):
-        raw_data = json.load(open(data_path, "r"))
-    elif data_path.endswith(".jsonl"):
-        with jsonlines.open(data_path, mode="r") as reader:
-            raw_data = [item for item in reader]
+    # data_path = data_args.data_path
+    # if data_path.endswith(".json"):
+    #     raw_data = json.load(open(data_path, "r"))
+    # elif data_path.endswith(".jsonl"):
+    #     with jsonlines.open(data_path, mode="r") as reader:
+    #         raw_data = [item for item in reader]
 
+    #TODO: Remove this
+    EXAMPLE_FNAME = "/data/tir/projects/tir7/user_data/athankar/redteaming/data/gen_judge_multiturn_conversation/gpt-4_judge_generated_multiturn_conversations_22-00-1722564014.json"
+
+    raw_data = get_conversations(EXAMPLE_FNAME, "attacker")
     # Split train/test
     np.random.seed(0)
     perm = np.random.permutation(len(raw_data))
@@ -350,7 +358,8 @@ def train():
     data_module = make_supervised_data_module(
         tokenizer=tokenizer,
         template_id=template_id,
-        train_ratio=0.98,
+        # train_ratio=0.98, #TODO: Revert
+        train_ratio=0.8,
         data_args=data_args,
     )
     trainer = Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
@@ -359,6 +368,7 @@ def train():
         trainer.train(resume_from_checkpoint=True)
     else:
         trainer.train()
+    from IPython import embed; embed()
     trainer.save_state()
     safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
 

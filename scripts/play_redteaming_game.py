@@ -8,7 +8,7 @@ from tqdm import tqdm
 from redteam.utils.logger import Logger
 from redteam.common.chat_completion import ChatCompletionConfig
 from redteam.envs.game import RedteamGame, get_lm_agent
-from redteam.utils.data_utils import read_json
+from redteam.utils.data_utils import read_json, write_json
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ def main(config: DictConfig):
         trajs.append(redteaming_game.simulate())
 
 
-
+    write_json(trajs, config.out_fname)
     #Relabel rewards later
 
 
