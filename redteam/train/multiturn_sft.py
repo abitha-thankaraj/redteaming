@@ -23,7 +23,7 @@ import jsonlines
 import pathlib
 from multiprocessing import Pool
 from typing import Dict, Optional, Sequence
-
+import time
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -312,6 +312,24 @@ def make_supervised_data_module(
     eval_dataset = dataset_cls(eval_raw_data, tokenizer=tokenizer, template_id=template_id)
     return dict(train_dataset=train_dataset, eval_dataset=eval_dataset)
 
+@dataclass
+class DataCollatorForSupervisedDataset(object):
+    """Collate examples for supervised fine-tuning."""
+
+    tokenizer: transformers.PreTrainedTokenizer
+
+    def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
+        input_ids, labels = tuple([instance[key] for instance in instances] for key in ("input_ids", "labels"))
+        input_ids = torch.nn.utils.rnn.pad_sequence(
+            input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
+        )
+        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=IGNORE_TOKEN_ID)
+        return dict(
+            input_ids=input_ids,
+            labels=labels,
+            attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
+        )
+
 
 def train():
     global local_rank
@@ -351,7 +369,7 @@ def train():
     # NOTE: if the token_id exceed the vocab_size will cause failing in training process! we need add special config and resize the embedding size!
     tokenizer.pad_token = tokenizer.unk_token
     tokenizer.pad_token_id = tokenizer.unk_token_id
-    print(f"tokens len: {len(tokenizer)}")
+    # print(f"tokens len: {len(tokenizer)}")
     model.resize_token_embeddings(len(tokenizer))
 
     template_id = model_args.model_name_or_path
@@ -362,16 +380,26 @@ def train():
         train_ratio=0.8,
         data_args=data_args,
     )
+    # torch.distributed.barrier()
+    # if torch.distributed.get_rank() == 0:
+    #     breakpoint()
+    # else:
+    #     time.sleep(9999999)
     trainer = Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:
         trainer.train()
-    from IPython import embed; embed()
+    # from IPython import embed; embed()
     trainer.save_state()
     safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
 
 
 if __name__ == "__main__":
+
     train()
+
+"""
+deepspeed --master_port 32079 /data/tir/projects/tir7/user_data/athankar/redteaming/redteam/train/multiturn_sft.py     --deepspeed /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/deepspeed/zero3.json     --bf16 True     --output_dir /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs     --num_train_epochs 3     --per_device_train_batch_size 1     --per_device_eval_batch_size 1     --gradient_accumulation_steps 16     --evaluation_strategy "steps"     --eval_steps 100000     --save_strategy "steps"     --save_steps 100000     --save_total_limit 8     --learning_rate 1e-5     --weight_decay 0.     --warmup_ratio 0.04     --lr_scheduler_type "cosine"     --logging_steps 1     --tf32 True     --model_max_length 2048     --gradient_checkpointing True     --remove_unused_columns False     --lazy_preprocess False
+"""

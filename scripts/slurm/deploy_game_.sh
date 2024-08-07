@@ -24,36 +24,36 @@ SCRIPT_PATH=$7
 python3 -m fastchat.serve.controller --host 0.0.0.0 --port $CONTROLLER_PORT &
 
 # Start the attacker model worker
-python3 -m fastchat.serve.model_worker \
+CUDA_VISIBLE_DEVICES=0 python3 -m fastchat.serve.model_worker \
     --model-path $ATTACKER_MODEL_PATH \
     --host 0.0.0.0 \
+    --model-name "attacker" \
     --controller-address "http://localhost:$CONTROLLER_PORT" \
     --port $ATTACKER_WORKER_PORT \
     --worker-address "http://localhost:$ATTACKER_WORKER_PORT" \
-    --gpus=0 \
-    --device=cuda:0 &
+    --device cuda &
 
 # Start the defender model worker
-python3 -m fastchat.serve.model_worker \
+CUDA_VISIBLE_DEVICES=1 python3 -m fastchat.serve.model_worker \
     --model-path $DEFENDER_MODEL_PATH \
+    --model-name "defender" \
     --host 0.0.0.0 \
     --controller-address "http://localhost:$CONTROLLER_PORT" \
     --port $DEFENDER_WORKER_PORT \
     --worker-address "http://localhost:$DEFENDER_WORKER_PORT" \
-    --gpus=1 \
-    --device=cuda:1 &
+    --device cuda &
 
 # Start the OpenAI API server
 python3 -m fastchat.serve.openai_api_server \
     --host 0.0.0.0 \
     --port $API_PORT \
-    --controller-address "http://localhost:$CONTROLLER_PORT" &
+    --controller-address "http://localhost:$CONTROLLER_PORT"
 
 # Wait for models to load (TODO: Replace with a proper check)
 echo "Waiting for models to load..."
 sleep 300
 
 # Run the redteaming game script
-python $SCRIPT_PATH/redteaming/scripts/play_redteaming_game.py \
-    attacker.chat_completion.port=$API_PORT \
-    defender.chat_completion.port=$API_PORT
+# python $SCRIPT_PATH/redteaming/scripts/play_redteaming_game.py \
+#     attacker.chat_completion.port=$API_PORT attacker.model=attacker
+#     defender.chat_completion.port=$API_PORT defender.model=defender

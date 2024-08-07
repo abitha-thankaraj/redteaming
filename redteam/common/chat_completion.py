@@ -47,7 +47,10 @@ class OAIChatCompletion(ChatCompletion):
         self._init_conversation()
 
     def _init_conversation(self):
-        self.conv = get_conversation_template(self.config.model)
+        # self.conv = get_conversation_template(self.config.model)
+        # Won't need this because everything is handled by OpenAI API server.
+        self.conv = get_conversation_template("gpt-4")
+
 
     def set_system_prompt(self, system_prompt):
         self.system_prompt = system_prompt

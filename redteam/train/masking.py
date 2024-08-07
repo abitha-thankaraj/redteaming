@@ -1,3 +1,4 @@
+import torch
 from typing import Any, Tuple, Dict, List
 from transformers import AutoTokenizer
 from dataclasses import dataclass
@@ -6,9 +7,9 @@ import transformers
 
 @dataclass
 class TokenizerSeparators:
-    assistant_prefix: str = ("",)
-    assistant_suffix: str = ("",)
-    prefix_offset: int = (0,)  # Offset to add for masking
+    assistant_prefix: str = "",
+    assistant_suffix: str = "",
+    prefix_offset: int = 0,  # Offset to add for masking; Ugly single space with mistral.
 
 
 def get_tokenizer_separators(
@@ -39,9 +40,8 @@ def mask_non_assistant_tokens(
     tokenizer_separator: TokenizerSeparators,
 ):
     tokens = tokenizer.apply_chat_template(
-        conversation, tokenize=True, padding="max_length", add_special_tokens=False
+        conversation, tokenize=True, padding="max_length", truncation=True
     )
-    print(tokenizer.decode(tokens, add_special_tokens=False))
     masked_tokens = [tokenizer.pad_token_id] * len(tokens)  # Start with all tokens masked
     assistant_prefix_ids = tokenizer.encode(
         tokenizer_separator.assistant_prefix, add_special_tokens=False
@@ -57,8 +57,6 @@ def mask_non_assistant_tokens(
     start_index = 0
     for content in assistant_contents:
         content_tokens = tokenizer.encode(content, add_special_tokens=False)
-        # print(content_tokens)
-        # print(tokenizer.decode(content_tokens))
         while True:
             try:
                 start_index = tokens.index(content_tokens[0], start_index)
@@ -78,12 +76,13 @@ def mask_non_assistant_tokens(
                 start_index += 1
             except ValueError:
                 break
-    return masked_tokens
-    # return dict(
-    #     input_ids=tokens,
-    #     labels=masked_tokens,
-    #     attention_mask=tokens.ne(tokenizer.pad_token_id),
-    # )
+    input_ids = torch.tensor(tokens)
+    labels = torch.tensor(masked_tokens)
+    return dict(
+        input_ids=input_ids,
+        labels=labels,
+        attention_mask=input_ids.ne(tokenizer.pad_token_id),
+    )
 
 
 if __name__ == "__main__":
@@ -112,7 +111,7 @@ if __name__ == "__main__":
         use_fast=False,
     )
     tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
-    masked_tokens = mask_non_assistant_tokens(tokenizer, conversation, tokenizer_separator)
+    masked_tokens = mask_non_assistant_tokens(tokenizer, conversation, tokenizer_separator)["labels"]
     print("Meta-Llama")
     print(tokenizer.decode(masked_tokens).replace(tokenizer.pad_token, ""))
 
@@ -134,7 +133,7 @@ if __name__ == "__main__":
     )
     mistral_masked_tokens = mask_non_assistant_tokens(
         mistral_tokenizer, conversation, mistral_tokenizer_separator
-    )
+    )["labels"]
     print("Mistral")
     print(
         mistral_tokenizer.decode(mistral_masked_tokens).replace(
