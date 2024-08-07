@@ -68,6 +68,12 @@ def rank0_print(*args):
     if local_rank == 0:
         print(*args)
 
+def rank0_debug(interval = 9999999):    
+    torch.distributed.barrier()
+    if torch.distributed.get_rank() == 0:
+        breakpoint()
+    else:
+        time.sleep(interval)
 
 def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: str):
     """Collects the state dict and dump to disk."""
@@ -379,11 +385,7 @@ def train():
         train_ratio=0.8,
         data_args=data_args,
     )
-    # torch.distributed.barrier()
-    # if torch.distributed.get_rank() == 0:
-    #     breakpoint()
-    # else:
-    #     time.sleep(9999999)
+
     trainer = Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
