@@ -116,7 +116,6 @@ def get_prompt_separator(conv):
     if conv.sep_style == SeparatorStyle.LLAMA2:
         user_turn_separator = conv.sep2
         assistant_turn_separator = conv.roles[1] + " "
-
     return user_turn_separator, assistant_turn_separator
 
 
@@ -401,5 +400,5 @@ if __name__ == "__main__":
     train()
 
 """
-deepspeed --master_port 32079 /data/tir/projects/tir7/user_data/athankar/redteaming/redteam/train/multiturn_sft.py     --deepspeed /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/deepspeed/zero3.json     --bf16 True     --output_dir /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs     --num_train_epochs 3     --per_device_train_batch_size 1     --per_device_eval_batch_size 1     --gradient_accumulation_steps 16     --evaluation_strategy "steps"     --eval_steps 100000     --save_strategy "steps"     --save_steps 100000     --save_total_limit 8     --learning_rate 1e-5     --weight_decay 0.     --warmup_ratio 0.04     --lr_scheduler_type "cosine"     --logging_steps 1     --tf32 True     --model_max_length 2048     --gradient_checkpointing True     --remove_unused_columns False     --lazy_preprocess False
+deepspeed --master_port 32079 /data/tir/projects/tir7/user_data/athankar/redteaming/redteam/train/multiturn_sft.py     --deepspeed /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/deepspeed/zero3.json     --bf16 True     --output_dir /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs     --num_train_epochs 3     --per_device_train_batch_size 1     --per_device_eval_batch_size 1     --gradient_accumulation_steps 16     --evaluation_strategy "steps"     --eval_steps 100000     --save_strategy "steps"     --save_steps 100000     --save_total_limit 8     --learning_rate 1e-5     --weight_decay 0.     --warmup_ratio 0.04     --lr_scheduler_type "cosine"     --logging_steps 1     --tf32 True     --model_max_length 2048     --gradient_checkpointing True     --remove_unused_columns False     --lazy_preprocess False
 """
