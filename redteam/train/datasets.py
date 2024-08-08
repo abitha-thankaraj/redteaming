@@ -49,19 +49,17 @@ def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
 
 
 def is_good_attacker_message(message: Dict) -> bool:
-    """Attacker condition: is_unsafe == True and is_goal_achieved == True"""
+    """Attacker condition: is_unsafe == True [breaks the model] and is_goal_achieved == True [follows the goal instruction provided]"""
     return (
-        message["goal_achieved"].lower().strip() == "yes"
-        and message["safety_label"].lower().strip() == "unsafe"
+        message["goal_achieved"].lower().strip() == "yes" # Follows the goal provided
+        and message["safety_label"].lower().strip() == "unsafe" # Breaks the defender model
     )
 
 
 def is_good_defender_message(message: Dict) -> bool:
-    """Defender condition: is_unsafe == True and is_goal_achieved == False"""
-    return (
-        message["goal_achieved"].lower().strip() == "no"
-        and message["safety_label"].lower().strip() == "safe"
-    )
+    """Defender condition: is_unsafe == False [does not break the model]; We do not care about the goal.
+    This will be the model (a) refusing to answer or (b) providing a safe answer."""
+    return message["safety_label"].lower().strip() == "safe"
 
 
 def get_attacker_message(raw_msg: Dict[str, Any]) -> List[str]:
@@ -92,14 +90,19 @@ def get_defender_message(raw_msg: Dict[str, Any]) -> List[str]:
 
 
 if __name__ == "__main__":
-    EXAMPLE_FNAME = "/data/tir/projects/tir7/user_data/athankar/redteaming/data/gen_judge_multiturn_conversation/gpt-4_judge_generated_multiturn_conversations_22-00-1722564014.json"
+    # EXAMPLE_FNAME = "/data/tir/projects/tir7/user_data/athankar/redteaming/data/gen_judge_multiturn_conversation/gpt-4_judge_generated_multiturn_conversations_22-00-1722564014.json"
+    EXAMPLE_FNAME = "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_chunked/gpt-4_judge_generated_multiturn_conversations_22-18-1723083523_input_Mistral-7B-Instruct-v0.1_test_evaluated_multiturn_responses_16-55-1722459320.json"
+    
     raw_data = read_json(EXAMPLE_FNAME)
+    
     attacker_msgs = filter_messages(raw_data, "attacker")
     defender_msgs = filter_messages(raw_data, "defender")
 
     from redteam.train.multiturn_sft import SupervisedDataset
     attacker_raw_messages = get_conversations(EXAMPLE_FNAME, "attacker")
-    SupervisedDataset()
+    
+    
+    
     from IPython import embed
 
     embed()

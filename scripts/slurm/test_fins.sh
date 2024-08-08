@@ -17,23 +17,55 @@
 # echo "Number of files: $NUM_FILES"
 #!/bin/bash
 
-# Define directories
+ADVBENCH_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/advbench_chunked"
+
+# Find all files that match the pattern in both directories and store them as an array
+# FILES=($(find $HARMBENCH_DIR $OPENAI_DIR -type f -name "*.json"))
+# FILES=($(find $ADVBENCH_DIR -type f -name "*.json"))
+
+
+MISSING_FNAMES=(
+    "$ADVBENCH_DIR/gpt-3.5-turbo-0125_advbench_generated_multiturn_prompts_20-10-1722471013_1700_1800.json"
+ "$ADVBENCH_DIR/gpt-3.5-turbo-0125_advbench_generated_multiturn_prompts_20-10-1722471013_3000_3100.json"
+ "$ADVBENCH_DIR/gpt-3.5-turbo-0125_advbench_generated_multiturn_prompts_20-10-1722471013_3100_3200.json"
+ "$ADVBENCH_DIR/gpt-3.5-turbo-0125_advbench_generated_multiturn_prompts_20-10-1722471013_3400_3500.json"
+ "$ADVBENCH_DIR/gpt-3.5-turbo-0125_advbench_generated_multiturn_prompts_20-10-1722471013_3500_3600.json"
+ "$ADVBENCH_DIR/gpt-3.5-turbo-0125_advbench_generated_multiturn_prompts_20-10-1722471013_3600_3700.json"
+ "$ADVBENCH_DIR/gpt-3.5-turbo-0125_advbench_generated_multiturn_prompts_20-10-1722471013_3800_3900.json"
+ "$ADVBENCH_DIR/gpt-3.5-turbo-0125_advbench_generated_multiturn_prompts_20-10-1722471013_600_700.json"
+)
+
+# echo ${MISSING_FNAMES[1]}
+
+
 DIR1="/data/group_data/rl/datasets/redteaming/gen_eval_multiturn_attacks/"
 
 # Define the pattern to search for within the file names
 PATTERN="*.json"
 
-# Find all files that match the pattern in the directory and store them in a variable
-FILES=$(find $DIR1 -type f -name "$PATTERN")
+# # Find all files that match the pattern in the directory and store them in a variable
+FILES=($(find $DIR1 -type f -name "$PATTERN"))
+echo $FILES
 
-# Filter out all files with 'advbench' in the filename
-FILTERED_FILES=$(echo "$FILES" | grep -v "advbench")
+echo ${FILES[11]}
 
-# Use the filtered list
-echo "Filtered files:"
-echo "$FILTERED_FILES"
-NUM_FILTERED_FILES=$(echo "$FILTERED_FILES" | grep -c '^')
-echo "Number of filtered files: $NUM_FILTERED_FILES"
+# # Define directories
+# DIR1="/data/group_data/rl/datasets/redteaming/gen_eval_multiturn_attacks/"
+
+# # Define the pattern to search for within the file names
+# PATTERN="*.json"
+
+# # Find all files that match the pattern in the directory and store them in a variable
+# FILES=$(find $DIR1 -type f -name "$PATTERN")
+
+# # Filter out all files with 'advbench' in the filename
+# FILTERED_FILES=$(echo "$FILES" | grep -v "advbench")
+
+# # Use the filtered list
+# echo "Filtered files:"
+# echo "$FILTERED_FILES"
+# NUM_FILTERED_FILES=$(echo "$FILTERED_FILES" | grep -c '^')
+# echo "Number of filtered files: $NUM_FILTERED_FILES"
 
 # Filtered files:
 # /data/group_data/rl/datasets/redteaming/gen_eval_multiturn_attacks/Mistral-7B-Instruct-v0.1_test_evaluated_multiturn_responses_18-52-1722552766_input_gpt-3.5-turbo-0125_harmbench_generated_multiturn_prompts_20-10-1722471036_2700_2800.json

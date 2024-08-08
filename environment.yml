@@ -250,7 +250,7 @@ dependencies:
       - tornado==6.4.1
       - tqdm==4.66.4
       - traitlets==5.14.3
-      - transformers==4.42.4
+      - transformers==4.44.0
       - triton==2.3.1
       - trl==0.7.2
       - typer==0.12.3
