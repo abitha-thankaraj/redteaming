@@ -29,4 +29,4 @@ source /home/athankar/miniconda3/etc/profile.d/conda.sh
 conda activate redteam
 
 # Pass the correct file name to the Python script
-python $REPO_DIR/redteam/data_generation/judge_multiturn_conversation.py multiturn_conversations_fname="${FILTERED_FILES[$SLURM_ARRAY_TASK_ID]}" dataset_name=$DATASET_NAME
+python $REPO_DIR/redteam/data_generation/judge_multiturn_conversation.py multiturn_conversations_fname="${FILTERED_FILES[$SLURM_ARRAY_TASK_ID]}" prompt_dataset=$DATASET_NAME
