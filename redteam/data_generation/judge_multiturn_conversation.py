@@ -57,6 +57,10 @@ def main(config: DictConfig):
     os.makedirs(config.out_dir, exist_ok=True)
     config.save_file = rename_savefile(config.save_file, config.multiturn_conversations_fname)
 
+    generation_model = get_generation_model_name(
+        input_file=config.multiturn_conversations_fname,
+    )
+
     chat_completion = OAIChatCompletion(ChatCompletionConfig(**config.chat_completion))
     system_prompt = MULTITURN_CONVERSATION_JUDGE_PROMPTS[config.chat_completion.model][
         "system"
@@ -96,7 +100,7 @@ def main(config: DictConfig):
         output_dict["conversation_with_judge"] = response
         output_dict["conversation"] = multiturn_conversation["conversation"]
         output_dict["goal"] = multiturn_conversation["goal"]
-        output_dict["generation_model"] = config.generation_model
+        output_dict["generation_model"] = generation_model
         output_dict["dataset"] = config.prompt_dataset
         output_dict["question_id"] = get_question_id_sha256(
             conversation=multiturn_conversation["conversation"],

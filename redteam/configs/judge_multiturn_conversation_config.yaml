@@ -9,7 +9,6 @@ chat_completion:
   model: gpt-4
   temperature: 1.
 
-generation_model: ???
 multiturn_conversations_fname: ???
 prompt_dataset: ???
 # ${data_dir}/gen_eval_multiturn_attacks/Mistral-7B-Instruct-v0.1_test_evaluated_multiturn_responses_16-55-1722459320.json

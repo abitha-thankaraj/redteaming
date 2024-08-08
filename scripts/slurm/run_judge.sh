@@ -19,10 +19,9 @@ PATTERN="*.json"
 # Find all files that match the pattern in the directory and store them in a variable
 FILES=$(find $DIR1 -type f -name "$PATTERN")
 DATASET_NAME="advbench"
-MODEL_NAME="Mistral-7B-Instruct-v0.1"
 
 # Filter out all files with 'advbench' in the filename
-FILTERED_FILES=($(echo "$FILES" | grep -v $DATASET_NAME | grep -v $MODEL_NAME))
+FILTERED_FILES=($(echo "$FILES" | grep -v $DATASET_NAME))
 REPO_DIR="/data/tir/projects/tir7/user_data/athankar/redteaming";
 
 source ~/.bashrc
@@ -30,4 +29,4 @@ source /home/athankar/miniconda3/etc/profile.d/conda.sh
 conda activate redteam
 
 # Pass the correct file name to the Python script
-python $REPO_DIR/redteam/data_generation/judge_multiturn_conversation.py multiturn_conversations_fname="${FILTERED_FILES[$SLURM_ARRAY_TASK_ID]}" dataset_name=$DATASET_NAME generation_model=$MODEL_NAME
+python $REPO_DIR/redteam/data_generation/judge_multiturn_conversation.py multiturn_conversations_fname="${FILTERED_FILES[$SLURM_ARRAY_TASK_ID]}" dataset_name=$DATASET_NAME
