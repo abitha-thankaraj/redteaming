@@ -57,3 +57,5 @@ sleep 300
 # python $SCRIPT_PATH/redteaming/scripts/play_redteaming_game.py \
 #     attacker.chat_completion.port=$API_PORT attacker.model=attacker
 #     defender.chat_completion.port=$API_PORT defender.model=defender
+
+# python /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/play_redteaming_game.py attacker.chat_completion.port=8003 attacker.model=attacker defender.chat_completion.port=8003 defender.model=defender
