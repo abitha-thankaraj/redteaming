@@ -5,6 +5,7 @@ from redteam.train.multiturn_sft import (
     preprocess,
     tokenize_conversations,
     mask_targets,
+    SupervisedDataset
 )
 from fastchat.model.model_adapter import get_conversation_template
 
@@ -56,7 +57,7 @@ if __name__ == "__main__":
     # model_name = "meta-llama/Llama-2-7b-hf"
 
     training_cache_dir = "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
-    training_model_max_length = 64
+    training_model_max_length = 1024
 
     config = transformers.AutoConfig.from_pretrained(
         model_name,
@@ -87,6 +88,26 @@ if __name__ == "__main__":
     # model.resize_token_embeddings(len(tokenizer))
 
     template_id = model_name
+
+    from redteam.train.datasets import get_conversations
+    EXAMPLE_FNAME = "/data/tir/projects/tir7/user_data/athankar/redteaming/data/gen_judge_multiturn_conversation/gpt-4_judge_generated_multiturn_conversations_22-00-1722564014.json"
+    attacker_raw_messages = get_conversations(EXAMPLE_FNAME, "attacker")
+    
+    dataset = SupervisedDataset(attacker_raw_messages, tokenizer, template_id)
+    test_data_point = dataset[0]
+    print("Decoding inputs")
+    print(tokenizer.decode(test_data_point["input_ids"]))
+    print("Masked labels")
+    print(tokenizer.decode(torch.where(test_data_point['labels'] == IGNORE_TOKEN_ID, tokenizer.unk_token_id, test_data_point['labels'])))
+
+
+    from IPython import embed; embed()
+
+    
+
+
+
+
     raw_data = TEST_SOURCES
 
     systems = ""

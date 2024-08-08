@@ -31,6 +31,12 @@ class ChatCompletion(ABC):
     @abstractmethod
     def multiturn_chat_completion(self, messages: list[str]):
         pass
+    @abstractmethod
+    def reset(self):
+        pass
+    @abstractmethod
+    def single_turn_chat_completion(self, message: str):
+        pass
 
 
 class OAIChatCompletion(ChatCompletion):
@@ -47,7 +53,10 @@ class OAIChatCompletion(ChatCompletion):
         self._init_conversation()
 
     def _init_conversation(self):
-        self.conv = get_conversation_template(self.config.model)
+        # self.conv = get_conversation_template(self.config.model)
+        # Won't need this because everything is handled by OpenAI API server.
+        self.conv = get_conversation_template("gpt-4")
+
 
     def set_system_prompt(self, system_prompt):
         self.system_prompt = system_prompt
@@ -75,3 +84,25 @@ class OAIChatCompletion(ChatCompletion):
             self.conv.append_message(role="assistant", message=res.choices[0].message.content)
 
         return self.conv.to_openai_api_messages()
+
+    def reset(self):
+        self._init_conversation()
+    
+    def single_turn_chat_completion(self, message: str, history: bool = False): 
+        if history:
+            self.conv.append_message(role="user", message=message)
+        else:
+            self.reset()
+            self.conv.append_message(role="user", message=message)
+
+        res = openai.chat.completions.create(
+                model=self.config.model,
+                messages=self.conv.to_openai_api_messages(),
+                temperature=self.config.temperature,
+            )
+
+        self.conv.append_message(role="assistant", message=res.choices[0].message.content)
+
+        return self.conv.to_openai_api_messages()
+
+        
