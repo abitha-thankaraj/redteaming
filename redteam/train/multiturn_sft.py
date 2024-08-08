@@ -23,7 +23,7 @@ import jsonlines
 import pathlib
 from multiprocessing import Pool
 from typing import Dict, Optional, Sequence
-
+import time
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -33,13 +33,14 @@ from transformers.trainer_pt_utils import LabelSmoother
 
 from fastchat.conversation import SeparatorStyle
 from fastchat.model.model_adapter import get_conversation_template
+from redteam.train.datasets import get_conversations
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
 
 @dataclass
 class ModelArguments:
-    model_name_or_path: Optional[str] = field(default="facebook/opt-125m")
+    model_name_or_path: Optional[str] = field(default="mistralai/Mistral-7B-Instruct-v0.1")
 
 
 @dataclass
@@ -50,10 +51,10 @@ class DataArguments:
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
-    cache_dir: Optional[str] = field(default=None)
+    cache_dir: Optional[str] = field(default="/data/tir/projects/tir6/bisk/athankar/projects/.cache")
     optim: str = field(default="adamw_torch")
     model_max_length: int = field(
-        default=512,
+        default=1024,
         metadata={
             "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
         },
@@ -67,6 +68,12 @@ def rank0_print(*args):
     if local_rank == 0:
         print(*args)
 
+def rank0_debug(interval = 9999999):    
+    torch.distributed.barrier()
+    if torch.distributed.get_rank() == 0:
+        breakpoint()
+    else:
+        time.sleep(interval)
 
 def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: str):
     """Collects the state dict and dump to disk."""
@@ -115,7 +122,6 @@ def get_prompt_separator(conv):
     if conv.sep_style == SeparatorStyle.LLAMA2:
         user_turn_separator = conv.sep2
         assistant_turn_separator = conv.roles[1] + " "
-
     return user_turn_separator, assistant_turn_separator
 
 
@@ -155,7 +161,11 @@ def mask_targets(conversations, targets, tokenizer, conv):
 
             instruction_len = len(tokenizer(parts[0], add_special_tokens=False).input_ids)
             # +2 offset for llama tokenizers
-            target[cur_len + OFFSET : cur_len + instruction_len] = IGNORE_TOKEN_ID
+            if i>0:
+                target[cur_len + OFFSET : cur_len + instruction_len] = IGNORE_TOKEN_ID
+            else: # first turn; weird [ decoding.
+                target[cur_len : cur_len + instruction_len] = IGNORE_TOKEN_ID
+            
             cur_len += turn_len
 
         target[cur_len:] = IGNORE_TOKEN_ID
@@ -214,10 +224,9 @@ class SupervisedDataset(Dataset):
         rank0_print("Formatting inputs...")
         # Modify to
         # systems = [example["conversations"].get("system", "") for example in raw_data]
-        systems = [example.get("system", "") for example in raw_data]
-        sources = [example["conversations"] for example in raw_data]
-
-        data_dict = preprocess(sources, tokenizer, template_id, systems=systems)
+        # sources = [example["conversations"] for example in raw_data]
+        sources = raw_data
+        data_dict = preprocess(sources, tokenizer, template_id, systems=None)
 
         self.input_ids = data_dict["input_ids"]
         self.labels = data_dict["labels"]
@@ -279,13 +288,17 @@ def make_supervised_data_module(
     train_ratio = min(train_ratio, 1.0)
     dataset_cls = LazySupervisedDataset if data_args.lazy_preprocess else SupervisedDataset
     rank0_print("Loading data...")
-    data_path = data_args.data_path
-    if data_path.endswith(".json"):
-        raw_data = json.load(open(data_path, "r"))
-    elif data_path.endswith(".jsonl"):
-        with jsonlines.open(data_path, mode="r") as reader:
-            raw_data = [item for item in reader]
+    # data_path = data_args.data_path
+    # if data_path.endswith(".json"):
+    #     raw_data = json.load(open(data_path, "r"))
+    # elif data_path.endswith(".jsonl"):
+    #     with jsonlines.open(data_path, mode="r") as reader:
+    #         raw_data = [item for item in reader]
 
+    #TODO: Remove this
+    EXAMPLE_FNAME = "/data/tir/projects/tir7/user_data/athankar/redteaming/data/gen_judge_multiturn_conversation/gpt-4_judge_generated_multiturn_conversations_22-00-1722564014.json"
+
+    raw_data = get_conversations(EXAMPLE_FNAME, "attacker")
     # Split train/test
     np.random.seed(0)
     perm = np.random.permutation(len(raw_data))
@@ -303,6 +316,24 @@ def make_supervised_data_module(
     train_dataset = dataset_cls(train_raw_data, tokenizer=tokenizer, template_id=template_id)
     eval_dataset = dataset_cls(eval_raw_data, tokenizer=tokenizer, template_id=template_id)
     return dict(train_dataset=train_dataset, eval_dataset=eval_dataset)
+
+@dataclass
+class DataCollatorForSupervisedDataset(object):
+    """Collate examples for supervised fine-tuning."""
+
+    tokenizer: transformers.PreTrainedTokenizer
+
+    def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
+        input_ids, labels = tuple([instance[key] for instance in instances] for key in ("input_ids", "labels"))
+        input_ids = torch.nn.utils.rnn.pad_sequence(
+            input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
+        )
+        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=IGNORE_TOKEN_ID)
+        return dict(
+            input_ids=input_ids,
+            labels=labels,
+            attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
+        )
 
 
 def train():
@@ -343,25 +374,33 @@ def train():
     # NOTE: if the token_id exceed the vocab_size will cause failing in training process! we need add special config and resize the embedding size!
     tokenizer.pad_token = tokenizer.unk_token
     tokenizer.pad_token_id = tokenizer.unk_token_id
-    print(f"tokens len: {len(tokenizer)}")
+    # print(f"tokens len: {len(tokenizer)}")
     model.resize_token_embeddings(len(tokenizer))
 
     template_id = model_args.model_name_or_path
     data_module = make_supervised_data_module(
         tokenizer=tokenizer,
         template_id=template_id,
-        train_ratio=0.98,
+        # train_ratio=0.98, #TODO: Revert
+        train_ratio=0.8,
         data_args=data_args,
     )
+
     trainer = Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:
         trainer.train()
+    # from IPython import embed; embed()
     trainer.save_state()
     safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
 
 
 if __name__ == "__main__":
+
     train()
+
+"""
+deepspeed --master_port 32079 /data/tir/projects/tir7/user_data/athankar/redteaming/redteam/train/multiturn_sft.py     --deepspeed /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/deepspeed/zero3.json     --bf16 True     --output_dir /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs     --num_train_epochs 3     --per_device_train_batch_size 1     --per_device_eval_batch_size 1     --gradient_accumulation_steps 16     --evaluation_strategy "steps"     --eval_steps 100000     --save_strategy "steps"     --save_steps 100000     --save_total_limit 8     --learning_rate 1e-5     --weight_decay 0.     --warmup_ratio 0.04     --lr_scheduler_type "cosine"     --logging_steps 1     --tf32 True     --model_max_length 2048     --gradient_checkpointing True     --remove_unused_columns False     --lazy_preprocess False
+"""

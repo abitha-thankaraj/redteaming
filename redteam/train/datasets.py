@@ -96,6 +96,10 @@ if __name__ == "__main__":
     raw_data = read_json(EXAMPLE_FNAME)
     attacker_msgs = filter_messages(raw_data, "attacker")
     defender_msgs = filter_messages(raw_data, "defender")
+
+    from redteam.train.multiturn_sft import SupervisedDataset
+    attacker_raw_messages = get_conversations(EXAMPLE_FNAME, "attacker")
+    SupervisedDataset()
     from IPython import embed
 
     embed()
