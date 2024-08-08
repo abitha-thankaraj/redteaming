@@ -24,12 +24,17 @@ from redteam.data_generation.parsers import (
     parse_llm_judge_evaluation,
     is_valid_llm_judge_trace,
 )
+from redteam.utils.hash_utils import get_question_id_sha256
 
 
 def rename_savefile(save_file, input_file):
     input_file = input_file.split("/")[-1]
     save_file = save_file.replace(".json", f"_input_{input_file}")
     return save_file
+
+def get_generation_model_name(input_file):
+    return input_file.split("/")[-1].split("_")[0]
+
 
 
 @hydra.main(
@@ -91,6 +96,11 @@ def main(config: DictConfig):
         output_dict["conversation_with_judge"] = response
         output_dict["conversation"] = multiturn_conversation["conversation"]
         output_dict["goal"] = multiturn_conversation["goal"]
+        output_dict["generation_model"] = config.generation_model
+        output_dict["dataset"] = config.prompt_dataset
+        output_dict["question_id"] = get_question_id_sha256(
+            conversation=multiturn_conversation["conversation"],
+        )
 
         all_multiturn_judgements.append(output_dict)
 
