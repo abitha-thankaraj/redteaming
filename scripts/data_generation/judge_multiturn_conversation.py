@@ -82,6 +82,11 @@ def main(config: DictConfig):
 
     for i in tqdm(range(len(multiturn_conversations))):
         multiturn_conversation = multiturn_conversations[i]
+        # removing system prompt if it is the first message
+        if multiturn_conversations[i]["conversation"][0]["role"] == "system":
+            multiturn_conversation["conversation"] = multiturn_conversation["conversation"][1:]
+
+
         messages = [
             user_template.format(
                 goal=multiturn_conversation["goal"],

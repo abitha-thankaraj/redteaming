@@ -8,19 +8,19 @@
 #SBATCH --partition=general
 #SBATCH --mail-user=athankar@cs.cmu.edu
 #SBATCH --mail-type=END,FAIL
-#SBATCH --array=0-173%12
+#SBATCH --array=0-95%24
 
 # Define directories
 DIR1="/data/group_data/rl/datasets/redteaming/gen_eval_multiturn_attacks/"
 
 # Define the pattern to search for within the file names
-PATTERN="*.json"
+PATTERN="**advbench**.json"
 
 # # Find all files that match the pattern in the directory and store them in a variable
 FILES=($(find $DIR1 -type f -name "$PATTERN"))
 # DATASET_NAME="advbench"
 
-# # Filter out all files with 'advbench' in the filename
+# # # Filter out all files with 'advbench' in the filename
 # FILTERED_FILES=($(echo "$FILES" | grep -v $DATASET_NAME))
 REPO_DIR="/data/tir/projects/tir7/user_data/athankar/redteaming";
 
