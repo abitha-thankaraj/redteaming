@@ -106,7 +106,7 @@ def draw_histogram(
     save_path: str,
     model_name: str,
 ) -> None:
-    fig = plt.figure(figsize=(10,5), dpi=300)
+    fig = plt.figure(figsize=(5,5), dpi=300)
     plt.hist(
         data,
         bins=30,
