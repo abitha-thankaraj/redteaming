@@ -47,8 +47,8 @@ def get_statistics(
 ) -> defaultdict:
     stats = {
         "model_name": (
-            "Mistral-7B-Instruct-v0.1" if "Mistral-7B-Instruct-v0.1" in filename 
-            else "Llama-3.1-8B-Instruct"
+            "mistralai/Mistral-7B-Instruct-v0.1" if "Mistral-7B-Instruct-v0.1" in filename 
+            else "meta-llama/Meta-Llama-3.1-8B-Instruct"
         ),
         "length": []
     }
