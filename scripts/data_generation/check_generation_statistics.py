@@ -150,7 +150,7 @@ def collate_statistics(
         draw_histogram(
             data=collated_stats[model_name]["length"],
             model_name=model_name,
-            save_path=os.path.join(plot_save_dir, model_name + ".png")
+            save_path=os.path.join(plot_save_dir, model_name.split("/")[-1] + ".png")
         )
         collated_stats[model_name]["length"] = np.max(
             collated_stats[model_name]["length"]
