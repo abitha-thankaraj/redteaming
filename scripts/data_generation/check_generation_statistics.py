@@ -1,8 +1,10 @@
-from typing import Dict, Any
+from matplotlib import pyplot as plt
+from typing import Dict, Any, List
 import argparse
 from collections import defaultdict
 import transformers
 import numpy as np
+import os
 
 from redteam.utils.data_utils import (
     read_json,
@@ -25,6 +27,13 @@ def load_all_arguments() -> Dict[str, Any]:
         "--cache_dir", 
         type=str, 
         default="/home/ftajwar/training_cache",
+    )
+
+    ap.add_argument(
+        "-plot_save_dir",
+        "--plot_save_dir",
+        type=str,
+        default="/home/ftajwar/redteaming/data/length_plots"
     )
 
     script_arguments = vars(ap.parse_args())
@@ -91,9 +100,30 @@ def get_tokenizer(
     )
 
 
+def draw_histogram(
+    data: List[int], 
+    save_path: str,
+    model_name: str,
+) -> None:
+    fig = plt.figure(figsize=(5,10), dpi=300)
+    plt.hist(
+        data,
+        bins=30,
+        color="skyblue",
+        edgecolor="black",
+    )
+    plt.xlabel("Length")
+    plt.ylabel("Frequency")
+    plt.title(model_name)
+
+    plt.savefig(save_path, bbox_inches='tight')
+    fig.close()
+
+
 def collate_statistics(
     root_dir: str,
     cache_dir: str,
+    plot_save_dir: str,
 ) -> None:
     collated_stats = {
         "mistralai/Mistral-7B-Instruct-v0.1": {
@@ -117,6 +147,11 @@ def collate_statistics(
         )
 
     for model_name in collated_stats:
+        draw_histogram(
+            data=collated_stats[model_name]["length"],
+            model_name=model_name,
+            save_path=os.path.join(plot_save_dir, model_name + ".png")
+        )
         collated_stats[model_name]["length"] = np.max(
             collated_stats[model_name]["length"]
         )
@@ -128,6 +163,7 @@ def main():
     collate_statistics(
         root_dir=script_arguments["root_dir"],
         cache_dir=script_arguments["cache_dir"],
+        plot_save_dir=script_arguments["plot_save_dir"],
     )
 
 
