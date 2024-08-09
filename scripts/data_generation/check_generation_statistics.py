@@ -96,11 +96,11 @@ def collate_statistics(
     cache_dir: str,
 ) -> None:
     collated_stats = {
-        "Mistral-7B-Instruct-v0.1": {
+        "mistralai/Mistral-7B-Instruct-v0.1": {
             "stats": defaultdict(int),
             "length": [],
         },
-        "Llama-3.1-8B-Instruct": {
+        "meta-llama/Meta-Llama-3.1-8B-Instruct": {
             "stats": defaultdict(int),
             "length": [],
         },
