@@ -117,7 +117,7 @@ def draw_histogram(
     plt.title(model_name)
 
     plt.savefig(save_path, bbox_inches='tight')
-    fig.close()
+    plt.close(fig=fig)
 
 
 def collate_statistics(
