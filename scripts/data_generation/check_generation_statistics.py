@@ -37,8 +37,7 @@ def get_length(
 ) -> int:
     conversation = datapoint["conversation"]
     tokenized = tokenizer.apply_chat_template(conversation, tokenize=True)
-    print(len(tokenized))
-    exit()
+    return len(tokenized)
     
 
 def get_statistics(
