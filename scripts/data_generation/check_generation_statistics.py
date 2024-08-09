@@ -72,11 +72,12 @@ def get_statistics(
     for datapoint in all_data:
         key = f"goal_achived_{datapoint['goal_achieved']}_safety_label_{datapoint['safety_label']}"
         counter[key] += 1
-        datapoint_length = get_length(
-            datapoint=datapoint, 
-            tokenizer=tokenizer,
-        )
-        stats["length"].append(datapoint_length)
+        if key == 'goal_achived_Yes_safety_label_Unsafe':
+            datapoint_length = get_length(
+                datapoint=datapoint, 
+                tokenizer=tokenizer,
+            )
+            stats["length"].append(datapoint_length)
 
     stats["counter"] = counter
     return stats
