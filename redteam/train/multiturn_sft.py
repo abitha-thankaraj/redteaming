@@ -54,7 +54,7 @@ class TrainingArguments(transformers.TrainingArguments):
     cache_dir: Optional[str] = field(default="/data/tir/projects/tir6/bisk/athankar/projects/.cache")
     optim: str = field(default="adamw_torch")
     model_max_length: int = field(
-        default=1024,
+        default=4096,
         metadata={
             "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
         },
@@ -296,7 +296,7 @@ def make_supervised_data_module(
     #         raw_data = [item for item in reader]
 
     #TODO: Remove this
-    EXAMPLE_FNAME = "/data/tir/projects/tir7/user_data/athankar/redteaming/data/gen_judge_multiturn_conversation/gpt-4_judge_generated_multiturn_conversations_22-00-1722564014.json"
+    EXAMPLE_FNAME = "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_train_data.json"
 
     raw_data = get_conversations(EXAMPLE_FNAME, "attacker")
     # Split train/test
@@ -374,15 +374,13 @@ def train():
     # NOTE: if the token_id exceed the vocab_size will cause failing in training process! we need add special config and resize the embedding size!
     tokenizer.pad_token = tokenizer.unk_token
     tokenizer.pad_token_id = tokenizer.unk_token_id
-    # print(f"tokens len: {len(tokenizer)}")
     model.resize_token_embeddings(len(tokenizer))
 
     template_id = model_args.model_name_or_path
     data_module = make_supervised_data_module(
         tokenizer=tokenizer,
         template_id=template_id,
-        # train_ratio=0.98, #TODO: Revert
-        train_ratio=0.8,
+        train_ratio=0.98, #TODO: Revert
         data_args=data_args,
     )
 
@@ -392,7 +390,7 @@ def train():
         trainer.train(resume_from_checkpoint=True)
     else:
         trainer.train()
-    # from IPython import embed; embed()
+
     trainer.save_state()
     safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
 

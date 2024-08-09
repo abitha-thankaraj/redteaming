@@ -38,6 +38,7 @@ def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
     agent_config = {
         "attacker": (is_good_attacker_message, get_attacker_message),
         "defender": (is_good_defender_message, get_defender_message),
+        "llama_attacker": (is_good_llama_attacker_message, get_attacker_message)
     }
     if agent_type not in agent_config:
         raise ValueError(f"Invalid agent type: {agent_type}")
@@ -47,6 +48,8 @@ def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
     # format the filtered messages
     return list(map(get_message, filter(is_good_message, messages)))
 
+def is_good_llama_attacker_message(message: Dict) -> bool:
+    return is_good_attacker_message(message) and message["generation_model"] == "Meta-Llama-3.1-8B-Instruct"
 
 def is_good_attacker_message(message: Dict) -> bool:
     """Attacker condition: is_unsafe == True [breaks the model] and is_goal_achieved == True [follows the goal instruction provided]"""

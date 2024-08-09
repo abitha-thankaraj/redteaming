@@ -101,10 +101,12 @@ def mask_non_assistant_tokens(
 
 if __name__ == "__main__":
 
-    EXAMPLE_FNAME = "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_chunked/gpt-4_judge_generated_multiturn_conversations_22-18-1723083523_input_Mistral-7B-Instruct-v0.1_test_evaluated_multiturn_responses_16-55-1722459320.json"
+    EXAMPLE_FNAME = "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_train_data.json"
     from redteam.train.datasets import get_conversations
     attacker_raw_messages = get_conversations(EXAMPLE_FNAME, "attacker")
-
+    llama_attacker_raw_messages = get_conversations(EXAMPLE_FNAME, "llama_attacker")
+    from IPython import embed; embed()
+    print(len(attacker_raw_messages))
     c = attacker_raw_messages[0]
     conversation = [
         {"role": "system", "content": "You are a helpful assistant."},
