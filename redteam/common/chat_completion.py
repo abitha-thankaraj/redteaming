@@ -4,6 +4,7 @@ import os
 import openai
 from openai import OpenAI
 from fastchat.model import get_conversation_template
+from typing import Optional, List, Dict
 
 """
     #OAI Usage
@@ -58,12 +59,83 @@ class OAIChatCompletion(ChatCompletion):
         self.conv = get_conversation_template("gpt-4")
 
 
-    def set_system_prompt(self, system_prompt):
+    def set_system_prompt(self, system_prompt: str):
         self.system_prompt = system_prompt
 
+    def process_conversation_history(
+        self,
+        use_special_tokens: bool,
+    ) -> List[Dict[str, str]]:
+        """
+        Given the conversation list, processes it into appropriate format.
+
+        Input:
+            use_special_tokens (bool)
+        
+        Output:
+            conversation history, which has the following format (List[Dict[str, str]]):
+            [
+                {
+                    "role": "system",
+                    "content": <system_prompt>,
+                },
+                {
+                    "role": "user",
+                    "content": <user_prompt>,
+                },
+                {
+                    "role": "assistant",
+                    "content": <model generation>,
+                },
+                .... (K turns of conversation)
+            ]
+
+            if use_special_tokens is True, 
+                it returns K turns of {"role": "user", "content": ...}, {"role": "assistant", "content": ...}
+
+            if use_special_tokens is False,
+                it converts the K turn conversation into a 1-turn one, 
+                to remove the <use> </user> and <assistant> </assistant> tokens.
+                It looks like the following:
+
+                {
+                    "role": "user",
+                    "content": "User: <user_prompt>\n\n Assistant: <model_generation>\n\n User: ...."
+                }
+
+            Example Usage:
+                conv_history = self.process_conversation_history(use_special_tokens=True)
+        """
+        conv_history = self.conv.to_openai_api_messages()
+
+        if not use_special_tokens:
+            # Extract the system prompt
+            new_conv_history = [conv_history[0]]
+            rolenames = {
+                "user": "User: ",
+                "assistant": "Assistant: ",
+            }
+            
+            concatenated_messages = ""
+            for index in range(1, len(conv_history)):
+                concatenated_messages += rolenames[conv_history[index]["role"]]
+                concatenated_messages += conv_history[index]["content"]
+                concatenated_messages += "\n\n"
+            
+            new_conv_history.append(
+                {"role": "user", "content": concatenated_messages}
+            )
+
+            conv_history = new_conv_history
+
+        return conv_history
+
     def multiturn_chat_completion(
-        self, system_prompt=None, messages: list[str] = []
-    ) -> list[str]:
+        self, 
+        system_prompt: Optional[str] = None, 
+        messages: List[str] = [],
+        use_special_tokens: bool = True,
+    ) -> List[Dict[str, str]]:
 
         self._init_conversation()
 
@@ -77,7 +149,7 @@ class OAIChatCompletion(ChatCompletion):
 
             res = openai.chat.completions.create(
                 model=self.config.model,
-                messages=self.conv.to_openai_api_messages(),
+                messages=self.process_conversation_history(use_special_tokens=use_special_tokens),
                 temperature=self.config.temperature,
             )
 

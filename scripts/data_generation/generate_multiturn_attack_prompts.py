@@ -26,8 +26,10 @@ from redteam.data_generation.templates import GENERATE_MULTITURN_ATTACK_QUESTION
 )
 def main(config: DictConfig):
     """
-    Main entry point for running question generation.
-    Follows the method of this paper: Leveraging the Context through Multi-Round Interactions for Jailbreaking Attacks (https://arxiv.org/abs/2402.09177)
+    Main entry point for running multi-turn attack question generatio     n.
+    
+    Follows the method of this paper: 
+    Leveraging the Context through Multi-Round Interactions for Jailbreaking Attacks (https://arxiv.org/abs/2402.09177)
     """
     config.repo_dir = PARENT_DIR
     OmegaConf.resolve(config)
