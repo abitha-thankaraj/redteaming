@@ -70,7 +70,8 @@ class OAIChatCompletion(ChatCompletion):
         Given the conversation list, processes it into appropriate format.
 
         Input:
-            use_special_tokens (bool)
+            use_special_tokens (bool):
+                whether to use special tokens while appending the multi-turn conversation or not
         
         Output:
             conversation history, which has the following format (List[Dict[str, str]]):
@@ -87,7 +88,7 @@ class OAIChatCompletion(ChatCompletion):
                     "role": "assistant",
                     "content": <model generation>,
                 },
-                .... (K turns of conversation)
+                ....
             ]
 
             if use_special_tokens is True, 
