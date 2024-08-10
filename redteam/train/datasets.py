@@ -1,111 +1,100 @@
-import os
-import glob
+import torch
 from tqdm import tqdm
 from torch.utils.data import Dataset
 from typing import Dict, Any, List
-from redteam.utils.data_utils import read_json
-from fastchat.model.model_adapter import get_conversation_template
+from transformers import AutoTokenizer
+from redteam.train.common import TokenizerSeparators
 
 
-class MultiturnDataset(Dataset):
-    def __init__(self, data_dir: str, agent_type: str):
-        self.conversations = get_conversations(data_dir, agent_type)
-        # TODO: Add mask logic here
+class MultiturnSFTDataset(
+    Dataset
+):  # TODO: Add docstring+ key differences b/w single turn and multiturn
+    def __init__(
+        self,
+        conversations: List[Dict],
+        tokenizer: Any,
+        tokenizer_separator: Any,
+        ignore_token_id: int,
+    ):
+
+        self.input_ids, self.labels, self.attention_mask = [], [], []
+        for conversation in tqdm(conversations):
+            data_dict = mask_non_assistant_tokens(
+                tokenizer, conversation, tokenizer_separator, ignore_token_id
+            )
+            self.input_ids.append(data_dict["input_ids"])
+            self.labels.append(data_dict["labels"])
+            self.attention_mask.append(data_dict["attention_mask"])
+
+        self.input_ids = torch.stack(self.input_ids, dim=0)
+        self.labels = torch.stack(self.labels, dim=0)
+        self.attention_mask = torch.stack(self.attention_mask, dim=0)
 
     def __len__(self):
         return len(self.conversations)
 
     def __getitem__(self, idx):
-        return self.conversations[idx]
+        return {
+            "input_ids": self.input_ids[idx],
+            "labels": self.labels[idx],
+            "attention_mask": self.attention_mask[idx],
+        }
 
 
-def get_conversations(data_dir: str, agent_type: str) -> List[Dict]:
-    # if is directory, read all files in the directory
-    if os.path.isdir(data_dir):
-        data = []
-        for file in sorted(glob.glob(data_dir + "/*.json")):
-            data.extend(read_json(file))
-    elif os.path.isfile(data_dir):
-        data = read_json(data_dir)
-
-    return filter_messages(data, agent_type)
-
-
-def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
+def mask_non_assistant_tokens(
+    tokenizer: AutoTokenizer,
+    conversation: List[Dict[str, str]],
+    tokenizer_separator: TokenizerSeparators,
+    ignore_token_id: int,
+):
+    """Mask all tokens that are not part of the assistant's outputs.
+    Note: We expect the end of assistant's output to be marked by the assistant_suffix token.
     """
-    Filter messages based on the agent type
-    """
-    agent_config = {
-        "attacker": (is_good_attacker_message, get_attacker_message),
-        "defender": (is_good_defender_message, get_defender_message),
-        "llama_attacker": (is_good_llama_attacker_message, get_attacker_message)
-    }
-    if agent_type not in agent_config:
-        raise ValueError(f"Invalid agent type: {agent_type}")
+    # TODO Add example
 
-    is_good_message, get_message = agent_config[agent_type]
-    # filter messages based on the agent type + is_good_message_criteria;
-    # format the filtered messages
-    return list(map(get_message, filter(is_good_message, messages)))
-
-def is_good_llama_attacker_message(message: Dict) -> bool:
-    return is_good_attacker_message(message) and message["generation_model"] == "Meta-Llama-3.1-8B-Instruct"
-
-def is_good_attacker_message(message: Dict) -> bool:
-    """Attacker condition: is_unsafe == True [breaks the model] and is_goal_achieved == True [follows the goal instruction provided]"""
-    return (
-        message["goal_achieved"].lower().strip() == "yes" # Follows the goal provided
-        and message["safety_label"].lower().strip() == "unsafe" # Breaks the defender model
+    tokens = tokenizer.apply_chat_template(
+        conversation, tokenize=True, padding="max_length", truncation=True
     )
 
+    masked_tokens = [ignore_token_id] * len(tokens)  # Start with all tokens masked
+    assert tokenizer_separator.assistant_prefix_ids is not None, "Assistant prefix ids not set"
+    assistant_prefix_ids = tokenizer_separator.assistant_prefix_ids
 
-def is_good_defender_message(message: Dict) -> bool:
-    """Defender condition: is_unsafe == False [does not break the model]; We do not care about the goal.
-    This will be the model (a) refusing to answer or (b) providing a safe answer."""
-    return message["safety_label"].lower().strip() == "safe"
+    assistant_contents = [
+        tokenizer_separator.assistant_prefix
+        + msg["content"]
+        + tokenizer_separator.assistant_suffix
+        for msg in conversation
+        if msg["role"] == "assistant"
+    ]
 
+    start_index = 0
+    for content in assistant_contents:
+        content_tokens = tokenizer.encode(content, add_special_tokens=False)
+        while True:
+            try:  # Note: This will be slow, one time loading doesnt matter.
+                start_index = tokens.index(content_tokens[0], start_index)
+                if tokens[start_index : start_index + len(content_tokens)] == content_tokens:
+                    masked_tokens[
+                        start_index
+                        + len(assistant_prefix_ids)
+                        + tokenizer_separator.prefix_offset : start_index
+                        + len(content_tokens)
+                    ] = tokens[
+                        start_index
+                        + len(assistant_prefix_ids)
+                        + tokenizer_separator.prefix_offset : start_index
+                        + len(content_tokens)
+                    ]
+                    break
+                start_index += 1
+            except ValueError:
+                break
 
-def get_attacker_message(raw_msg: Dict[str, Any]) -> List[str]:
-    conv = get_conversation_template("gpt-4")
-    goal = raw_msg["goal"]
-    conv.append_message(role="user", message=goal)
-
-    for d in range(len(raw_msg["conversation"])):
-        if d % 2 == 0:
-            conv.append_message(
-                role="assistant", message=raw_msg["conversation"][d]["content"]
-            )
-        else:
-            conv.append_message(role="user", message=raw_msg["conversation"][d]["content"])
-    return conv.to_openai_api_messages()[1:]  # remove system prompt
-
-
-def get_defender_message(raw_msg: Dict[str, Any]) -> List[str]:
-    conv = get_conversation_template("gpt-4")
-    for d in range(len(raw_msg["conversation"])):
-        if d % 2 == 0:
-            conv.append_message(role="user", message=raw_msg["conversation"][d]["content"])
-        else:
-            conv.append_message(
-                role="assistant", message=raw_msg["conversation"][d]["content"]
-            )
-    return conv.to_openai_api_messages()[1:]  # remove system prompt
-
-
-if __name__ == "__main__":
-    # EXAMPLE_FNAME = "/data/tir/projects/tir7/user_data/athankar/redteaming/data/gen_judge_multiturn_conversation/gpt-4_judge_generated_multiturn_conversations_22-00-1722564014.json"
-    EXAMPLE_FNAME = "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_chunked/gpt-4_judge_generated_multiturn_conversations_22-18-1723083523_input_Mistral-7B-Instruct-v0.1_test_evaluated_multiturn_responses_16-55-1722459320.json"
-    
-    raw_data = read_json(EXAMPLE_FNAME)
-    
-    attacker_msgs = filter_messages(raw_data, "attacker")
-    defender_msgs = filter_messages(raw_data, "defender")
-
-    from redteam.train.multiturn_sft import SupervisedDataset
-    attacker_raw_messages = get_conversations(EXAMPLE_FNAME, "attacker")
-    
-    
-    
-    from IPython import embed
-
-    embed()
+    input_ids = torch.tensor(tokens)
+    labels = torch.tensor(masked_tokens)
+    return dict(
+        input_ids=input_ids,
+        labels=labels,
+        attention_mask=input_ids.ne(tokenizer.pad_token_id),
+    )

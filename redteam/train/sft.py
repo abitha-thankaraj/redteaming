@@ -1,10 +1,29 @@
-# Borrwed from https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py
+# Borrowed from https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py
 
 from dataclasses import dataclass, field
-from typing import Optional, Sequence, Dict
+from typing import Optional, Tuple
 import transformers
-import torch
+import math
+import pathlib
+import numpy as np
+from redteam.train.datasets import MultiturnSFTDataset
+from redteam.train.dataset_utils import get_conversations
+from redteam.train.common import (
+    get_tokenizer_separators,
+    safe_save_model_for_hf_trainer,
+    set_seed_everywhere,
+    TokenizerSeparators,
+)
+from torch.utils.data import Dataset
+from transformers.trainer_pt_utils import LabelSmoother
 
+from transformers import Trainer
+import torch, time
+
+IGNORE_TOKEN_ID = LabelSmoother.ignore_index
+
+
+# Args/ Arg parsers
 @dataclass
 class ModelArguments:
     model_name_or_path: Optional[str] = field(default="mistralai/Mistral-7B-Instruct-v0.1")
@@ -12,22 +31,33 @@ class ModelArguments:
 
 @dataclass
 class DataArguments:
+    seed: int = field(default=42, metadata={"help": "Random seed for training."})
     data_path: str = field(default=None, metadata={"help": "Path to the training data."})
-    lazy_preprocess: bool = False
+    agent_type: str = field(
+        default="attacker",
+        metadata={"help": "Type of agent to train on. Available options: attacker, defender"},
+        choices=["attacker", "defender", "llama_attacker"],
+    )
+    train_ratio: float = field(
+        default=0.99, metadata={"help": "Ratio of data to use for training."}
+    )
 
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
-    cache_dir: Optional[str] = field(default="/data/tir/projects/tir6/bisk/athankar/projects/.cache")
+    cache_dir: Optional[str] = field(
+        default="/data/tir/projects/tir6/bisk/athankar/projects/.cache"
+    )
     optim: str = field(default="adamw_torch")
     model_max_length: int = field(
-        default=1024,
+        default=4096,
         metadata={
             "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
         },
     )
 
 
+# Debugging utils
 local_rank = None
 
 
@@ -35,54 +65,122 @@ def rank0_print(*args):
     if local_rank == 0:
         print(*args)
 
-def preprocess(sources, tokenizer):
-#     def preprocess(
-#     sources, tokenizer: transformers.PreTrainedTokenizer, template_id, **kwargs
-# ) -> Dict:
-#     systems = None if not kwargs else kwargs.get("systems", None)
 
-#     # If the data volume is small, process it directly in the main thread
-#     if len(sources) <= 1000:
-#         conversations, conv = apply_prompt_template(sources, template_id, systems)
-#         input_ids, targets = tokenize_conversations(conversations, tokenizer)
-#         targets = mask_targets(conversations, targets, tokenizer, conv)
-#     else:  # If the data volume is large, use multithreading for processing
-#         with Pool() as p:
-#             conversations, conv = p.apply_async(
-#                 apply_prompt_template, (sources, template_id, systems)
-#             ).get()
-#             input_ids, targets = p.apply_async(
-#                 tokenize_conversations, (conversations, tokenizer)
-#             ).get()
-#             targets = p.apply_async(
-#                 mask_targets, (conversations, targets, tokenizer, conv)
-#             ).get()
-#             p.close()
-#             p.join()
+# TODO: Remove
+def rank0_debug(interval=9999999):
+    torch.distributed.barrier()
+    if torch.distributed.get_rank() == 0:
+        breakpoint()
+    else:
+        time.sleep(interval)
 
-    return dict(
-        input_ids=input_ids,
-        labels=targets,
-        attention_mask=input_ids.ne(tokenizer.pad_token_id),
+
+def get_dataset(
+    data_dir: str,
+    agent_type: str,
+    train_ratio: float,
+    tokenizer: transformers.AutoTokenizer,
+    tokenizer_separator: TokenizerSeparators,
+) -> Tuple[Dataset, Dataset]:
+    """Get train test dataset for multiturn sft"""
+    # Can make this more gnearal by passing in the dataset_cls
+
+    train_ratio = min(train_ratio, 1.0)
+    # To resuse for another dataset - write your own get_conversations fn
+    conversations = get_conversations(data_dir, agent_type)
+    perm = np.random.permutation(len(conversations))
+    split = int(len(perm) * train_ratio)
+    train_indices = perm[:split]
+    if train_ratio < 1:
+        eval_indices = perm[split:]
+    else:
+        # if train_ratio==1, we use 1% of data as eval data, make sure trainer will not throw error when eval data is empty
+        eval_indices = perm[-int(len(perm) * 0.01) :]
+    train_raw_data = [conversations[i] for i in train_indices]
+    eval_raw_data = [conversations[i] for i in eval_indices]
+
+    rank0_print(f"#train {len(train_raw_data)}, #eval {len(eval_raw_data)}")
+
+    return MultiturnSFTDataset(
+        train_raw_data, tokenizer, tokenizer_separator, IGNORE_TOKEN_ID
+    ), MultiturnSFTDataset(eval_raw_data, tokenizer, tokenizer_separator, IGNORE_TOKEN_ID)
+
+
+def train():
+    global local_rank
+    # Parse args; All configs sent to the model
+    parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
+    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+
+    # Seed everything
+    set_seed_everywhere(data_args.seed)
+
+    # Mostly for debugging
+    local_rank = training_args.local_rank
+
+    config = transformers.AutoConfig.from_pretrained(
+        model_args.model_name_or_path,
+        trust_remote_code=True,
+        cache_dir=training_args.cache_dir,
     )
 
-@dataclass
-class DataCollatorForSupervisedDataset(object):
-    """Collate examples for supervised fine-tuning."""
+    # Set RoPE scaling factor - useful when you want to train with a larger context window
+    orig_ctx_len = getattr(config, "max_position_embeddings", None)
+    if orig_ctx_len and training_args.model_max_length > orig_ctx_len:
+        scaling_factor = float(math.ceil(training_args.model_max_length / orig_ctx_len))
+        config.rope_scaling = {"type": "linear", "factor": scaling_factor}
+    config.use_cache = False
 
-    tokenizer: transformers.PreTrainedTokenizer
+    # Load model
+    model = transformers.AutoModelForCausalLM.from_pretrained(
+        model_args.model_name_or_path,
+        config=config,
+        trust_remote_code=True,
+        cache_dir=training_args.cache_dir,
+    )
+    # Tie the weights - Commonly used for memory efficient training?
+    model.tie_weights()
 
-    def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
-        input_ids, labels = tuple([instance[key] for instance in instances] for key in ("input_ids", "labels"))
-        input_ids = torch.nn.utils.rnn.pad_sequence(
-            input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
-        )
-        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=IGNORE_INDEX)
-        return dict(
-            input_ids=input_ids,
-            labels=labels,
-            attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
-        )
+    # Load tokenizer
+    tokenizer = transformers.AutoTokenizer.from_pretrained(
+        model_args.model_name_or_path,
+        config=config,
+        trust_remote_code=True,
+        cache_dir=training_args.cache_dir,
+        model_max_length=training_args.model_max_length,
+        padding_side="right",
+        use_fast=False,
+    )
+    # Add padding token to the tokenizer + Add masking values. tokenizer separator will be used for masking in dataloader
+    tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
+    # NOTE: if the token_id exceed the vocab_size will cause failing in training process! we need add special config and resize the embedding size!
+    model.resize_token_embeddings(len(tokenizer))
+
+    train_dataset, eval_dataset = get_dataset(
+        data_args.data_path,
+        data_args.agent_type,
+        data_args.train_ratio,
+        tokenizer,
+        tokenizer_separator,
+    )
+
+    trainer = Trainer(
+        model=model,
+        tokenizer=tokenizer,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+    )
+
+    if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
+        trainer.train(resume_from_checkpoint=True)
+    else:
+        trainer.train()
+
+    trainer.save_state()
+    safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
+
 
 if __name__ == "__main__":
-    main()
+
+    train()
