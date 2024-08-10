@@ -8,7 +8,7 @@ AGENT_TYPE="attacker"
 MODEL_PATH="meta-llama/Meta-Llama-3.1-8B-Instruct"
 
 HF_HOME="/data/tir/projects/tir6/bisk/athankar/projects/.cache";
-RUN_NAME="mutiturnsft_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
+RUN_NAME="multiturnsft_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
 LOGDIR="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/$RUN_NAME"
 REPO_DIR="/data/tir/projects/tir7/user_data/athankar/redteaming"
 DATA_DIR="/data/group_data/rl/datasets/redteaming"
