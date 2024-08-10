@@ -12,15 +12,18 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --array=0-8
 
-# Define directories
-HARMBENCH_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/harmbench_chunked/"
-OPENAI_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/openai_chunked/"
-ADVBENCH_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/advbench_chunked"
+# # Define directories
+# HARMBENCH_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/harmbench_chunked/"
+# OPENAI_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/openai_chunked/"
+# ADVBENCH_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/advbench_chunked"
 
-# Find all files that match the pattern in both directories and store them as an array
-# FILES=($(find $HARMBENCH_DIR $OPENAI_DIR -type f -name "*.json"))
-FILES=($(find $HARMBENCH_DIR $OPENAI_DIR $ADVBENCH_DIR-type f -name "*.json"))
-# FILES=($(find $ADVBENCH_DIR -type f -name "*.json"))
+# # Find all files that match the pattern in both directories and store them as an array
+# # FILES=($(find $HARMBENCH_DIR $OPENAI_DIR -type f -name "*.json"))
+# FILES=($(find $HARMBENCH_DIR $OPENAI_DIR $ADVBENCH_DIR-type f -name "*.json"))
+# # FILES=($(find $ADVBENCH_DIR -type f -name "*.json"))
+
+FILE_DIR=/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/
+FILES=($(find $FILE_DIR -name "*.json"))
 
 # Variables
 FAST_CHAT_MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.1";
@@ -36,4 +39,4 @@ cd $REPO_DIR/scripts/slurm/
 
 # Deploy and infer
 # ./deploy_and_infer.sh $FAST_CHAT_MODEL_PATH $FAST_CHAT_API_PORT $REPO_DIR $CHAT_COMPLETION_MODEL "${FILES[$SLURM_ARRAY_TASK_ID]}" $CONTROLLER_PORT $WORKER_PORT
-./deploy_and_infer_ft.sh $FAST_CHAT_MODEL_PATH $FAST_CHAT_API_PORT $REPO_DIR $CHAT_COMPLETION_MODEL "${MISSING_FNAMES[$SLURM_ARRAY_TASK_ID]}" $CONTROLLER_PORT $WORKER_PORT
+./deploy_and_infer_ft.sh $FAST_CHAT_MODEL_PATH $FAST_CHAT_API_PORT $REPO_DIR $CHAT_COMPLETION_MODEL "${FILES[$SLURM_ARRAY_TASK_ID]}" $CONTROLLER_PORT $WORKER_PORT
