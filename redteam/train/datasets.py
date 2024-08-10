@@ -31,7 +31,7 @@ class MultiturnSFTDataset(
         self.attention_mask = torch.stack(self.attention_mask, dim=0)
 
     def __len__(self):
-        return len(self.conversations)
+        return self.input_ids.shape[0]
 
     def __getitem__(self, idx):
         return {

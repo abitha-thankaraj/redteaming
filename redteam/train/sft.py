@@ -1,4 +1,7 @@
 # Borrowed from https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py
+import os
+# Add this here for wandb project name
+os.environ["WANDB_PROJECT"] = "redteaming" 
 
 from dataclasses import dataclass, field
 from typing import Optional, Tuple
@@ -31,12 +34,11 @@ class ModelArguments:
 
 @dataclass
 class DataArguments:
-    seed: int = field(default=42, metadata={"help": "Random seed for training."})
     data_path: str = field(default=None, metadata={"help": "Path to the training data."})
     agent_type: str = field(
         default="attacker",
         metadata={"help": "Type of agent to train on. Available options: attacker, defender"},
-        choices=["attacker", "defender", "llama_attacker"],
+        # choices=["attacker", "defender", "llama_attacker"],
     )
     train_ratio: float = field(
         default=0.99, metadata={"help": "Ratio of data to use for training."}
@@ -113,7 +115,7 @@ def train():
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     # Seed everything
-    set_seed_everywhere(data_args.seed)
+    set_seed_everywhere(training_args.seed)
 
     # Mostly for debugging
     local_rank = training_args.local_rank
