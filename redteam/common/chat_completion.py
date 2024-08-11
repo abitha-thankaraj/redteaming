@@ -50,7 +50,10 @@ class OAIChatCompletion(ChatCompletion):
             openai.api_key = "EMPTY"
             openai.base_url = config.url  # Local Fastchat server completion
 
-        self.system_prompt = ""
+        if hasattr(self.config, 'system_prompt'):
+            self.system_prompt = self.config.system_prompt
+        else:
+            self.system_prompt = ""
         self._init_conversation()
 
     def _init_conversation(self):
@@ -60,6 +63,9 @@ class OAIChatCompletion(ChatCompletion):
 
     def set_system_prompt(self, system_prompt: str):
         self.system_prompt = system_prompt
+        self.conv.set_system_message(
+            system_prompt=system_prompt,
+        )
 
     def multiturn_chat_completion(
         self, 
