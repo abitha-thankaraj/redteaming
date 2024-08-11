@@ -12,17 +12,26 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --array=0-8
 
-# # Define directories
-# HARMBENCH_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/harmbench_chunked/"
-# OPENAI_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/openai_chunked/"
-# ADVBENCH_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/advbench_chunked/"
+HARMBENCH_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/harmbench_chunked/"
+ADVBENCH_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/advbench_chunked/"
+OPENAI_DIR="/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/openai_chunked/"
 
-# # Find all files that match the pattern in both directories and store them as an array
-# FILES=($(find $HARMBENCH_DIR $OPENAI_DIR $ADVBENCH_DIR -type f -name "*.json"))
-# # FILES=($(find $ADVBENCH_DIR -type f -name "*.json"))
+# List to store JSON files
+FILES=()
 
-FILE_DIR=/data/group_data/rl/datasets/redteaming/gen_multiturn_prompts/
-FILES=($(find $FILE_DIR -name "*.json"))
+# Find all .json files in the directories and add them to the list
+for dir in "$HARMBENCH_DIR" "$ADVBENCH_DIR" "$OPENAI_DIR"
+do
+  if [ -d "$dir" ]; then
+    json_files=$(find "$dir" -type f -name "*.json")
+    for file in $json_files
+    do
+      FILES+=("$file")
+    done
+  else
+    echo "Directory $dir does not exist."
+  fi
+done
 
 
 # Variables
