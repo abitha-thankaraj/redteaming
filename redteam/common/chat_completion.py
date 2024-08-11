@@ -229,5 +229,3 @@ class OAIChatCompletion(ChatCompletion):
         self.conv.append_message(role="assistant", message=res.choices[0].message.content)
 
         return self.conv.to_openai_api_messages()
-
-        
