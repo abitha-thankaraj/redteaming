@@ -50,14 +50,16 @@ class OAIChatCompletion(ChatCompletion):
             openai.api_key = "EMPTY"
             openai.base_url = config.url  # Local Fastchat server completion
 
-        self.system_prompt = None
+        self.system_prompt = ""
         self._init_conversation()
 
     def _init_conversation(self):
         # self.conv = get_conversation_template(self.config.model)
         # Won't need this because everything is handled by OpenAI API server.
-        self.conv = get_conversation_template("gpt-4")
+        self.conv = self.create_new_conversation()
 
+    def create_new_conversation(self):
+        return get_conversation_template("gpt-4")
 
     def set_system_prompt(self, system_prompt: str):
         self.system_prompt = system_prompt
@@ -135,7 +137,6 @@ class OAIChatCompletion(ChatCompletion):
         self, 
         system_prompt: Optional[str] = None, 
         messages: List[str] = [],
-        use_special_tokens: bool = True,
     ) -> List[Dict[str, str]]:
 
         self._init_conversation()
@@ -146,17 +147,74 @@ class OAIChatCompletion(ChatCompletion):
             self.conv.set_system_message(self.system_prompt)
 
         for message in messages:
-            self.conv.append_message(role="user", message=message)
+            self.conv.append_message(
+                role="user", 
+                message=message,
+            )
 
             res = openai.chat.completions.create(
                 model=self.config.model,
-                messages=self.process_conversation_history(use_special_tokens=use_special_tokens),
+                messages=self.process_conversation_history(use_special_tokens=True),
                 temperature=self.config.temperature,
             )
 
-            self.conv.append_message(role="assistant", message=res.choices[0].message.content)
+            self.conv.append_message(
+                role="assistant", 
+                message=res.choices[0].message.content,
+            )
 
         return self.conv.to_openai_api_messages()
+    
+    def special_tokens_aware_multiturn_chat_completion(
+        self,
+        system_prompt: Optional[str] = None,
+        messages: List[str] = [],
+        use_special_tokens: bool = True,
+    ) -> List[Dict[str, str]]:
+        self._init_conversation()
+        actual_conversation = self.create_new_conversation()
+
+        if system_prompt is not None:
+            self.conv.set_system_message(system_prompt)
+            actual_conversation.set_system_message(system_prompt)
+        elif self.system_prompt is not None: # Preset for a batch of messages
+            self.conv.set_system_message(self.system_prompt)
+            actual_conversation.set_system_message(self.system_prompt)
+
+        for message in messages:
+            self.conv.append_message(
+                role="user", 
+                message=message,
+            )
+
+            conv_history = self.process_conversation_history(
+                use_special_tokens=use_special_tokens,
+            )
+            actual_conversation.append_message(
+                role="user", 
+                message=conv_history[-1]["content"],
+            )
+
+            res = openai.chat.completions.create(
+                model=self.config.model,
+                messages=conv_history,
+                temperature=self.config.temperature,
+            )
+
+            self.conv.append_message(
+                role="assistant", 
+                message=res.choices[0].message.content,
+            )
+            actual_conversation.append_message(
+                role="assistant",
+                message=res.choices[0].message.content,
+            )
+
+        return {
+            "conversation": self.conv.to_openai_api_messages(),
+            "actual_conversation": actual_conversation.to_openai_api_messages(),
+        }
+        
 
     def reset(self):
         self._init_conversation()

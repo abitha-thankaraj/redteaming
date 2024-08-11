@@ -51,14 +51,15 @@ def main(config: DictConfig):
         for j in range(len(multiturn_generated_attacks[i]["questions"].keys())):
             questions.append(multiturn_generated_attacks[i]["questions"][f"Question {j+1}"])
 
-        response = chat_completion.multiturn_chat_completion(
+        response = chat_completion.special_tokens_aware_multiturn_chat_completion(
             messages=questions,
             use_special_tokens=config.use_special_tokens,
         )
 
         attack_output_dict = {
             "goal": multiturn_generated_attacks[i]["goal"],
-            "conversation": response,
+            "conversation": response["conversation"],
+            "actual_conversation": response["actual_conversation"],
         }
         all_multiturn_attacks.append(attack_output_dict)
 
