@@ -49,7 +49,7 @@ class OAIChatCompletion(ChatCompletion):
             openai.api_key = "EMPTY"
             openai.base_url = config.url  # Local Fastchat server completion
 
-        self.system_prompt = None
+        self.system_prompt = ""
         self._init_conversation()
 
     def _init_conversation(self):
