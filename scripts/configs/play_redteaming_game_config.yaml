@@ -1,22 +1,28 @@
+
+defaults:
+  - _self_
+  - dataset_configs: openai
+
 seed: 69
 
 # Dirs
 repo_dir: ???
 data_dir: /data/group_data/rl/datasets/redteaming
 
+oai_server_port: ???
 
 attacker:
   chat_completion_config:
-    port: ???
+    port: ${oai_server_port}
     url: http://localhost:${attacker.chat_completion_config.port}/v1/
-    model: attacker
+    model: ???
     temperature: 0.7
 
 defender:
   chat_completion_config:
-    port: ???
+    port: ${oai_server_port}
     url: http://localhost:${defender.chat_completion_config.port}/v1/
-    model: defender
+    model: ???
     temperature: 0.7
 
 judge:
@@ -28,10 +34,11 @@ judge:
 
 
 # Game
-goals_fname: None
 max_turns: 3
-num_simulations: 3
+# num_simulations: 3
 
 # Result of simulating the gamer will be saved in this file
-out_dir: ${data_dir}/redteaming_evals/${now:%H-%M-%s}.json 
-out_fname: None
+experiment_desc: ???
+out_dir: ${data_dir}/redteaming_game_evals/${experiment_desc}/${now:%H-%M-%s}
+out_fname: ${dataset_configs.dataset_name}_${experiment_desc}.json
+# out_fname: ${dataset_configs.dataset_name}_attacker_${attacker.chat_completion_config.model}_defender_${defender.chat_completion_config.model}.json
