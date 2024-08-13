@@ -8,7 +8,7 @@
 #SBATCH --partition=general
 #SBATCH --mail-user=ftajwar@cs.cmu.edu
 #SBATCH --mail-type=END,FAIL
-#SBATCH --array=0-85%24
+#SBATCH --array=0-169%24
 
 # Define directories
 DIR1="/data/group_data/rl/datasets/redteaming/gen_eval_multiturn_attacks_no_special_tokens/"
