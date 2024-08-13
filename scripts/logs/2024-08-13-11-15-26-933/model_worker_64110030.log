@@ -1,0 +1,50 @@
+2024-08-13 11:15:30 | INFO | model_worker | args: Namespace(host='localhost', port=21002, worker_address='http://localhost:21002', controller_address='http://localhost:21001', model_path='meta-llama/Meta-Llama-3.1-8B-Instruct', revision='main', device='cuda', gpus=None, num_gpus=1, max_gpu_memory=None, dtype=None, load_8bit=False, cpu_offloading=False, gptq_ckpt=None, gptq_wbits=16, gptq_groupsize=-1, gptq_act_order=False, awq_ckpt=None, awq_wbits=16, awq_groupsize=-1, enable_exllama=False, exllama_max_seq_len=4096, exllama_gpu_split=None, exllama_cache_8bit=False, enable_xft=False, xft_max_seq_len=4096, xft_dtype=None, model_names=None, conv_template=None, embed_in_truncate=False, limit_worker_concurrency=5, stream_interval=2, no_register=False, seed=None, debug=False, ssl=False)
+2024-08-13 11:15:30 | INFO | model_worker | Loading the model ['Meta-Llama-3.1-8B-Instruct'] on worker 64110030 ...
+2024-08-13 11:15:30 | ERROR | stderr | Downloading shards:   0%|                                              | 0/4 [00:00<?, ?it/s]
+2024-08-13 11:15:30 | ERROR | stderr | Downloading shards: 100%|████████████████████████████████████| 4/4 [00:00<00:00, 2657.15it/s]
+2024-08-13 11:15:30 | ERROR | stderr | 
+2024-08-13 11:15:30 | ERROR | stderr | Loading checkpoint shards:   0%|                                       | 0/4 [00:00<?, ?it/s]
+2024-08-13 11:15:31 | ERROR | stderr | Loading checkpoint shards:  25%|███████▊                       | 1/4 [00:01<00:03,  1.05s/it]
+2024-08-13 11:15:32 | ERROR | stderr | Loading checkpoint shards:  50%|███████████████▌               | 2/4 [00:01<00:01,  1.02it/s]
+2024-08-13 11:15:34 | ERROR | stderr | Loading checkpoint shards:  75%|███████████████████████▎       | 3/4 [00:04<00:01,  1.51s/it]
+2024-08-13 11:15:35 | ERROR | stderr | Loading checkpoint shards: 100%|███████████████████████████████| 4/4 [00:04<00:00,  1.18s/it]
+2024-08-13 11:15:35 | ERROR | stderr | Loading checkpoint shards: 100%|███████████████████████████████| 4/4 [00:04<00:00,  1.20s/it]
+2024-08-13 11:15:35 | ERROR | stderr | 
+2024-08-13 11:15:37 | INFO | model_worker | Register to controller
+2024-08-13 11:15:37 | ERROR | stderr | [32mINFO[0m:     Started server process [[36m2615302[0m]
+2024-08-13 11:15:37 | ERROR | stderr | [32mINFO[0m:     Waiting for application startup.
+2024-08-13 11:15:37 | ERROR | stderr | [32mINFO[0m:     Application startup complete.
+2024-08-13 11:15:37 | ERROR | stderr | [32mINFO[0m:     Uvicorn running on [1mhttp://localhost:21002[0m (Press CTRL+C to quit)
+2024-08-13 11:16:22 | INFO | model_worker | Send heart beat. Models: ['Meta-Llama-3.1-8B-Instruct']. Semaphore: None. call_ct: 0. worker_id: 64110030. 
+2024-08-13 11:17:07 | INFO | model_worker | Send heart beat. Models: ['Meta-Llama-3.1-8B-Instruct']. Semaphore: None. call_ct: 0. worker_id: 64110030. 
+2024-08-13 11:17:52 | INFO | model_worker | Send heart beat. Models: ['Meta-Llama-3.1-8B-Instruct']. Semaphore: None. call_ct: 0. worker_id: 64110030. 
+2024-08-13 11:18:37 | INFO | model_worker | Send heart beat. Models: ['Meta-Llama-3.1-8B-Instruct']. Semaphore: None. call_ct: 0. worker_id: 64110030. 
+2024-08-13 11:18:41 | INFO | stdout | [32mINFO[0m:     ::1:43746 - "[1mPOST /worker_get_status HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:19:14 | INFO | stdout | [32mINFO[0m:     ::1:53538 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:19:22 | INFO | model_worker | Send heart beat. Models: ['Meta-Llama-3.1-8B-Instruct']. Semaphore: Semaphore(value=5, locked=False). call_ct: 1. worker_id: 64110030. 
+2024-08-13 11:19:27 | INFO | stdout | [32mINFO[0m:     ::1:54854 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:19:33 | INFO | stdout | [32mINFO[0m:     ::1:50028 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:19:42 | INFO | stdout | [32mINFO[0m:     ::1:47470 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:19:52 | INFO | stdout | [32mINFO[0m:     ::1:49712 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:20:02 | INFO | stdout | [32mINFO[0m:     ::1:41620 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:20:07 | INFO | model_worker | Send heart beat. Models: ['Meta-Llama-3.1-8B-Instruct']. Semaphore: Semaphore(value=5, locked=False). call_ct: 6. worker_id: 64110030. 
+2024-08-13 11:20:08 | INFO | stdout | [32mINFO[0m:     ::1:41630 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:20:18 | INFO | stdout | [32mINFO[0m:     ::1:60396 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:20:27 | INFO | stdout | [32mINFO[0m:     ::1:53630 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:20:32 | INFO | stdout | [32mINFO[0m:     ::1:57816 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:20:40 | INFO | stdout | [32mINFO[0m:     ::1:45964 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:20:52 | INFO | model_worker | Send heart beat. Models: ['Meta-Llama-3.1-8B-Instruct']. Semaphore: Semaphore(value=5, locked=False). call_ct: 11. worker_id: 64110030. 
+2024-08-13 11:20:53 | INFO | stdout | [32mINFO[0m:     ::1:57390 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:20:58 | INFO | stdout | [32mINFO[0m:     ::1:57406 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:21:04 | INFO | stdout | [32mINFO[0m:     ::1:60462 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:21:11 | INFO | stdout | [32mINFO[0m:     ::1:55482 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:21:24 | INFO | stdout | [32mINFO[0m:     ::1:60214 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:21:35 | INFO | stdout | [32mINFO[0m:     ::1:41310 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:21:37 | INFO | model_worker | Send heart beat. Models: ['Meta-Llama-3.1-8B-Instruct']. Semaphore: Semaphore(value=5, locked=False). call_ct: 17. worker_id: 64110030. 
+2024-08-13 11:21:40 | INFO | stdout | [32mINFO[0m:     ::1:44340 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:21:47 | INFO | stdout | [32mINFO[0m:     ::1:44356 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:21:54 | INFO | stdout | [32mINFO[0m:     ::1:44958 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:22:04 | INFO | stdout | [32mINFO[0m:     ::1:54320 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:22:16 | INFO | stdout | [32mINFO[0m:     ::1:49888 - "[1mPOST /worker_generate_stream HTTP/1.1[0m" [32m200 OK[0m
+2024-08-13 11:22:22 | INFO | model_worker | Send heart beat. Models: ['Meta-Llama-3.1-8B-Instruct']. Semaphore: Semaphore(value=5, locked=False). call_ct: 22. worker_id: 64110030. 
+2024-08-13 11:23:07 | INFO | model_worker | Send heart beat. Models: ['Meta-Llama-3.1-8B-Instruct']. Semaphore: Semaphore(value=5, locked=False). call_ct: 22. worker_id: 64110030. 
