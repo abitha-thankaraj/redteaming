@@ -16,7 +16,7 @@ python3 -m fastchat.serve.openai_api_server --host 0.0.0.0 --port $2 --controlle
 
 sleep 300; # Sleep for 300 seconds. Wait until the model is loaded
 
-python $3/scripts/data_generation/evaluate_multiturn_attacks.py chat_completion=$4 chat_completion.port=$2 multiturn_generated_attack_prompts_fname=$5
+python $3/scripts/data_generation/evaluate_multiturn_attacks.py chat_completion=$4 chat_completion.port=$2 multiturn_generated_attack_prompts_fname=$5 use_special_tokens=False
 
 
 # $1: model path

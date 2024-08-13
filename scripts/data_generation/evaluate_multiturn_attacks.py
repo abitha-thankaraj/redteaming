@@ -1,10 +1,7 @@
 import hydra
 import numpy as np
-import json
-import os
 from omegaconf import OmegaConf, DictConfig
 from typing import Set
-import datetime
 from tqdm import tqdm
 from redteam.constants import PARENT_DIR, DATAGEN_CONFIG_DIR
 from redteam.utils.data_utils import write_json, read_json
@@ -23,8 +20,10 @@ def rename_savefile(save_file, input_file):
 )
 def main(config: DictConfig):
     """
-    Main entry point for running question generation.
-    Follows the method of this paper: Leveraging the Context through Multi-Round Interactions for Jailbreaking Attacks (https://arxiv.org/abs/2402.09177)
+    Main entry point for generating responses for the multi-turn attacks.
+    
+    Follows the method of this paper: 
+    Leveraging the Context through Multi-Round Interactions for Jailbreaking Attacks (https://arxiv.org/abs/2402.09177)
     """
     config.repo_dir = PARENT_DIR
     OmegaConf.resolve(config)
@@ -52,11 +51,15 @@ def main(config: DictConfig):
         for j in range(len(multiturn_generated_attacks[i]["questions"].keys())):
             questions.append(multiturn_generated_attacks[i]["questions"][f"Question {j+1}"])
 
-        response = chat_completion.multiturn_chat_completion(messages=questions)
+        response = chat_completion.special_tokens_aware_multiturn_chat_completion(
+            messages=questions,
+            use_special_tokens=config.use_special_tokens,
+        )
 
         attack_output_dict = {
             "goal": multiturn_generated_attacks[i]["goal"],
-            "conversation": response,
+            "conversation": response["conversation"],
+            "actual_conversation": response["actual_conversation"],
         }
         all_multiturn_attacks.append(attack_output_dict)
 

@@ -9,6 +9,8 @@ seed: 69
 repo_dir: ???
 data_dir: /data/group_data/rl/datasets/redteaming
 
+# whether to use special tokens while appending the multi-turn conversation or not
+use_special_tokens: True
 
 # chat_completion:
 #   url: http://localhost:8003/v1/
@@ -20,5 +22,5 @@ multiturn_generated_attack_prompts_fname: ???
 
 # directory to save the generated multiturn prompts
 # For now we try only harmbench
-out_dir: ${data_dir}/gen_eval_multiturn_attacks
+out_dir: ${data_dir}/gen_eval_multiturn_attacks_no_special_tokens
 save_file : ${out_dir}/${chat_completion.model}_test_evaluated_multiturn_responses_${now:%H-%M-%s}.json 

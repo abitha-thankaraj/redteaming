@@ -1,10 +1,8 @@
 import hydra
 import numpy as np
-import json
 import os
 from omegaconf import OmegaConf, DictConfig
 from typing import Set
-import datetime
 from tqdm import tqdm
 
 from redteam.constants import (
@@ -46,8 +44,10 @@ def get_prompt_dataset(input_file):
 )
 def main(config: DictConfig):
     """
-    Main entry point for running question generation.
-    Follows the method of this paper: Leveraging the Context through Multi-Round Interactions for Jailbreaking Attacks (https://arxiv.org/abs/2402.09177)
+    Main entry point for running LLM judge (typically using GPT-4 to see if a conversation is unsafe/safe).
+    
+    Follows the method of this paper: 
+    Leveraging the Context through Multi-Round Interactions for Jailbreaking Attacks (https://arxiv.org/abs/2402.09177)
     """
     config.repo_dir = PARENT_DIR
     

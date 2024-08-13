@@ -2,8 +2,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import os
 import openai
-from openai import OpenAI
-from fastchat.model import get_conversation_template
+from copy import deepcopy
+from redteam.common.conversation_template import ConversationTemplate
+from typing import Optional, List, Dict
 
 """
     #OAI Usage
@@ -61,12 +62,17 @@ class OAIChatCompletion(ChatCompletion):
         self.conv.set_system_message(self.system_prompt)
 
 
-    def set_system_prompt(self, system_prompt):
+    def set_system_prompt(self, system_prompt: str):
         self.system_prompt = system_prompt
+        self.conv.set_system_message(
+            system_prompt=system_prompt,
+        )
 
     def multiturn_chat_completion(
-        self, system_prompt=None, messages: list[str] = []
-    ) -> list[str]:
+        self, 
+        system_prompt: Optional[str] = None, 
+        messages: List[str] = [],
+    ) -> List[Dict[str, str]]:
 
         self._init_conversation()
 
@@ -74,7 +80,10 @@ class OAIChatCompletion(ChatCompletion):
             self.conv.set_system_message(system_prompt)
 
         for message in messages:
-            self.conv.append_message(role="user", message=message)
+            self.conv.append_message(
+                role="user", 
+                message=message,
+            )
 
             res = self.client.chat.completions.create(
                 model=self.config.model,
@@ -82,9 +91,123 @@ class OAIChatCompletion(ChatCompletion):
                 temperature=self.config.temperature,
             )
 
-            self.conv.append_message(role="assistant", message=res.choices[0].message.content)
+            self.conv.append_message(
+                role="assistant", 
+                message=res.choices[0].message.content,
+            )
 
         return self.conv.to_openai_api_messages()
+    
+    def special_tokens_aware_multiturn_chat_completion(
+        self,
+        system_prompt: Optional[str] = None,
+        messages: List[str] = [],
+        use_special_tokens: bool = True,
+    ) -> List[Dict]:
+        """
+        This function lets us evaluate the multi-turn attacks in two ways:
+
+        Way 1: (use_special_tokens = True)
+            This is the default option. In this case the conversation happens
+            as usual. The model gets the following input (or its equivalent)
+            and asked to generate the output:
+
+            <system> system_prompt </system>
+            <user> question 1 </user>
+            <assistant> response from the model </assistant>
+            .... (K - 1) previous turns
+            <user> question K </user
+
+        Way 2: (use special tokens = False)
+            This is the alternate way. Here we format the K turn conversation
+            into a 1-turn dialog without the special tokens.
+            
+            The model gets the following input and asked to generate:
+
+            <system> system_prompt </system>
+            <user>
+            User: question 1
+            Assistant: answer 1
+            ....
+            User: question k - 1
+            Assistant: answer k - 1
+            User: question K
+            </user>
+
+        Input:
+            system_prompt (Optional[str]):
+                The system prompt for this conversation
+                Overrides any prior system prompt if set to None
+                Otherwise does nothing
+
+                Default: None
+
+            messages (List[str]):
+                The questions that needs to be asked, in sequence.
+
+                Default: []
+
+            use_special_tokens (bool):
+                Whether to use special tokens or not.
+                If True, uses Way 1 above
+                If False, uses Way 2
+
+                Default: True
+        
+        Output:
+            A list of dictionary of the following format:
+            {
+                "conversation": <conversation>,
+                "actual_conversation": <actual_conversation>,
+            }
+
+            <conversation> is the sequence of questions 
+                and responses we want to evaluate.
+            <actual_conversation> is the sequence of concatenated inputs
+                for the model and outputs.
+        """
+        self._init_conversation()
+
+        if system_prompt is not None:
+            self.conv.set_system_message(system_prompt)
+        elif self.system_prompt is not None: # Preset for a batch of messages
+            self.conv.set_system_message(self.system_prompt)
+
+        actual_conversation = deepcopy(self.conv.to_openai_api_messages())
+        for message in messages:
+            self.conv.append_message(
+                role="user",
+                message=message,
+            )
+
+            processed_conv_history = (
+                self.conv.process_conversation_history_without_special_tokens()
+                if not use_special_tokens
+                else self.conv.to_openai_api_messages()
+            )
+            actual_conversation.append(processed_conv_history[-1])
+
+            res = openai.chat.completions.create(
+                model=self.config.model,
+                messages=processed_conv_history,
+                temperature=self.config.temperature,
+            )
+
+            self.conv.append_message(
+                role="assistant", 
+                message=res.choices[0].message.content,
+            )
+            actual_conversation.append(
+                {
+                    "role": "assistant",
+                    "content": res.choices[0].message.content,
+                }
+            )
+
+        return {
+            "conversation": self.conv.to_openai_api_messages(),
+            "actual_conversation": actual_conversation,
+        }
 
     def reset(self):
         self._init_conversation()
@@ -104,5 +227,3 @@ class OAIChatCompletion(ChatCompletion):
         self.conv.append_message(role="assistant", message=res.choices[0].message.content)
 
         return self.conv.to_openai_api_messages()
-
-        

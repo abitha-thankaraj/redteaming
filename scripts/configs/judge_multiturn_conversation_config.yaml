@@ -15,5 +15,5 @@ prompt_dataset: ???
 
 # directory to save the generated multiturn prompts
 # For now we try only harmbench
-out_dir: ${data_dir}/gen_judge_multiturn_conversation_chunked
+out_dir: ${data_dir}/gen_judge_multiturn_conversation_no_special_tokens
 save_file : ${out_dir}/${chat_completion.model}_judge_generated_multiturn_conversations_${now:%H-%M-%s}.json 

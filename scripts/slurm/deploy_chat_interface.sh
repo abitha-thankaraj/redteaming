@@ -1,11 +1,12 @@
 #!/bin/bash
 
-source /home/athankar/.bashrc
-source /home/athankar/miniconda3/etc/profile.d/conda.sh
-conda activate redteam
+source /home/ftajwar/.bashrc
+source /home/ftajwar/anaconda3/etc/profile.d/conda.sh
+conda activate fastchat
 
-export HF_HOME="/data/tir/projects/tir6/bisk/athankar/projects/.cache";
-export LOGDIR="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
+export TRANSFORMERS_CACHE=/data/user_data/ftajwar/training_cache
+export HF_HOME=/data/user_data/ftajwar/training_cache
+export LOGDIR="/home/ftajwar/redteaming/scripts/logs/$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
 
 # Starting the controller
 python3 -m fastchat.serve.controller &
