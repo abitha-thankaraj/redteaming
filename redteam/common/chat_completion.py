@@ -44,22 +44,23 @@ class OAIChatCompletion(ChatCompletion):
     def __init__(self, config) -> None:
         self.config = config
         if config.model.startswith("gpt"):
-            openai.api_key = os.getenv("OAI_KEY")
-            openai.base_url = None  # OpenAI API completion
+            self.client = OpenAI(
+               api_key=os.getenv("OAI_KEY"),
+              )
         else:
-            openai.api_key = "EMPTY"
-            openai.base_url = config.url  # Local Fastchat server completion
-
-        if hasattr(self.config, 'system_prompt'):
-            self.system_prompt = self.config.system_prompt
-        else:
-            self.system_prompt = ""
+            self.client = OpenAI(
+                api_key="EMPTY",
+                base_url=config.url
+            )
+            
+        self.system_prompt = ""
         self._init_conversation()
 
     def _init_conversation(self):
-        self.conv = ConversationTemplate(
-            system_prompt=self.system_prompt,
-        )
+        self.conv = get_conversation_template("gpt-4")
+        # We dont want the default system prompt to be set by the conversation template
+        self.conv.set_system_message(self.system_prompt)
+
 
     def set_system_prompt(self, system_prompt: str):
         self.system_prompt = system_prompt
@@ -77,8 +78,6 @@ class OAIChatCompletion(ChatCompletion):
 
         if system_prompt is not None:
             self.conv.set_system_message(system_prompt)
-        elif self.system_prompt is not None:  # Preset for a batch of messages
-            self.conv.set_system_message(self.system_prompt)
 
         for message in messages:
             self.conv.append_message(
@@ -86,7 +85,7 @@ class OAIChatCompletion(ChatCompletion):
                 message=message,
             )
 
-            res = openai.chat.completions.create(
+            res = self.client.chat.completions.create(
                 model=self.config.model,
                 messages=self.conv.to_openai_api_messages(),
                 temperature=self.config.temperature,
@@ -220,12 +219,11 @@ class OAIChatCompletion(ChatCompletion):
             self.reset()
             self.conv.append_message(role="user", message=message)
 
-        res = openai.chat.completions.create(
+        res = self.client.chat.completions.create(
                 model=self.config.model,
                 messages=self.conv.to_openai_api_messages(),
                 temperature=self.config.temperature,
             )
-
         self.conv.append_message(role="assistant", message=res.choices[0].message.content)
 
         return self.conv.to_openai_api_messages()

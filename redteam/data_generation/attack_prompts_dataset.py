@@ -70,7 +70,7 @@ def get_jailbreakbench_dataset(dataset_path: str) -> ArrowDataset:
         "behaviors",
         split="harmful"
     ).rename_column(
-        "goal", "prompt"
+        "Goal", "prompt"
     )
 
 
