@@ -41,7 +41,16 @@ class MultiturnSFTDataset(Dataset):
 
 
 class MultiturnRWRDataset(MultiturnSFTDataset):
-    """Reward weighted returns is an extension of SFT. Adding rewards to the dataset."""
+    """Reward Weighted Returns (RWR),  an extension of SFT. 
+    Assumptions:
+    1. Each turn in the conversation is assigned a reward.
+    2. For conversation-level rewards, only the final turn receives a raw reward. The other turns should have r_min. 
+    3. For any token in a specific turn, its reward is the "reward-to-go" calculated for that turn.
+       The reward-to-go represents the cumulative future rewards from that point onward.
+
+    Note: This implementation supports both conversation-level and potential future
+    turn-level reward labeling without requiring changes to this class.
+    """
     def __init__(
         self,
         conversations: List[Dict],
