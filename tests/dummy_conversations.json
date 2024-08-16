@@ -1,0 +1,61 @@
+[
+    {
+
+        "conversation": [
+            {
+                "role": "user",
+                "content": "Hello"
+            },
+            {
+                "role": "assistant",
+                "content": "Who are you?"
+            },
+            {
+                "role": "user",
+                "content": "Voldemort"
+            },
+            {
+                "role": "assistant",
+                "content": "Any other monikers you go by?"
+            },
+            {
+                "role": "user",
+                "content": "Tom Marvolo Riddle"
+            },
+            {
+                "role": "assistant",
+                "content": "Avada Kedavra!"
+            }
+        ]
+    },
+
+    {
+
+        "conversation": [
+            {
+                "role": "user",
+                "content": "Hello"
+            },
+            {
+                "role": "assistant",
+                "content": "Who are you?"
+            },
+            {
+                "role": "user",
+                "content": "The Half-Blood Prince"
+            },
+            {
+                "role": "assistant",
+                "content": "Any other monikers you go by?"
+            },
+            {
+                "role": "user",
+                "content": "Severus Snape"
+            },
+            {
+                "role": "assistant",
+                "content": "Sectumsempra!"
+            }
+        ]
+    }
+]

@@ -20,7 +20,6 @@ def get_conversations(data_dir: str, agent_type: str) -> List[Dict]:
     # filter based on type of messages to be returned
     return filter_messages(data, agent_type)
 
-
 def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
     """
     Filter messages based on the agent type
@@ -29,13 +28,11 @@ def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
         "attacker": (is_good_attacker_message, get_attacker_message),
         "defender": (is_good_defender_message, get_defender_message),
         "llama_attacker": (is_good_llama_attacker_message, get_attacker_message),
+        # "all": (pass_through, lambda x: x),
     }
     if agent_type not in agent_config:
         raise ValueError(f"Invalid agent type: {agent_type}")
-
     is_good_message, get_message = agent_config[agent_type]
-    # filter messages based on the agent type + is_good_message_criteria;
-    # format the filtered messages
     return list(map(get_message, filter(is_good_message, messages)))
 
 
@@ -86,3 +83,10 @@ def get_defender_message(raw_msg: Dict[str, Any]) -> List[str]:
                 role="assistant", message=raw_msg["conversation"][d]["content"]
             )
     return conv.to_openai_api_messages()[1:]  # remove system prompt
+
+
+
+
+##############################################Reward Functions##############################################
+def get_conversation_rewards(conversations, reward_type):
+    pass
