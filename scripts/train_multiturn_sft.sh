@@ -5,8 +5,10 @@ source /home/athankar/miniconda3/etc/profile.d/conda.sh
 conda activate redteam
 module load cuda-12.3
 
-# MODEL_PATH="meta-llama/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.1"
+# # "meta-llama/Meta-Llama-3.1-8B-Instruct"
 # AGENT_TYPE="attacker"
+# MASTER_PORT=29500
 MODEL_PATH=$1
 AGENT_TYPE=$2
 MASTER_PORT=$3

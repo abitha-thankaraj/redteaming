@@ -1,7 +1,7 @@
 # Borrowed from https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py
 import os
 # Add this here for wandb project name
-os.environ["WANDB_PROJECT"] = "redteam" 
+# os.environ["WANDB_PROJECT"] = "redteam" 
 
 from dataclasses import dataclass, field
 from typing import Optional, Tuple
@@ -169,14 +169,20 @@ def train():
         tokenizer_separator,
     )
 
-    trainer = Trainer(
+    # trainer = Trainer(
+    #     model=model,
+    #     tokenizer=tokenizer,
+    #     args=training_args,
+    #     train_dataset=train_dataset,
+    #     eval_dataset=eval_dataset,
+    # )
+    trainer = RWRTrainer(
         model=model,
         tokenizer=tokenizer,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-    )
-
+    )    
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:
