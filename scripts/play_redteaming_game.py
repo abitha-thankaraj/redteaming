@@ -47,14 +47,35 @@ def main(config: DictConfig):
     redteaming_game.reset()
 
     trajs = []
+    errors = []
     for goal in tqdm(goals):
-        redteaming_game.reset(goal = goal)
-        traj, judgement = redteaming_game.simulate(judge=True)
-        trajs.append({"game": traj, "judge":judgement})
+        try:
+            redteaming_game.reset(goal = goal)
+            traj, judgement = redteaming_game.simulate(judge=True)
+            trajs.append({"game": traj, "judge":judgement})
+        except Exception as e:
+            log.error(f"Error in simulating game for goal: {goal}")
+            log.error(e)
+            errors.append({"goal": goal, "error": e})
+            slack_notification(f"Error in simulating game for goal: {goal}, config: {global_config}")
+        # valid_judge_response = False
+        # while not valid_judge_response:
+        #     response = chat_completion.multiturn_chat_completion(
+        #         system_prompt=system_prompt, messages=messages
+        #     )
+        #     llm_judge_trace = parse_llm_judge_evaluation(
+        #         chat_completion_dict=response[-1],
+        #     )
+        #     valid_judge_response = is_valid_llm_judge_trace(
+        #         llm_judge_trace=llm_judge_trace,
+        #     )
+
+        # output_dict = {key: llm_judge_trace[key] for key in llm_judge_trace}
     
     os.makedirs(config.out_dir, exist_ok=True)
     config.out_fname = os.path.join(config.out_dir,config.out_fname.replace("/", ".."))
     write_json(trajs, config.out_fname)
+    write_json(errors, config.out_fname.replace(".json", "_errors.json"))
     
     save_config = OmegaConf.to_yaml(config)
     with open(os.path.join(config.out_dir, "config.yaml"), "w") as f:

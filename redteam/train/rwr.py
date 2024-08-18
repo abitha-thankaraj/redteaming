@@ -8,12 +8,12 @@ from transformers.models.auto.modeling_auto import MODEL_FOR_CAUSAL_LM_MAPPING_N
 class RWRTrainer(Trainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.temperature = kwargs.get("temperature", 1.0)
-        self.rwr_type = kwargs.get("rwr_type", "exp") # Default is 
+        self.rwr_temperature = kwargs.get("rwr_temperature", 1.0)
+        self.rwr_type = kwargs.get("rwr_type", "exp") 
 
     def get_rwr_term(self, rewards, rwr_type):
         if rwr_type == "exp":
-            return torch.exp(rewards / self.temperature)
+            return torch.exp(rewards / self.rwr_temperature)
         else:
             raise NotImplementedError(f"RWR type {rwr_type} not implemented")
 
@@ -22,10 +22,10 @@ class RWRTrainer(Trainer):
         Offline RWR loss function:
             L_RWR = - log(π(a|s)) * exp(r(s,a)/β)
         """
-
+        
         labels = inputs["labels"]
-        rewards = inputs.pop("rewards", torch.zeros_like(labels)) # shape should be (B,)
-        model_output = model(**inputs)
+        rewards = inputs.pop("rewards", torch.zeros_like(labels)) # shape should be (B, T)
+        model_output = model(**inputs) # Standard forward pass, for testing purposes we can use the loss term from here.
 
         if self.args.past_index >= 0:
             self._past = model_output[self.args.past_index]
@@ -42,7 +42,8 @@ class RWRTrainer(Trainer):
             logits = logits[..., :-1, :].contiguous()
             labels = labels[..., 1:].contiguous()
             rewards = rewards[..., 1:].contiguous() # Shift rewards to the same extent as the labels
-        # Reimplementing CrossEntropyLoss; Becuase you're stupid.
+        
+        # This is just cross-entropy; but weighted by the RWR term
         log_probs = -F.log_softmax(logits, dim=-1) # Log softmax over the vocabulary dimension
         if labels.dim() == log_probs.dim() - 1:
             labels = labels.unsqueeze(-1) # Adds a dimension to make it broadcastable for the vocabulary dimension?
@@ -50,16 +51,17 @@ class RWRTrainer(Trainer):
             rewards = rewards.unsqueeze(-1) # Adds a dimension to make it broadcastable for the vocabulary dimension?
         
         padding_mask = labels.eq(-100) # B x T
-        # Makes the -100 to 0
+        # Makes the -100 to 0; 
         labels = torch.clamp(labels, min=0)
-        # Gather ???? at dims when labels are non zero?
-        nll_loss = log_probs.gather(dim=-1, index=labels) # Gather the log probs at the label indices over the vocabulary dimension
+        # Gather the log probs at the label indices over the vocabulary dimension
+        nll_loss = log_probs.gather(dim=-1, index=labels) 
         nll_loss.masked_fill_(padding_mask, 0.0)
         # Multiply by the RWR term; You dont calculate the loss on any of the masked terms.
         nll_loss = nll_loss * self.get_rwr_term(rewards, self.rwr_type)
         # Take the mean over the label dimensions, then divide by the number of active elements (i.e. not-padded):
         num_active_elements = padding_mask.numel() - padding_mask.long().sum()
-        nll_loss = nll_loss.sum() / num_active_elements        
+        # Average over only the non-masked elements
+        nll_loss = nll_loss.sum() / num_active_elements
         return (nll_loss, model_output) if return_outputs else nll_loss
 
 
