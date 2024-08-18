@@ -90,3 +90,8 @@ def get_defender_message(raw_msg: Dict[str, Any]) -> List[str]:
 ##############################################Reward Functions##############################################
 def get_conversation_rewards(conversations, reward_type):
     pass
+
+
+##############################################Balance datasets##############################################
+def balance_datasets(conversations, rewards, balance_type):
+    pass
