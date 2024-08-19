@@ -34,8 +34,8 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/sft.py  \
         --run_name $RUN_NAME \
         --deepspeed $REPO_DIR/scripts/configs/deepspeed/zero3.json     \
         --bf16 True \
-        --num_train_epochs 2  \
-        --per_device_train_batch_size 1  \
+        --num_train_epochs 3  \
+        --per_device_train_batch_size 4 \
         --per_device_eval_batch_size 1   \
         --gradient_accumulation_steps 16 \
         --evaluation_strategy "steps" \

@@ -142,6 +142,8 @@ def train():
         config=config,
         trust_remote_code=True,
         cache_dir=training_args.cache_dir,
+        attn_implementation="flash_attention_2",
+        torch_dtype=torch.bfloat16
     )
     # Tie the weights - Commonly used for memory efficient training?
     model.tie_weights()
@@ -169,20 +171,20 @@ def train():
         tokenizer_separator,
     )
 
-    # trainer = Trainer(
-    #     model=model,
-    #     tokenizer=tokenizer,
-    #     args=training_args,
-    #     train_dataset=train_dataset,
-    #     eval_dataset=eval_dataset,
-    # )
-    trainer = RWRTrainer(
+    trainer = Trainer(
         model=model,
         tokenizer=tokenizer,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-    )    
+    )
+    # trainer = RWRTrainer(
+    #     model=model,
+    #     tokenizer=tokenizer,
+    #     args=training_args,
+    #     train_dataset=train_dataset,
+    #     eval_dataset=eval_dataset,
+    # )    
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:
