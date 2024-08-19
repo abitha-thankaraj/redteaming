@@ -2,6 +2,17 @@ import torch
 import torch.nn.functional as F
 from transformers import Trainer
 from transformers.models.auto.modeling_auto import MODEL_FOR_CAUSAL_LM_MAPPING_NAMES
+from dataclasses import dataclass, field
+
+@dataclass
+class RWRArguments:
+    rwr_temperature: float = field(
+        default=0.9,
+        metadata={"help": "RWR temperature (β) . Higher -> | Lower -> "},
+    )
+    rwr_type: str = field(
+        default="exp", metadata={"help": "RWR term type. Available options: exp"}
+    )
 
 # Offline RWR -  TODO: Test step by step.
 
@@ -11,9 +22,18 @@ class RWRTrainer(Trainer):
         self.rwr_temperature = kwargs.get("rwr_temperature", 1.0)
         self.rwr_type = kwargs.get("rwr_type", "exp") 
 
+
     def get_rwr_term(self, rewards, rwr_type):
         if rwr_type == "exp":
             return torch.exp(rewards / self.rwr_temperature)
+        elif rwr_type == "baseline_batch_mean": # batch size is 1?
+            return rewards - rewards.mean() # if this diverges, then go to something online with impportance clipping.
+        # elif rwr_type == "baseline_ema_batch_mean":
+        #     return rewards - self._ema_rewards.mean()
+        # elif rwr_type == "baseline_running_mean":
+
+        # elif rwr_type == "rloo":
+
         else:
             raise NotImplementedError(f"RWR type {rwr_type} not implemented")
 

@@ -53,11 +53,11 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
     """
     def __init__(
         self,
-        conversations: List[Dict],
+        conversations: List[Dict[str,str]],
         tokenizer: Any,
         tokenizer_separator: Any,
         ignore_token_id: int,
-        reward_per_turns: List[Any],
+        reward_per_turns: List[List[float]],
         gamma: float = 0.9,
         min_reward: float = 0.0,
     ):
@@ -209,8 +209,8 @@ def get_token_level_reward_to_gos(
         rewards_per_turn
     ), "Number of turns should match number of rewards"
     reward_to_gos = get_reward_to_gos(rewards_per_turn, gamma)
-
     token_rewards = torch.full_like(masked_tokens, min_reward, dtype=torch.float)
+
     for i in range(len(reward_to_gos)):
         # replace all token_rewards in turn i with reward_to_gos[i]
         token_rewards.masked_fill_(turn_masks.eq(i), reward_to_gos[i])
