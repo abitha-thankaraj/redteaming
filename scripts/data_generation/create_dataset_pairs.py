@@ -23,9 +23,8 @@ def main(fname):
 
         for idx in tqdm(goal_idxs[goal], desc = "Positive/Negative"):
             d = {}
-            d["conversation"] = df.iloc[idx]["conversation"]
-            d["rewards"] = df.iloc[idx]["rewards"]
-            d["generation_model"] = df.iloc[idx]["generation_model"]
+            for k in ["conversation", "rewards", "generation_model", "safety_label", "reasoning", "goal_achieved"]:
+                d[k] = df.iloc[idx][k]
             
             if sum(df.iloc[idx]["rewards"])> 0.:
                 ds["positives"].append(d)
@@ -46,6 +45,6 @@ def main(fname):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fname", type=str, default="/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_train_data_llama_rewards.json", help="Path to the json file")
+    parser.add_argument("--fname", type=str, default="/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards.json", help="Path to the json file")
     args = parser.parse_args()
     main(args.fname)
