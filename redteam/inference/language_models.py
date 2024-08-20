@@ -36,6 +36,7 @@ class HuggingFaceLM(LanguageModel):
         # Apply chat template to each prompt?
         inputs = {}
         inputs["input_ids"] = self.tokenizer.apply_chat_template(convs, return_tensors="pt", padding=True)
+        from IPython import embed; embed()
         print(self.tokenizer.batch_decode(inputs["input_ids"], skip_special_tokens=True))
         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
 

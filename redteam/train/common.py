@@ -43,9 +43,13 @@ def get_tokenizer_separators(
         tokenizer_separator.set_assistant_prefix_ids(tokenizer)
         return tokenizer, tokenizer_separator
     elif tokenizer.name_or_path == "mistralai/Mistral-7B-Instruct-v0.3":
-        #TODO
+        #TODO : Test tokenizer_separator
         tokenizer.pad_token_id = tokenizer.unk_token_id
-        return tokenizer, None
+        tokenizer_separator = TokenizerSeparators(
+            assistant_prefix=" [/INST] ", assistant_suffix="</s>", prefix_offset=-1
+        )
+        tokenizer_separator.set_assistant_prefix_ids(tokenizer)
+        return tokenizer, tokenizer_separator
     elif tokenizer.name_or_path =="meta-llama/Llama-2-7b-hf":
         # Only for tests.
         return tokenizer, None
