@@ -1,0 +1,120 @@
+# https://github.com/patrickrchao/JailbreakingLLMs/blob/main/language_models.py
+
+from typing import List, Dict
+import torch
+import gc
+
+
+class LanguageModel():
+    def __init__(self, model_name):
+        self.model_name = model_name
+    
+    def batched_generate(self, convs: List[List[Dict]], max_n_tokens: int, temperature: float):
+        """
+        Generates responses for a batch of prompts using a language model.
+        """
+        raise NotImplementedError
+    
+    def _init_conversations(self, goals: List[str]):
+        """
+        Initializes conversations for the language model.
+        """
+        raise NotImplementedError
+        
+class HuggingFaceLM(LanguageModel):
+    def __init__(self,model_name, model, tokenizer):
+        self.model_name = model_name
+        self.model = model 
+        self.tokenizer = tokenizer
+        # TODO: Assert that padding side is left for generations.
+
+    def batched_generate(self, 
+                        convs: List[List[Dict]],
+                        max_n_tokens: int, 
+                        temperature: float,
+                        top_p: float = 1.0,):
+        # Apply chat template to each prompt?
+        inputs = {}
+        inputs["input_ids"] = self.tokenizer.apply_chat_template(convs, return_tensors="pt", padding=True)
+        print(self.tokenizer.batch_decode(inputs["input_ids"], skip_special_tokens=True))
+        inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
+
+        inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
+    
+        # Batch generation
+        if temperature > 0:
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=max_n_tokens, 
+                do_sample=True,
+                temperature=temperature,
+                top_p=top_p,
+            )
+        else:
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=max_n_tokens, 
+                do_sample=False,
+                top_p=1,
+                temperature=1, # To prevent warning messages
+            )
+            
+        # Batch decoding
+        outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+
+        for key in inputs:
+            inputs[key].to('cpu')
+        output_ids.to('cpu')
+        del inputs, output_ids
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        return outputs_list
+
+# class GPT(LanguageModel):
+#     API_RETRY_SLEEP = 10
+#     API_ERROR_OUTPUT = "$ERROR$"
+#     API_QUERY_SLEEP = 0.5
+#     API_MAX_RETRY = 5
+#     API_TIMEOUT = 20
+#     openai.api_key = os.getenv("OPENAI_API_KEY")
+
+#     def generate(self, conv: List[Dict], 
+#                 max_n_tokens: int, 
+#                 temperature: float,
+#                 top_p: float):
+#         '''
+#         Args:
+#             conv: List of dictionaries, OpenAI API format
+#             max_n_tokens: int, max number of tokens to generate
+#             temperature: float, temperature for sampling
+#             top_p: float, top p for sampling
+#         Returns:
+#             str: generated response
+#         '''
+#         output = self.API_ERROR_OUTPUT
+#         for _ in range(self.API_MAX_RETRY):
+#             try:
+#                 response = openai.ChatCompletion.create(
+#                             model = self.model_name,
+#                             messages = conv,
+#                             max_tokens = max_n_tokens,
+#                             temperature = temperature,
+#                             top_p = top_p,
+#                             request_timeout = self.API_TIMEOUT,
+#                             )
+#                 output = response["choices"][0]["message"]["content"]
+#                 break
+#             except openai.error.OpenAIError as e:
+#                 print(type(e), e)
+#                 time.sleep(self.API_RETRY_SLEEP)
+        
+#             time.sleep(self.API_QUERY_SLEEP)
+#         return output 
+    
+#     def batched_generate(self, 
+#                         convs_list: List[List[Dict]],
+#                         max_n_tokens: int, 
+#                         temperature: float,
+#                         top_p: float = 1.0,):
+#         return [self.generate(conv, max_n_tokens, temperature, top_p) for conv in convs_list]

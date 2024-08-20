@@ -19,6 +19,7 @@ def get_tokenizer(model_name):
             trust_remote_code=True,
             cache_dir=CACHE_DIR,
             model_max_length=4096,
+            model_max_length=4096,
             padding_side="right",
             use_fast=False)
         return tokenizer
@@ -33,6 +34,7 @@ def get_tokenizer(model_name):
                 config=config,
                 cache_dir=CACHE_DIR,
                 trust_remote_code=True,
+                model_max_length=4096,
                 model_max_length=4096,
                 padding_side="right",
                 use_fast=False)
@@ -53,6 +55,7 @@ if __name__ == "__main__":
         print(f"Model: {model_name} | Outputs:")
         tokenizer, tokenizer_separators = get_tokenizer_separators(get_tokenizer(model_name))
 
+
         # sft_dataset = MultiturnSFTDataset(
         #     conversations,
         #     tokenizer,
@@ -66,12 +69,15 @@ if __name__ == "__main__":
         dataset_type="naive_balance",
         ).get_conversations()
 
+        from IPython import embed; embed()
 
         rwr_dataset = MultiturnRWRDataset(
+            eval_conversation_reward_dict["conversations"],
             eval_conversation_reward_dict["conversations"],
             tokenizer,
             tokenizer_separators,
             ignore_token_id=IGNORE_TOKEN_ID,
+            reward_per_turns=eval_conversation_reward_dict["rewards"],
             reward_per_turns=eval_conversation_reward_dict["rewards"],
             gamma=0.9,
             min_reward=0.0
@@ -93,6 +99,9 @@ if __name__ == "__main__":
 
         for i in range(len(rwr_dataset)):
             print(stripped_decode(tokenizer, rwr_dataset[i]["labels"]))
+            print(i)
+            if i==1:
+                from IPython import embed; embed()
             print(i)
             if i==1:
                 from IPython import embed; embed()

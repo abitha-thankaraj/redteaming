@@ -21,10 +21,6 @@
             {
                 "role": "user",
                 "content": "Tom Marvolo Riddle"
-            },
-            {
-                "role": "assistant",
-                "content": "Avada Kedavra!"
             }
         ]
     },
@@ -51,11 +47,38 @@
             {
                 "role": "user",
                 "content": "Severus Snape"
+            }
+
+        ]
+    },
+
+    {
+        "conversation": [
+            {
+                "role": "user",
+                "content": "Hello"
             },
             {
                 "role": "assistant",
-                "content": "Sectumsempra!"
+                "content": "Who are you?"
+            },
+            {
+                "role": "user",
+                "content": "The ghost of Christams past"
             }
+
         ]
+    },
+
+    {    
+        
+
+            "conversation": [
+                {
+                    "role": "user",
+                    "content": "Who is the god of offline RL?"
+                }
+            ]
+        
     }
 ]

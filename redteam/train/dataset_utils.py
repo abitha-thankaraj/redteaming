@@ -8,6 +8,8 @@ from redteam.utils.data_utils import read_json
 from fastchat.model.model_adapter import get_conversation_template
 import pandas as pd
 import numpy as np
+import pandas as pd
+import numpy as np
 
 
 def get_conversations(data_dir: str, agent_type: str) -> List[Dict]:
@@ -16,11 +18,18 @@ def get_conversations(data_dir: str, agent_type: str) -> List[Dict]:
     return filter_messages(data, agent_type)
 
 
+
 def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
     """
     Filter messages based on the agent type
     """
     agent_config = {
+        "attacker": (is_good_attacker_message, RLHFDatasetHelperBase.create_attacker_message),
+        "defender": (is_good_defender_message, RLHFDatasetHelperBase.create_defender_message),
+        "llama_attacker": (
+            is_good_llama_attacker_message,
+            RLHFDatasetHelperBase.create_attacker_message,
+        ),
         "attacker": (is_good_attacker_message, RLHFDatasetHelperBase.create_attacker_message),
         "defender": (is_good_defender_message, RLHFDatasetHelperBase.create_defender_message),
         "llama_attacker": (
@@ -54,16 +63,6 @@ def is_good_defender_message(message: Dict) -> bool:
     """Defender condition: is_unsafe == False [does not break the model]; We do not care about the goal.
     This will be the model (a) refusing to answer or (b) providing a safe answer."""
     return message["safety_label"].lower().strip() == "safe"
-
-
-##############################################Reward Functions##############################################
-def get_conversation_rewards(conversations, reward_type):
-    pass
-
-
-##############################################Balance datasets##############################################
-def balance_datasets(conversations, rewards, balance_type):
-    pass
 
 
 class RLHFDatasetHelperBase:
@@ -116,11 +115,32 @@ class RLHFDatasetHelperBase:
                     role="assistant", message=raw_msg["conversation"][d]["content"]
                 )
         return conv.to_openai_api_messages()[1:]  # remove system prompt
+        for d in range(len(raw_msg["conversation"])):
+            if d % 2 == 0:
+                conv.append_message(
+                    role="assistant", message=raw_msg["conversation"][d]["content"]
+                )
+            else:
+                conv.append_message(role="user", message=raw_msg["conversation"][d]["content"])
+        if remove_last_defender_message:
+            # Remove the last defender response -> losses do not depend on it for SFT and RWR
+            return conv.to_openai_api_messages()[1:-1]  # remove system prompt;
+        else:
+            return conv.to_openai_api_messages()[1:]
 
-    def get_conversations(self, data: List[Any]):
-        raise NotImplementedError
+    @classmethod
+    def create_defender_message(cls, raw_msg: Dict[str, Any]) -> List[str]:
+        conv = get_conversation_template("gpt-4")
+        for d in range(len(raw_msg["conversation"])):
+            if d % 2 == 0:
+                conv.append_message(role="user", message=raw_msg["conversation"][d]["content"])
+            else:
+                conv.append_message(
+                    role="assistant", message=raw_msg["conversation"][d]["content"]
+                )
+        return conv.to_openai_api_messages()[1:]  # remove system prompt
 
-    def get_rewards(self, data):
+    def get_conversations(self):
         raise NotImplementedError
 
 
