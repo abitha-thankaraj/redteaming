@@ -8,12 +8,15 @@ from redteam.utils.data_utils import read_json
 from fastchat.model.model_adapter import get_conversation_template
 import pandas as pd
 import numpy as np
+import pandas as pd
+import numpy as np
 
 
 def get_conversations(data_dir: str, agent_type: str) -> List[Dict]:
     data = RLHFDatasetHelperBase.read_files(data_dir)
     # filter based on type of messages to be returned
     return filter_messages(data, agent_type)
+
 
 
 def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
@@ -88,6 +91,30 @@ class RLHFDatasetHelperBase:
         goal = raw_msg["goal"]
         conv.append_message(role="user", message=goal)
 
+        for d in range(len(raw_msg["conversation"])):
+            if d % 2 == 0:
+                conv.append_message(
+                    role="assistant", message=raw_msg["conversation"][d]["content"]
+                )
+            else:
+                conv.append_message(role="user", message=raw_msg["conversation"][d]["content"])
+        if remove_last_defender_message:
+            # Remove the last defender response -> losses do not depend on it for SFT and RWR
+            return conv.to_openai_api_messages()[1:-1]  # remove system prompt;
+        else:
+            return conv.to_openai_api_messages()[1:]
+
+    @classmethod
+    def create_defender_message(cls, raw_msg: Dict[str, Any]) -> List[str]:
+        conv = get_conversation_template("gpt-4")
+        for d in range(len(raw_msg["conversation"])):
+            if d % 2 == 0:
+                conv.append_message(role="user", message=raw_msg["conversation"][d]["content"])
+            else:
+                conv.append_message(
+                    role="assistant", message=raw_msg["conversation"][d]["content"]
+                )
+        return conv.to_openai_api_messages()[1:]  # remove system prompt
         for d in range(len(raw_msg["conversation"])):
             if d % 2 == 0:
                 conv.append_message(

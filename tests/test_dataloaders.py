@@ -19,6 +19,7 @@ def get_tokenizer(model_name):
             trust_remote_code=True,
             cache_dir=CACHE_DIR,
             model_max_length=4096,
+            model_max_length=4096,
             padding_side="right",
             use_fast=False)
         return tokenizer
