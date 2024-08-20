@@ -56,16 +56,6 @@ def is_good_defender_message(message: Dict) -> bool:
     return message["safety_label"].lower().strip() == "safe"
 
 
-##############################################Reward Functions##############################################
-def get_conversation_rewards(conversations, reward_type):
-    pass
-
-
-##############################################Balance datasets##############################################
-def balance_datasets(conversations, rewards, balance_type):
-    pass
-
-
 class RLHFDatasetHelperBase:
     def __init__(self, data_dir: str) -> None:
         self.raw_data = pd.DataFrame(RWRDatasetHelper.read_files(data_dir))
@@ -117,10 +107,7 @@ class RLHFDatasetHelperBase:
                 )
         return conv.to_openai_api_messages()[1:]  # remove system prompt
 
-    def get_conversations(self, data: List[Any]):
-        raise NotImplementedError
-
-    def get_rewards(self, data):
+    def get_conversations(self):
         raise NotImplementedError
 
 

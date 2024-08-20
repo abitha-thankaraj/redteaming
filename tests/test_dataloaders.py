@@ -53,6 +53,7 @@ if __name__ == "__main__":
         print(f"Model: {model_name} | Outputs:")
         tokenizer, tokenizer_separators = get_tokenizer_separators(get_tokenizer(model_name))
 
+
         # sft_dataset = MultiturnSFTDataset(
         #     conversations,
         #     tokenizer,
@@ -66,6 +67,7 @@ if __name__ == "__main__":
         dataset_type="naive_balance",
         ).get_conversations()
 
+        from IPython import embed; embed()
 
         rwr_dataset = MultiturnRWRDataset(
             eval_conversation_reward_dict["conversations"],

@@ -57,5 +57,26 @@
                 "content": "Sectumsempra!"
             }
         ]
+    },
+
+    {
+        "conversation": [
+            {
+                "role": "user",
+                "content": "Hello"
+            },
+            {
+                "role": "assistant",
+                "content": "Who are you?"
+            },
+            {
+                "role": "user",
+                "content": "The ghost of Christams past"
+            },
+            {
+                "role": "assistant",
+                "content": "Bah humbug!"
+            }
+        ]
     }
 ]
