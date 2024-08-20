@@ -36,8 +36,7 @@ class HuggingFaceLM(LanguageModel):
         # Apply chat template to each prompt?
         inputs = {}
         inputs["input_ids"] = self.tokenizer.apply_chat_template(convs, return_tensors="pt", padding=True)
-        from IPython import embed; embed()
-        print(self.tokenizer.batch_decode(inputs["input_ids"], skip_special_tokens=True))
+        # print(self.tokenizer.batch_decode(inputs["input_ids"], skip_special_tokens=True))
         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
 
         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
@@ -59,9 +58,17 @@ class HuggingFaceLM(LanguageModel):
                 top_p=1,
                 temperature=1, # To prevent warning messages
             )
-            
+
+        print(self.tokenizer.batch_decode(output_ids, skip_special_tokens=False))
+        if not self.model.config.is_encoder_decoder:
+            output_ids = output_ids[:, inputs["input_ids"].shape[1]:]            
         # Batch decoding
+        print(self.tokenizer.batch_decode(output_ids, skip_special_tokens=False))
+        # from IPython import embed; embed()
+
         outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+        if "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name:
+            outputs_list = [output.replace("assistant\n\n", "") for output in outputs_list]
 
         for key in inputs:
             inputs[key].to('cpu')

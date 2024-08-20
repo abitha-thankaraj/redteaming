@@ -18,7 +18,6 @@ def set_seed_everywhere(seed):
 def main(model_name = "meta-llama/Meta-Llama-3.1-8B-Instruct"):
     set_seed_everywhere(42)
     conversations = [c["conversation"] for c in read_json(CONVERSATIONS_FNAME)]
-    
     config = transformers.AutoConfig.from_pretrained(
         model_name,
         trust_remote_code=True,
@@ -51,10 +50,9 @@ def main(model_name = "meta-llama/Meta-Llama-3.1-8B-Instruct"):
 
     lm = HuggingFaceLM(model_name = model_name, model = model, tokenizer = tokenizer)    
     outputs = lm.batched_generate(convs = conversations, max_n_tokens = 500, temperature = 0.)
-    from IPython import embed; embed()
 
 
 
 if __name__ == "__main__":
-    main("mistralai/Mistral-7B-Instruct-v0.3")
-    # main("meta-llama/Meta-Llama-3.1-8B-Instruct")
+    # main("mistralai/Mistral-7B-Instruct-v0.3")
+    main("meta-llama/Meta-Llama-3.1-8B-Instruct")
