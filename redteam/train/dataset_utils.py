@@ -27,6 +27,12 @@ def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
             is_good_llama_attacker_message,
             RLHFDatasetHelperBase.create_attacker_message,
         ),
+        "attacker": (is_good_attacker_message, RLHFDatasetHelperBase.create_attacker_message),
+        "defender": (is_good_defender_message, RLHFDatasetHelperBase.create_defender_message),
+        "llama_attacker": (
+            is_good_llama_attacker_message,
+            RLHFDatasetHelperBase.create_attacker_message,
+        ),
         # "all": (pass_through, lambda x: x),
     }
     if agent_type not in agent_config:
