@@ -93,7 +93,9 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
 
         for i, reward_per_turn in tqdm(enumerate(reward_per_turns), desc="Rewards - RWR"):
             if i in self.incorrect:
-                from IPython import embed; embed()
+                print(f"Incorrect tokens : {i}")
+
+            #     from IPython import embed; embed()
             self.rewards.append(
                 get_token_level_reward_to_gos(
                     rewards_per_turn=reward_per_turn,
