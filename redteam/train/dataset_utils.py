@@ -94,49 +94,26 @@ class RLHFDatasetHelperBase:
         for d in range(len(raw_msg["conversation"])):
             if d % 2 == 0:
                 conv.append_message(
-                    role="assistant", message=raw_msg["conversation"][d]["content"]
+                    role="assistant", message=raw_msg["conversation"][d]["content"].strip() # remove leading and trailing spaces. -> This breaks the tokenizer masking.
                 )
             else:
-                conv.append_message(role="user", message=raw_msg["conversation"][d]["content"])
+                conv.append_message(role="user", message=raw_msg["conversation"][d]["content"].strip())
         if remove_last_defender_message:
             # Remove the last defender response -> losses do not depend on it for SFT and RWR
             return conv.to_openai_api_messages()[1:-1]  # remove system prompt;
         else:
             return conv.to_openai_api_messages()[1:]
 
-    @classmethod
-    def create_defender_message(cls, raw_msg: Dict[str, Any]) -> List[str]:
-        conv = get_conversation_template("gpt-4")
-        for d in range(len(raw_msg["conversation"])):
-            if d % 2 == 0:
-                conv.append_message(role="user", message=raw_msg["conversation"][d]["content"])
-            else:
-                conv.append_message(
-                    role="assistant", message=raw_msg["conversation"][d]["content"]
-                )
-        return conv.to_openai_api_messages()[1:]  # remove system prompt
-        for d in range(len(raw_msg["conversation"])):
-            if d % 2 == 0:
-                conv.append_message(
-                    role="assistant", message=raw_msg["conversation"][d]["content"]
-                )
-            else:
-                conv.append_message(role="user", message=raw_msg["conversation"][d]["content"])
-        if remove_last_defender_message:
-            # Remove the last defender response -> losses do not depend on it for SFT and RWR
-            return conv.to_openai_api_messages()[1:-1]  # remove system prompt;
-        else:
-            return conv.to_openai_api_messages()[1:]
 
     @classmethod
     def create_defender_message(cls, raw_msg: Dict[str, Any]) -> List[str]:
         conv = get_conversation_template("gpt-4")
         for d in range(len(raw_msg["conversation"])):
             if d % 2 == 0:
-                conv.append_message(role="user", message=raw_msg["conversation"][d]["content"])
+                conv.append_message(role="user", message=raw_msg["conversation"][d]["content"].strip())
             else:
                 conv.append_message(
-                    role="assistant", message=raw_msg["conversation"][d]["content"]
+                    role="assistant", message=raw_msg["conversation"][d]["content"].strip()
                 )
         return conv.to_openai_api_messages()[1:]  # remove system prompt
 
@@ -260,6 +237,8 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
                 negative_indices = np.random.choice(negative_indices, len(positive_indices))
         
             sampling_indices = np.concatenate([positive_indices, negative_indices], axis=0)
+        elif self.dataset_type == "all":
+            sampling_indices = np.arange(len(self.raw_data))
         return sampling_indices
 
             

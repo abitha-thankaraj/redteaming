@@ -17,8 +17,13 @@ ATTACKER_MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.1"
 ATTACKER_MODEL_NAME="attacker_${ATTACKER_MODEL_PATH}";
 DEFENDER_MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.1"
 DEFENDER_MODEL_NAME="defender_${DEFENDER_MODEL_PATH}";
-TRAINED_ATTACKER_MODEL_PATH="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_attacker_mistralai/Mistral-7B-Instruct-v0.1_2024-08-10-16-11-32-379/checkpoint-135"
-TRAINED_ATTACKER_MODEL_NAME="trained_attacker_${TRAINED_ATTACKER_MODEL_PATH}";
+# SFT attacker
+# TRAINED_ATTACKER_MODEL_PATH="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_attacker_mistralai/Mistral-7B-Instruct-v0.1_2024-08-10-16-11-32-379/checkpoint-135"
+# TRAINED_ATTACKER_MODEL_NAME="trained_attacker_${TRAINED_ATTACKER_MODEL_PATH}";
+# RWR attacker
+TRAINED_ATTACKER_MODEL_PATH="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturn_rwr_attacker_mistralai/Mistral-7B-Instruct-v0.1_2024-08-19-17-16-11-631/checkpoint-366"
+TRAINED_ATTACKER_MODEL_NAME="rwr_trained_attacker_${TRAINED_ATTACKER_MODEL_PATH}";
+# SFT defender
 TRAINED_DEFENDER_MODEL_PATH="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_defender_mistralai/Mistral-7B-Instruct-v0.1_2024-08-12-09-31-14-704/checkpoint-406"
 TRAINED_DEFENDER_MODEL_NAME="trained_defender_${TRAINED_DEFENDER_MODEL_PATH}";
 

@@ -18,7 +18,6 @@ sleep 300; # Sleep for 300 seconds. Wait until the model is loaded
 
 python $3/scripts/data_generation/evaluate_multiturn_attacks.py chat_completion=$4 chat_completion.port=$2 multiturn_generated_attack_prompts_fname=$5
 
-
 # $1: model path
 # $2: port
 # $3: path to the script

@@ -51,8 +51,12 @@ def main(config: DictConfig):
     for goal in tqdm(goals):
         try:
             redteaming_game.reset(goal = goal)
-            traj, judgement = redteaming_game.simulate(judge=True)
-            trajs.append({"game": traj, "judge":judgement})
+            if config.no_judge:
+                traj = redteaming_game.simulate(judge=False)
+                trajs.append({"game": traj, "judge": None})
+            else:
+                traj, judgement = redteaming_game.simulate(judge=True)
+                trajs.append({"game": traj, "judge":judgement})
         except Exception as e:
             log.error(f"Error in simulating game for goal: {goal}")
             log.error(e)
@@ -75,7 +79,8 @@ def main(config: DictConfig):
     os.makedirs(config.out_dir, exist_ok=True)
     config.out_fname = os.path.join(config.out_dir,config.out_fname.replace("/", ".."))
     write_json(trajs, config.out_fname)
-    write_json(errors, config.out_fname.replace(".json", "_errors.json"))
+    if len(errors) > 0:
+        write_json(errors, config.out_fname.replace(".json", "_errors.json"))
     
     save_config = OmegaConf.to_yaml(config)
     with open(os.path.join(config.out_dir, "config.yaml"), "w") as f:

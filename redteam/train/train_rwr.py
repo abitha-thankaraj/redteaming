@@ -2,7 +2,7 @@
 import os
 
 # Add this here for wandb project name
-os.environ["WANDB_PROJECT"] = "redteam"
+# os.environ["WANDB_PROJECT"] = "redteam"
 
 from dataclasses import dataclass, field
 from typing import Optional, Tuple

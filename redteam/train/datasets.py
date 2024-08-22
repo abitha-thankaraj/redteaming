@@ -5,6 +5,9 @@ from typing import Dict, Any, List
 from transformers import AutoTokenizer
 from redteam.train.common import TokenizerSeparators
 
+def stripped_decode(tokenizer, masked_tokens):
+    return tokenizer.decode(torch.where(masked_tokens == -100, tokenizer.unk_token_id, masked_tokens)).replace(tokenizer.unk_token, "")
+
 
 class MultiturnSFTDataset(Dataset):
     # TODO: Add docstring + key differences b/w single turn and multiturn
@@ -17,12 +20,29 @@ class MultiturnSFTDataset(Dataset):
     ):
 
         self.input_ids, self.labels, self.attention_mask = [], [], []
-        for conversation in tqdm(conversations, desc="Masking Conversations - MT-SFT"):
+        self.incorrect = []
+        for i, conversation in tqdm(enumerate(conversations), desc="Masking Conversations - MT-SFT"):
             data_dict = mask_non_assistant_tokens(
                 tokenizer, conversation, tokenizer_separator, ignore_token_id
             )
             self.input_ids.append(data_dict["input_ids"])
             self.labels.append(data_dict["labels"])
+            if len(stripped_decode(tokenizer, data_dict["labels"])) == 0:
+                self.incorrect.append(i)
+            unmasked_turn_indices = torch.where(data_dict["labels"] != ignore_token_id)[0]
+            # Calculate differences between consecutive indices
+            index_diffs = torch.diff(unmasked_turn_indices)
+
+            # # Select turn boundary indices from unmasked_turn_indices [s_0, s_1, .... s_t, e_t]
+            # turn_boundaries = torch.cat(
+            #     [
+            #         torch.tensor([0]),  # s_0
+            #         torch.where(index_diffs != 1)[0] + 1,  # s_1, s_2, .... s_t
+            #         torch.tensor([len(unmasked_turn_indices)]),  # e_t
+            #     ]
+            # )
+            if len( torch.where(index_diffs != 1)[0] + 1)!=2:
+                self.incorrect.append(i)
             self.attention_mask.append(data_dict["attention_mask"])
 
         self.input_ids = torch.stack(self.input_ids, dim=0)
@@ -69,8 +89,11 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
         )
 
         self.rewards = []
+        print(self.incorrect)
 
         for i, reward_per_turn in tqdm(enumerate(reward_per_turns), desc="Rewards - RWR"):
+            if i in self.incorrect:
+                from IPython import embed; embed()
             self.rewards.append(
                 get_token_level_reward_to_gos(
                     rewards_per_turn=reward_per_turn,
@@ -121,11 +144,12 @@ def mask_non_assistant_tokens(
         if msg["role"] == "assistant"
     ]
 
-    start_index = 0
+    start_index = -1
     for content in assistant_contents:
         content_tokens = tokenizer.encode(content, add_special_tokens=False)
         while True:
             try:  # Note: This will be slow, one time loading doesnt matter.
+                start_index += 1
                 start_index = tokens.index(content_tokens[0], start_index)
                 if tokens[start_index : start_index + len(content_tokens)] == content_tokens:
                     masked_tokens[
@@ -140,8 +164,9 @@ def mask_non_assistant_tokens(
                         + len(content_tokens)
                     ]
                     break
-                start_index += 1
-            except ValueError:
+                # if start_index >= len(tokens):
+                #     raise Exception("Content not found")
+            except Exception as e:
                 break
 
     input_ids = torch.tensor(tokens)
@@ -196,9 +221,10 @@ def get_token_level_reward_to_gos(
             torch.tensor([len(unmasked_turn_indices)]),  # e_t
         ]
     )
-
     # Turn masks for each token. -1 for masked tokens.
     # Assistant responses are unmasked -> Assigned turn number.
+    print(turn_boundaries)
+    print(rewards_per_turn)
     turn_masks = torch.full_like(masked_tokens, -1.0)
     for i in range(len(turn_boundaries) - 1):
         start = unmasked_turn_indices[turn_boundaries[i]]

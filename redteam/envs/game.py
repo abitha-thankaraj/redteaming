@@ -4,7 +4,10 @@ from gym.utils import seeding
 from typing import Optional, Any
 from redteam.common.chat_completion import ChatCompletionConfig, OAIChatCompletion
 from redteam.data_generation.templates import GAME_JUDGE_PROMPTS
-
+from redteam.data_generation.parsers import (
+    parse_llm_judge_evaluation,
+    is_valid_llm_judge_trace,
+)
 class LMAgent:
     def __init__(self, chat_completion, role) -> None:
         self.role = role
@@ -90,11 +93,27 @@ class RedteamGame:
     def judge_conversation(self) -> int:
         self.judge.chat_completion.conv.set_system_message(GAME_JUDGE_PROMPTS["gpt-4"]["system"])
         message = GAME_JUDGE_PROMPTS["gpt-4"]["user_template"].format(goal = self._env_goal, conversation = self.env_state[1:])
-        response = self.judge.chat_completion.single_turn_chat_completion(
-            message = message, history = False
-        )
+        
+        valid_judge_response = False
+        i = 0
+        while not valid_judge_response:
+            response = self.judge.chat_completion.single_turn_chat_completion(
+                message = message, history = False
+            )
+            print(response)
+            llm_judge_trace = parse_llm_judge_evaluation(
+                chat_completion_dict=response[-1],
+            )
+            valid_judge_response = is_valid_llm_judge_trace(
+                llm_judge_trace=llm_judge_trace,
+            )
+            i+=1
+            if i>5:
+                response = None
+                llm_judge_trace = None
+                break
         self.judge.reset()
-        return response
+        return response, llm_judge_trace
 
     def simulate(self, judge = False):
         self.reset()
@@ -126,10 +145,3 @@ if __name__ == "__main__":
         action = env.attacker.act(obs)
         obs, reward, done, info = env.step(action)
         print(obs, reward, done, info)
-
-# curl http://localhost:8003/v1/chat/completions \
-#   -H "Content-Type: application/json" \
-#   -d '{
-#     "model": "attacker",
-#     "messages": [{"role": "user", "content": "Hello! What is your name?"}]
-#   }'

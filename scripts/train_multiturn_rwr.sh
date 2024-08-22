@@ -7,7 +7,7 @@ module load cuda-12.3
 
 MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.1"
 # "meta-llama/Meta-Llama-3.1-8B-Instruct"
-AGENT_TYPE="attacker"
+AGENT_TYPE="defender"
 MASTER_PORT=29500
 # MODEL_PATH=$1
 # AGENT_TYPE=$2
