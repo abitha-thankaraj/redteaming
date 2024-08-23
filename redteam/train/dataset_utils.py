@@ -66,10 +66,14 @@ def is_good_defender_message(message: Dict) -> bool:
 
 
 class RLHFDatasetHelperBase:
-    def __init__(self, data_dir: str) -> None:
+    def __init__(self, data_dir: str, length_key:str="", max_length=-1) -> None:
         self.raw_data = pd.DataFrame(RWRDatasetHelper.read_files(data_dir))
         # Convert from list to numpy array
         self.raw_data["rewards"] = self.raw_data["rewards"].apply(lambda x: np.array(x))
+        if length_key != "":
+            assert max_length > 0, "Max length of tokens should be greater than 0"
+            self.raw_data["length_filtered"] = self.raw_data[length_key].apply(lambda x: x < max_length)
+        
 
     @classmethod
     def read_files(cls, data_dir):
@@ -117,13 +121,14 @@ class RLHFDatasetHelperBase:
                 )
         return conv.to_openai_api_messages()[1:]  # remove system prompt
 
+
     def get_conversations(self):
         raise NotImplementedError
 
 
 class SFTDatasetHelper(RLHFDatasetHelperBase):
-    def __init__(self, data_dir: str, agent_type: str, dataset_type: str) -> None:
-        super().__init__(data_dir=data_dir)
+    def __init__(self, data_dir: str, agent_type: str, dataset_type: str, length_key:str="", max_length=-1) -> None:
+        super().__init__(data_dir=data_dir, length_key=length_key, max_length=max_length)
         self.agent_type = agent_type
         self.dataset_type = dataset_type
 
@@ -196,8 +201,8 @@ class SFTDatasetHelper(RLHFDatasetHelperBase):
 
 
 class RWRDatasetHelper(RLHFDatasetHelperBase):
-    def __init__(self, data_dir: str, agent_type: str, dataset_type: str = "naive_balance") -> None:
-        super().__init__(data_dir=data_dir)
+    def __init__(self, data_dir: str, agent_type: str, dataset_type: str = "naive_balance", length_key = "", max_length = -1) -> None:
+        super().__init__(data_dir=data_dir, length_key= length_key, max_length=max_length)
         assert agent_type in ["attacker", "defender"], f"Invalid agent type: {agent_type}"
         
         self.agent_type = agent_type
@@ -218,6 +223,7 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
             )
         # Anything with rewards > 0 is a positive example/ turnwise - sum works.
         self.raw_data["positives"] = self.raw_data["rewards"].apply(lambda x: x.sum() > 0.0)
+        
 
     def get_conversations(self):
         subsampled_indices = self._get_indices()
@@ -230,6 +236,13 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
     def _get_indices(self):
         positive_indices = np.where(self.raw_data.positives)[0]
         negative_indices = np.where(~self.raw_data.positives)[0]
+
+        if "length_filtered" in self.raw_data.keys(): # filter by length if available.
+            length_filtered_indices = np.where(self.raw_data.length_filtered)[0]
+            positive_indices = np.intersect1d(positive_indices, length_filtered_indices)
+            negative_indices = np.intersect1d(negative_indices, length_filtered_indices)
+
+        from IPython import embed; embed()
         if self.dataset_type == "naive_balance":
             if len(positive_indices) > len(negative_indices):
                 positive_indices = np.random.choice(positive_indices, len(negative_indices))
@@ -239,6 +252,9 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
             sampling_indices = np.concatenate([positive_indices, negative_indices], axis=0)
         elif self.dataset_type == "all":
             sampling_indices = np.arange(len(self.raw_data))
+            if "length_filtered" in self.raw_data.keys(): # filter by length if available. #TODO: default length filtered to True
+                sampling_indices = np.intersect1d(sampling_indices, np.where(self.raw_data.length_filtered)[0])
+            
         return sampling_indices
 
             

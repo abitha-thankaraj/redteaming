@@ -4,6 +4,7 @@ from redteam.train.dataset_utils import read_json, RWRDatasetHelper
 from redteam.train.common import get_tokenizer_separators
 from redteam.train.datasets import MultiturnRWRDataset, MultiturnSFTDataset
 from transformers.trainer_pt_utils import LabelSmoother
+from redteam.utils.slack_me import slack_notification
 from tqdm import tqdm
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
@@ -49,15 +50,15 @@ def stripped_decode(tokenizer, masked_tokens):
 if __name__ == "__main__":
     from redteam.train.sft import set_seed_everywhere
     set_seed_everywhere(42)
-    MODEL_NAMES = ["meta-llama/Meta-Llama-3.1-8B-Instruct", "mistralai/Mistral-7B-Instruct-v0.3"]
-    # MODEL_NAMES = ["mistralai/Mistral-7B-Instruct-v0.1",]
+    # MODEL_NAMES = ["meta-llama/Meta-Llama-3.1-8B-Instruct", "mistralai/Mistral-7B-Instruct-v0.1"]
+    MODEL_NAMES = ["mistralai/Mistral-7B-Instruct-v0.1"]
 
     # conversations = [c["conversation"] for c in read_json("dummy_conversations.json")]
 
     for model_name in MODEL_NAMES:
         print(f"Model: {model_name} | Outputs:")
         tokenizer, tokenizer_separators = get_tokenizer_separators(get_tokenizer(model_name))
-        for data_dir in ["/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_train_data_llama_rewards_flat.json", "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat.json"]:
+        for data_dir in ["/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_train_data_llama_rewards_flat_length_added.json","/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_train_data_llama_rewards_flat.json", "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat.json"]:
 
 
             # sft_dataset = MultiturnSFTDataset(
@@ -71,6 +72,8 @@ if __name__ == "__main__":
             data_dir,
             "defender",
             dataset_type="all",
+            length_key="Mistral-7B-Instruct-v0.1_length",
+            max_length = 1024,
             ).get_conversations()
 
 
@@ -102,7 +105,8 @@ if __name__ == "__main__":
                 # assert torch.where(rwr_dataset[i]["rewards"])[0].equal(torch.where(rwr_dataset[i]["labels"]!=IGNORE_TOKEN_ID)[0]), "Only non-masked tokens should have rewards"
                 assert set(torch.where(rwr_dataset[i]["rewards"])[0].tolist()).issubset(set(torch.where(rwr_dataset[i]["labels"] != IGNORE_TOKEN_ID)[0].tolist())), "Only non-masked tokens should have rewards"
 
-            print(f"Passed conversation level rewards test for {model_name}| {data_dir}")    
+            print(f"Passed conversation level rewards test for {model_name}| {data_dir}")  
+            slack_notification(f"Passed conversation level rewards test for {model_name}| {data_dir}")  
 
 
 
