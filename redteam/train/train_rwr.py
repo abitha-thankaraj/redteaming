@@ -2,7 +2,7 @@
 import os
 
 # Add this here for wandb project name
-os.environ["WANDB_ENTITY"] = "mt_redteam-org"
+os.environ["WANDB_ENTITY"] = "mt_redteam"
 os.environ["WANDB_PROJECT"] = "redteaming"
 
 from dataclasses import dataclass, field, asdict

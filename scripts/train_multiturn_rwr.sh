@@ -5,11 +5,15 @@ source /home/athankar/miniconda3/etc/profile.d/conda.sh
 conda activate redteam
 module load cuda-12.3
 
-MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.1"
-# "meta-llama/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.1"
+# LENGTH_KEY="Mistral-7B-Instruct-v0.1_length"
+MODEL_PATH="meta-llama/Meta-Llama-3.1-8B-Instruct"
+LENGTH_KEY="Meta-Llama-3.1-8B-Instruct_length"
+
 AGENT_TYPE="defender"
+
+# "meta-llama/Meta-Llama-3.1-8B-Instruct"
 MASTER_PORT=29500
-LENGTH_KEY="Mistral-7B-Instruct-v0.1_length"
 MAX_LENGTH=4096
 DATASET_TYPE="naive_balance"
 # "Meta-Llama-3.1-8B-Instruct_length"
@@ -46,7 +50,7 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train_rwr.py  \
         --deepspeed $REPO_DIR/scripts/configs/deepspeed/zero3.json     \
         --bf16 True \
         --num_train_epochs 3  \
-        --per_device_train_batch_size 4 \
+        --per_device_train_batch_size 2 \
         --per_device_eval_batch_size 1   \
         --gradient_accumulation_steps 16 \
         --evaluation_strategy "steps" \
