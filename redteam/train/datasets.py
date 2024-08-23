@@ -20,29 +20,12 @@ class MultiturnSFTDataset(Dataset):
     ):
 
         self.input_ids, self.labels, self.attention_mask = [], [], []
-        # self.incorrect = []
         for i, conversation in tqdm(enumerate(conversations), desc="Masking Conversations - MT-SFT"):
             data_dict = mask_non_assistant_tokens(
                 tokenizer, conversation, tokenizer_separator, ignore_token_id
             )
             self.input_ids.append(data_dict["input_ids"])
             self.labels.append(data_dict["labels"])
-            # if len(stripped_decode(tokenizer, data_dict["labels"])) == 0:
-            #     self.incorrect.append(i)
-            # unmasked_turn_indices = torch.where(data_dict["labels"] != ignore_token_id)[0]
-            # # Calculate differences between consecutive indices
-            # index_diffs = torch.diff(unmasked_turn_indices)
-
-            # # # Select turn boundary indices from unmasked_turn_indices [s_0, s_1, .... s_t, e_t]
-            # # turn_boundaries = torch.cat(
-            # #     [
-            # #         torch.tensor([0]),  # s_0
-            # #         torch.where(index_diffs != 1)[0] + 1,  # s_1, s_2, .... s_t
-            # #         torch.tensor([len(unmasked_turn_indices)]),  # e_t
-            # #     ]
-            # # )
-            # if len( torch.where(index_diffs != 1)[0] + 1)!=2:
-            #     self.incorrect.append(i)
             self.attention_mask.append(data_dict["attention_mask"])
 
         self.input_ids = torch.stack(self.input_ids, dim=0)
@@ -92,8 +75,6 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
         # print(self.incorrect)
 
         for i, reward_per_turn in tqdm(enumerate(reward_per_turns), desc="Rewards - RWR"):
-            # if i in self.incorrect:
-            #     print(f"Incorrect tokens : {i}")
             self.rewards.append(
                 get_token_level_reward_to_gos(
                     rewards_per_turn=reward_per_turn,
@@ -127,7 +108,6 @@ def mask_non_assistant_tokens(
     Note: We expect the end of assistant's output to be marked by the assistant_suffix token.
     """
     # TODO Add example
-
     tokens = tokenizer.apply_chat_template(
         conversation, tokenize=True, padding="max_length", truncation=True
     )
@@ -164,8 +144,6 @@ def mask_non_assistant_tokens(
                         + len(content_tokens)
                     ]
                     break
-                # if start_index >= len(tokens):
-                #     raise Exception("Content not found")
             except Exception as e:
                 break
 
@@ -223,8 +201,6 @@ def get_token_level_reward_to_gos(
     )
     # Turn masks for each token. -1 for masked tokens.
     # Assistant responses are unmasked -> Assigned turn number.
-    # print(turn_boundaries)
-    # print(rewards_per_turn)
     turn_masks = torch.full_like(masked_tokens, -1.0)
     for i in range(len(turn_boundaries) - 1):
         start = unmasked_turn_indices[turn_boundaries[i]]

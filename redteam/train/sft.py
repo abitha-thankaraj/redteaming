@@ -178,13 +178,7 @@ def train():
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
     )
-    # trainer = RWRTrainer(
-    #     model=model,
-    #     tokenizer=tokenizer,
-    #     args=training_args,
-    #     train_dataset=train_dataset,
-    #     eval_dataset=eval_dataset,
-    # )    
+  
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:

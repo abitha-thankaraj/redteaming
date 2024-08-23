@@ -201,13 +201,6 @@ def train():
         max_length = data_args.max_length,
     )
 
-    # trainer = Trainer(
-    #     model=model,
-    #     tokenizer=tokenizer,
-    #     args=training_args,
-    #     train_dataset=train_dataset,
-    #     eval_dataset=eval_dataset,
-    # )
     trainer = RWRTrainer(
         model=model,
         tokenizer=tokenizer,
