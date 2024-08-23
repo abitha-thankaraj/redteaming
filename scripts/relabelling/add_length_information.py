@@ -48,9 +48,35 @@ def main(filename, savefile):
 
     write_json(data, savefile)
 
+def main_flat(filename, savefile):
+    tokenizers = load_tokenizers()
+    data = read_json(fname=filename)
+
+    for record in data:
+        # for conversation_type in ["positives", "negatives"]:
+            # for datapoint in record[conversation_type]:
+        new_convs = deepcopy(record['conversation'])
+
+        for i in range(len(record['conversation'])):
+            new_convs[i]["content"] = record['conversation'][i]["content"].strip(" \t\n\r")
+
+        for model_name in tokenizers:
+            tokenizer = tokenizers[model_name]
+            tokenized = tokenizer.apply_chat_template(new_convs, tokenize=True)
+            length = len(tokenized)
+            record[model_name.split("/")[-1] + "_length"] = length
+
+        record['conversation'] = new_convs
+
+    write_json(data, savefile)
 
 if __name__ == "__main__":
-    main(
-        filename="./combined_train_data_llama_rewards_paired.json",
-        savefile="./combined_train_data_llama_rewards_paired_length_added.json",
-    )
+    DATA_DIR = "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined"
+    # main(
+    #     filename=f"{DATA_DIR}/combined_eval_data_llama_rewards_paired.json",
+    #     savefile=f"{DATA_DIR}/combined_eval_data_llama_rewards_paired_length_added.json",
+    # )
+    main_flat(
+            filename=f"{DATA_DIR}/combined_eval_data_llama_rewards_flat.json",
+            savefile=f"{DATA_DIR}/combined_eval_data_llama_rewards_flat_length_added.json",
+        )

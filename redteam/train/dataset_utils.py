@@ -36,7 +36,6 @@ def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
             is_good_llama_attacker_message,
             RLHFDatasetHelperBase.create_attacker_message,
         ),
-        # "all": (pass_through, lambda x: x),
     }
     if agent_type not in agent_config:
         raise ValueError(f"Invalid agent type: {agent_type}")
@@ -242,7 +241,6 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
             positive_indices = np.intersect1d(positive_indices, length_filtered_indices)
             negative_indices = np.intersect1d(negative_indices, length_filtered_indices)
 
-        from IPython import embed; embed()
         if self.dataset_type == "naive_balance":
             if len(positive_indices) > len(negative_indices):
                 positive_indices = np.random.choice(positive_indices, len(negative_indices))

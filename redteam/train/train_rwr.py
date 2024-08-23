@@ -4,7 +4,7 @@ import os
 # Add this here for wandb project name
 # os.environ["WANDB_PROJECT"] = "redteam"
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Optional, Tuple
 from typing import Optional, Tuple
 import transformers
@@ -40,14 +40,18 @@ class ModelArguments:
 @dataclass
 class DataArguments:
     data_path: str = field(default=None, metadata={"help": "Path to the training data."})
+    eval_data_path: str = field(
+        default=None, metadata={"help": "Path to the evaluation data."}
+    )
     agent_type: str = field(
         default="attacker",
         metadata={"help": "Type of agent to train on. Available options: attacker, defender"},
         # choices=["attacker", "defender", "llama_attacker"],
     )
-    train_ratio: float = field(
-        default=0.99, metadata={"help": "Ratio of data to use for training."}
-    )
+    dataset_type: str = field(default="naive_balance")
+    length_key: str = field(default="")
+    max_length: int = field(default=-1)
+
 
 
 @dataclass
@@ -55,14 +59,15 @@ class TrainingArguments(transformers.TrainingArguments):
     cache_dir: Optional[str] = field(
         default="/data/tir/projects/tir6/bisk/athankar/projects/.cache"
     )
-
     optim: str = field(default="adamw_torch")
     model_max_length: int = field(
         default=4096,
         metadata={
             "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
-        },
+        }
     )
+    torch_empty_cache_steps: int =field(default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"})
+    
 
 
 # Debugging utils
@@ -85,13 +90,22 @@ def rank0_debug(interval=9999999):
 
 def get_dataset(
     data_dir: str,
+    eval_data_dir: str,
     agent_type: str,
-    train_ratio: float,
     tokenizer: transformers.AutoTokenizer,
     tokenizer_separator: TokenizerSeparators,
+    dataset_type: str = "naive_balance",
+    length_key: str = "",
+    max_length: int = -1,
 ) -> Tuple[Dataset, Dataset]:
     """Get train test dataset for multiturn sft"""
-    dataset_helper = RWRDatasetHelper(data_dir, agent_type, dataset_type="naive_balance")
+    dataset_helper = RWRDatasetHelper(
+        data_dir,
+        agent_type,
+        dataset_type=dataset_type,
+        length_key=length_key,
+        max_length=max_length,
+    )
 
     conversation_reward_dict = dataset_helper.get_conversations()
     train_dataset = MultiturnRWRDataset(
@@ -101,10 +115,13 @@ def get_dataset(
         IGNORE_TOKEN_ID,
         conversation_reward_dict["rewards"],
     )
+
     eval_conversation_reward_dict = RWRDatasetHelper(
-        "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat.json",
+        eval_data_dir,
         agent_type,
-        dataset_type="naive_balance",
+        dataset_type=dataset_type,
+        length_key=length_key,
+        max_length=max_length,
     ).get_conversations()
 
     eval_dataset = MultiturnRWRDataset(
@@ -122,6 +139,9 @@ def train():
     # Parse args; All configs sent to the model
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    
+    assert training_args.model_max_length >= data_args.max_length, "Model max length should be greater than data max length"
+
 
     # Seed everything
     set_seed_everywhere(training_args.seed)
@@ -170,11 +190,14 @@ def train():
     model.resize_token_embeddings(len(tokenizer))
 
     train_dataset, eval_dataset = get_dataset(
-        data_args.data_path,
-        data_args.agent_type,
-        data_args.train_ratio,
-        tokenizer,
-        tokenizer_separator,
+        data_dir = data_args.data_path,
+        eval_data_dir = data_args.eval_data_path,
+        agent_type = data_args.agent_type,
+        tokenizer = tokenizer,
+        tokenizer_separator = tokenizer_separator,
+        dataset_type = data_args.dataset_type,
+        length_key = data_args.length_key,
+        max_length = data_args.max_length,
     )
 
     # trainer = Trainer(
@@ -191,6 +214,7 @@ def train():
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
     )
+    
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:

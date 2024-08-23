@@ -71,7 +71,7 @@ if __name__ == "__main__":
             eval_conversation_reward_dict = RWRDatasetHelper(
             data_dir,
             "defender",
-            dataset_type="all",
+            dataset_type="naive_balance",
             length_key="Mistral-7B-Instruct-v0.1_length",
             max_length = 1024,
             ).get_conversations()
@@ -86,6 +86,7 @@ if __name__ == "__main__":
                 gamma=0.9,
                 min_reward=0.0
             )
+            from IPython import embed; embed()
 
             # from IPython import embed; embed()
             # rwr_dataset = MultiturnRWRDataset(
