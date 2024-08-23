@@ -1,0 +1,84 @@
+[
+    {
+
+        "conversation": [
+            {
+                "role": "user",
+                "content": "Hello"
+            },
+            {
+                "role": "assistant",
+                "content": "Who are you?"
+            },
+            {
+                "role": "user",
+                "content": "Voldemort"
+            },
+            {
+                "role": "assistant",
+                "content": "Any other monikers you go by?"
+            },
+            {
+                "role": "user",
+                "content": "Tom Marvolo Riddle"
+            }
+        ]
+    },
+
+    {
+
+        "conversation": [
+            {
+                "role": "user",
+                "content": "Hello"
+            },
+            {
+                "role": "assistant",
+                "content": "Who are you?"
+            },
+            {
+                "role": "user",
+                "content": "The Half-Blood Prince"
+            },
+            {
+                "role": "assistant",
+                "content": "Any other monikers you go by?"
+            },
+            {
+                "role": "user",
+                "content": "Severus Snape"
+            }
+
+        ]
+    },
+
+    {
+        "conversation": [
+            {
+                "role": "user",
+                "content": "Hello"
+            },
+            {
+                "role": "assistant",
+                "content": "Who are you?"
+            },
+            {
+                "role": "user",
+                "content": "The ghost of Christams past"
+            }
+
+        ]
+    },
+
+    {    
+        
+
+            "conversation": [
+                {
+                    "role": "user",
+                    "content": "Who is the god of offline RL?"
+                }
+            ]
+        
+    }
+]

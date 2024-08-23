@@ -1,7 +1,8 @@
 # Borrowed from https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py
 import os
+
 # Add this here for wandb project name
-# os.environ["WANDB_PROJECT"] = "redteam" 
+# os.environ["WANDB_PROJECT"] = "redteam"
 
 from dataclasses import dataclass, field
 from typing import Optional, Tuple
@@ -11,7 +12,7 @@ import transformers
 import math
 import pathlib
 import numpy as np
-from redteam.train.datasets import MultiturnSFTDataset
+from redteam.train.datasets import MultiturnSFTDataset, MultiturnRWRDataset
 from redteam.train.dataset_utils import get_conversations
 from redteam.train.common import (
     get_tokenizer_separators,
@@ -23,6 +24,8 @@ from torch.utils.data import Dataset
 from transformers.trainer_pt_utils import LabelSmoother
 
 from transformers import Trainer
+from redteam.train.rwr import RWRTrainer
+from redteam.train.dataset_utils import RWRDatasetHelper
 import torch, time
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
@@ -45,7 +48,7 @@ class DataArguments:
     train_ratio: float = field(
         default=0.99, metadata={"help": "Ratio of data to use for training."}
     )
-    
+
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
@@ -88,27 +91,30 @@ def get_dataset(
     tokenizer_separator: TokenizerSeparators,
 ) -> Tuple[Dataset, Dataset]:
     """Get train test dataset for multiturn sft"""
-    # Can make this more gnearal by passing in the dataset_cls
+    dataset_helper = RWRDatasetHelper(data_dir, agent_type, dataset_type="naive_balance")
 
-    train_ratio = min(train_ratio, 1.0)
-    # To resuse for another dataset - write your own get_conversations fn
-    conversations = get_conversations(data_dir, agent_type)
-    perm = np.random.permutation(len(conversations))
-    split = int(len(perm) * train_ratio)
-    train_indices = perm[:split]
-    if train_ratio < 1:
-        eval_indices = perm[split:]
-    else:
-        # if train_ratio==1, we use 1% of data as eval data, make sure trainer will not throw error when eval data is empty
-        eval_indices = perm[-int(len(perm) * 0.01) :]
-    train_raw_data = [conversations[i] for i in train_indices]
-    eval_raw_data = [conversations[i] for i in eval_indices]
+    conversation_reward_dict = dataset_helper.get_conversations()
+    train_dataset = MultiturnRWRDataset(
+        conversation_reward_dict["conversations"],
+        tokenizer,
+        tokenizer_separator,
+        IGNORE_TOKEN_ID,
+        conversation_reward_dict["rewards"],
+    )
+    eval_conversation_reward_dict = RWRDatasetHelper(
+        "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat.json",
+        agent_type,
+        dataset_type="naive_balance",
+    ).get_conversations()
 
-    rank0_print(f"#train {len(train_raw_data)}, #eval {len(eval_raw_data)}")
-
-    return MultiturnSFTDataset(
-        train_raw_data, tokenizer, tokenizer_separator, IGNORE_TOKEN_ID
-    ), MultiturnSFTDataset(eval_raw_data, tokenizer, tokenizer_separator, IGNORE_TOKEN_ID)
+    eval_dataset = MultiturnRWRDataset(
+        eval_conversation_reward_dict["conversations"],
+        tokenizer,
+        tokenizer_separator,
+        IGNORE_TOKEN_ID,
+        eval_conversation_reward_dict["rewards"],
+    )
+    return train_dataset, eval_dataset
 
 
 def train():
@@ -143,7 +149,7 @@ def train():
         trust_remote_code=True,
         cache_dir=training_args.cache_dir,
         attn_implementation="flash_attention_2",
-        torch_dtype=torch.bfloat16
+        torch_dtype=torch.bfloat16,
     )
     # Tie the weights - Commonly used for memory efficient training?
     model.tie_weights()
@@ -171,20 +177,20 @@ def train():
         tokenizer_separator,
     )
 
-    trainer = Trainer(
+    # trainer = Trainer(
+    #     model=model,
+    #     tokenizer=tokenizer,
+    #     args=training_args,
+    #     train_dataset=train_dataset,
+    #     eval_dataset=eval_dataset,
+    # )
+    trainer = RWRTrainer(
         model=model,
         tokenizer=tokenizer,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
     )
-    # trainer = RWRTrainer(
-    #     model=model,
-    #     tokenizer=tokenizer,
-    #     args=training_args,
-    #     train_dataset=train_dataset,
-    #     eval_dataset=eval_dataset,
-    # )    
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:
@@ -192,6 +198,7 @@ def train():
 
     trainer.save_state()
     safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
+
 
 if __name__ == "__main__":
 

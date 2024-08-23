@@ -17,11 +17,20 @@ ATTACKER_MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.1"
 ATTACKER_MODEL_NAME="attacker_${ATTACKER_MODEL_PATH}";
 DEFENDER_MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.1"
 DEFENDER_MODEL_NAME="defender_${DEFENDER_MODEL_PATH}";
-TRAINED_ATTACKER_MODEL_PATH="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_attacker_mistralai/Mistral-7B-Instruct-v0.1_2024-08-10-16-11-32-379/checkpoint-135"
-TRAINED_ATTACKER_MODEL_NAME="trained_attacker_${TRAINED_ATTACKER_MODEL_PATH}";
+# SFT attacker
+# TRAINED_ATTACKER_MODEL_PATH="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_attacker_mistralai/Mistral-7B-Instruct-v0.1_2024-08-10-16-11-32-379/checkpoint-135"
+# TRAINED_ATTACKER_MODEL_NAME="trained_attacker_${TRAINED_ATTACKER_MODEL_PATH}";
+# RWR attacker
+TRAINED_ATTACKER_MODEL_PATH="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturn_rwr_attacker_mistralai/Mistral-7B-Instruct-v0.1_2024-08-19-17-16-11-631/checkpoint-366"
+TRAINED_ATTACKER_MODEL_NAME="rwr_trained_attacker_${TRAINED_ATTACKER_MODEL_PATH}";
+# SFT defender
+TRAINED_DEFENDER_MODEL_PATH="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_defender_mistralai/Mistral-7B-Instruct-v0.1_2024-08-12-09-31-14-704/checkpoint-406"
+TRAINED_DEFENDER_MODEL_NAME="trained_defender_${TRAINED_DEFENDER_MODEL_PATH}";
+
 ATTACKER_WORKER_PORT=22013
 DEFENDER_WORKER_PORT=22014
 TRAINED_ATTACKER_WORKER_PORT=22015
+TRAINED_DEFENDER_WORKER_PORT=22016
 API_PORT=6911
 
 # Start the controller
@@ -55,6 +64,16 @@ CUDA_VISIBLE_DEVICES=2 python3 -m fastchat.serve.model_worker \
     --controller-address "http://localhost:$CONTROLLER_PORT" \
     --port $TRAINED_ATTACKER_WORKER_PORT \
     --worker-address "http://localhost:$TRAINED_ATTACKER_WORKER_PORT" \
+    --device cuda &
+
+# Start the defender model worker
+CUDA_VISIBLE_DEVICES=3 python3 -m fastchat.serve.model_worker \
+    --model-path $TRAINED_DEFENDER_MODEL_PATH \
+    --model-name $TRAINED_DEFENDER_MODEL_NAME \
+    --host 0.0.0.0 \
+    --controller-address "http://localhost:$CONTROLLER_PORT" \
+    --port $TRAINED_DEFENDER_WORKER_PORT \
+    --worker-address "http://localhost:$TRAINED_DEFENDER_WORKER_PORT" \
     --device cuda &
 
 # Start the OpenAI API server
