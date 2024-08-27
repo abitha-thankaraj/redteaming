@@ -36,6 +36,10 @@ def main(config: DictConfig):
     judge = get_lm_agent(ChatCompletionConfig(**config.judge.chat_completion_config), "judge")
 
     goals = get_dataset(**config.dataset_configs)["prompt"]
+    
+    save_config = OmegaConf.to_yaml(config)
+    with open(os.path.join(config.out_dir, "config.yaml"), "w") as f:
+        f.write(save_config)
 
     redteaming_game = RedteamGame(config.seed, 
                 attacker,
@@ -60,7 +64,7 @@ def main(config: DictConfig):
         except Exception as e:
             log.error(f"Error in simulating game for goal: {goal}")
             log.error(e)
-            errors.append({"goal": goal, "error": e})
+            errors.append({"goal": goal, "error": str(e)})
             slack_notification(f"Error in simulating game for goal: {goal}, config: {global_config}")
         # valid_judge_response = False
         # while not valid_judge_response:
@@ -76,16 +80,11 @@ def main(config: DictConfig):
 
         # output_dict = {key: llm_judge_trace[key] for key in llm_judge_trace}
     
-    os.makedirs(config.out_dir, exist_ok=True)
     config.out_fname = os.path.join(config.out_dir,config.out_fname.replace("/", ".."))
     write_json(trajs, config.out_fname)
     if len(errors) > 0:
         write_json(errors, config.out_fname.replace(".json", "_errors.json"))
     
-    save_config = OmegaConf.to_yaml(config)
-    with open(os.path.join(config.out_dir, "config.yaml"), "w") as f:
-        f.write(save_config)
-
 
 if __name__ == "__main__":
     try:

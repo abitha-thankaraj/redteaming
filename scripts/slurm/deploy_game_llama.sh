@@ -13,32 +13,46 @@ export LOGDIR="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/log
 
 # Parse command-line arguments
 CONTROLLER_PORT=22012;
-ATTACKER_MODEL_PATH="meta-llama/Meta-Llama-3.1-8B-Instruct"
-ATTACKER_MODEL_NAME="attacker_${ATTACKER_MODEL_PATH}";
+# ATTACKER_MODEL_PATH="meta-llama/Meta-Llama-3.1-8B-Instruct"
+# ATTACKER_MODEL_NAME="attacker_${ATTACKER_MODEL_PATH}";
 DEFENDER_MODEL_PATH="meta-llama/Meta-Llama-3.1-8B-Instruct"
 DEFENDER_MODEL_NAME="defender_${DEFENDER_MODEL_PATH}";
+
+# SFT
 TRAINED_ATTACKER_MODEL_PATH="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135"
 TRAINED_ATTACKER_MODEL_NAME="trained_attacker_${TRAINED_ATTACKER_MODEL_PATH}";
+
+# TODO: Add trained defender
+TRAINED_DEFENDER_MODEL_PATH="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-13-13-12-19-314/checkpoint-406";
+TRAINED_DEFENDER_MODEL_NAME="trained_defender_${TRAINED_DEFENDER_MODEL_PATH}";
+# RWR
+# TRAINED_ATTACKER_MODEL_PATH="/data/group_data/rl/experiments/redteaming/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183"
+# TRAINED_ATTACKER_MODEL_NAME="rwr_trained_attacker_${TRAINED_ATTACKER_MODEL_PATH}";
+
+# TRAINED_DEFENDER_MODEL_PATH="/data/group_data/rl/experiments/redteaming/multiturn_rwr_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-18-47-22-373/checkpoint-12"
+# TRAINED_DEFENDER_MODEL_NAME="rwr_trained_defender_${TRAINED_DEFENDER_MODEL_PATH}";
+
 ATTACKER_WORKER_PORT=22013
 DEFENDER_WORKER_PORT=22014
 TRAINED_ATTACKER_WORKER_PORT=22015
+TRAINED_DEFENDER_WORKER_PORT=22016
 API_PORT=6911
 
 # Start the controller
 python3 -m fastchat.serve.controller --host 0.0.0.0 --port $CONTROLLER_PORT &
 
-# Start the attacker model worker
-CUDA_VISIBLE_DEVICES=0 python3 -m fastchat.serve.model_worker \
-    --model-path $ATTACKER_MODEL_PATH \
-    --host 0.0.0.0 \
-    --model-name $ATTACKER_MODEL_NAME \
-    --controller-address "http://localhost:$CONTROLLER_PORT" \
-    --port $ATTACKER_WORKER_PORT \
-    --worker-address "http://localhost:$ATTACKER_WORKER_PORT" \
-    --device cuda &
+# # Start the attacker model worker
+# CUDA_VISIBLE_DEVICES=0 python3 -m fastchat.serve.model_worker \
+#     --model-path $ATTACKER_MODEL_PATH \
+#     --host 0.0.0.0 \
+#     --model-name $ATTACKER_MODEL_NAME \
+#     --controller-address "http://localhost:$CONTROLLER_PORT" \
+#     --port $ATTACKER_WORKER_PORT \
+#     --worker-address "http://localhost:$ATTACKER_WORKER_PORT" \
+#     --device cuda &
 
-# Start the defender model worker
-CUDA_VISIBLE_DEVICES=1 python3 -m fastchat.serve.model_worker \
+# Start the untrained defender model worker
+CUDA_VISIBLE_DEVICES=0 python3 -m fastchat.serve.model_worker \
     --model-path $DEFENDER_MODEL_PATH \
     --model-name $DEFENDER_MODEL_NAME \
     --host 0.0.0.0 \
@@ -47,14 +61,24 @@ CUDA_VISIBLE_DEVICES=1 python3 -m fastchat.serve.model_worker \
     --worker-address "http://localhost:$DEFENDER_WORKER_PORT" \
     --device cuda &
 
-# Start the defender model worker
-CUDA_VISIBLE_DEVICES=2 python3 -m fastchat.serve.model_worker \
+# Start the trained attacker model worker
+CUDA_VISIBLE_DEVICES=1 python3 -m fastchat.serve.model_worker \
     --model-path $TRAINED_ATTACKER_MODEL_PATH \
     --model-name $TRAINED_ATTACKER_MODEL_NAME \
     --host 0.0.0.0 \
     --controller-address "http://localhost:$CONTROLLER_PORT" \
     --port $TRAINED_ATTACKER_WORKER_PORT \
     --worker-address "http://localhost:$TRAINED_ATTACKER_WORKER_PORT" \
+    --device cuda &
+
+# Start the trained defender model worker
+CUDA_VISIBLE_DEVICES=2 python3 -m fastchat.serve.model_worker \
+    --model-path $TRAINED_DEFENDER_MODEL_PATH \
+    --model-name $TRAINED_DEFENDER_MODEL_NAME \
+    --host 0.0.0.0 \
+    --controller-address "http://localhost:$CONTROLLER_PORT" \
+    --port $TRAINED_DEFENDER_WORKER_PORT \
+    --worker-address "http://localhost:$TRAINED_DEFENDER_WORKER_PORT" \
     --device cuda &
 
 # Start the OpenAI API server
