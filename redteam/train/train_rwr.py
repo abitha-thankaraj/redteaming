@@ -141,6 +141,12 @@ def train():
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     
+    # Add this for huggingface logging
+    for k, v in asdict(model_args).items():
+        training_args.__dict__["model_args/"+k] = v
+    for k, v in asdict(data_args).items():
+        training_args.__dict__["data_args/"+k] = v
+    
     assert training_args.model_max_length >= data_args.max_length, "Model max length should be greater than data max length"
 
 
