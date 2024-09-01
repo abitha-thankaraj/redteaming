@@ -1,0 +1,37 @@
+env:
+  bashrc: "/home/athankar/.bashrc"
+  conda_profile: "/home/athankar/miniconda3/etc/profile.d/conda.sh"
+  conda_env: "redteam"
+  hf_home: "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
+  logdir: "/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs"
+  data_dir: "/data/group_data/rl/datasets/redteaming"
+
+ports:
+  controller: 22012
+  openai: 6911
+
+models:
+  - name: "defender_meta-llama/Meta-Llama-3.1-8B-Instruct"
+    path: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    worker_port: 22014
+    gpu_id: 0
+    device: "cuda"
+  # - type: "trained_attacker"
+  #   name: "{type}_{path}"
+  #   path: "/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135"
+  #   worker_port: 22015
+  #   gpu_id: 1
+  #   device: "cuda"
+  # - name: "trained_defender_/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-13-13-12-19-314/checkpoint-406"
+  #   path: "/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-13-13-12-19-314/checkpoint-406"
+  #   worker_port: 22016
+  #   gpu_id: 2
+  #   device: "cuda"
+
+max_load_retries: 30
+retry_interval: 10  # seconds
+
+# hydra configuration
+hydra:
+    run:
+        dir: ${env.logdir}/${now:%Y.%m.%d}/${now:%H-%M-%s}
