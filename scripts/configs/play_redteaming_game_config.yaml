@@ -8,21 +8,22 @@ seed: 69
 # Dirs
 repo_dir: ???
 data_dir: /data/group_data/rl/datasets/redteaming
+log_dir: /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs
 
-oai_server_port: ???
+oai_server_port: 6911
 
 attacker:
   chat_completion_config:
     port: ${oai_server_port}
     url: http://localhost:${attacker.chat_completion_config.port}/v1/
-    model: ???
+    model: rwr_trained_attacker_/data/group_data/rl/experiments/redteaming/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183
     temperature: 0.7
 
 defender:
   chat_completion_config:
     port: ${oai_server_port}
     url: http://localhost:${defender.chat_completion_config.port}/v1/
-    model: ???
+    model: rwr_trained_defender_/data/group_data/rl/experiments/redteaming/multiturn_rwr_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-01-16-50-37-588/checkpoint-16
     temperature: 0.7
 
 judge:
@@ -37,8 +38,11 @@ no_judge: True
 max_turns: 3
 # num_simulations: 3
 
-# Result of simulating the gamer will be saved in this file
+# Result of simulating the game will be saved in this file
 experiment_desc: ???
 out_dir: ${data_dir}/redteaming_game_evals/${experiment_desc}/${now:%H-%M-%s}
 out_fname: ${dataset_configs.dataset_name}_${experiment_desc}.json
 # out_fname: ${dataset_configs.dataset_name}_attacker_${attacker.chat_completion_config.model}_defender_${defender.chat_completion_config.model}.json
+hydra:
+    run:
+        dir: ${log_dir}/${now:%Y.%m.%d}/${now:%H-%M-%s}

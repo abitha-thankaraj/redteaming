@@ -6,6 +6,12 @@ import os
 import subprocess
 import time
 import json
+import logging
+import requests
+from requests.exceptions import RequestException
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 base_controller_shell = '''python3 -m fastchat.serve.controller \\
     --host 0.0.0.0 \\
@@ -32,26 +38,31 @@ def run_background(cfg, cmd, env):
     full_cmd = f"{get_conda_activate_cmd(cfg)} && {cmd}"
     return subprocess.Popen(full_cmd, shell=True, executable='/bin/bash', env=env)
 
-def check_models_loaded(cfg, env):
+def check_models_loaded(cfg):
     url = f"http://localhost:{cfg.ports.controller}/list_models"
-    max_retries = cfg.max_load_retries
-    retry_interval = cfg.retry_interval
 
-    for _ in range(max_retries):
+    for attempt in range(cfg.max_load_retries):
         try:
-            result = subprocess.run(['curl', '-s', url], capture_output=True, text=True, env=env)
-            if result.returncode == 0:
-                models = json.loads(result.stdout)
-                if all(model.name in models for model in cfg.models):
-                    print("All models are loaded.")
-                    return True
+            response = requests.post(url, timeout=10)
+            response.raise_for_status()  # Raises an HTTPError for bad responses
+
+            models = response.json()["models"]
+            if all(lambda model=model: model.name in models for model in cfg.models):
+                logger.info("All models are loaded.")
+                return True
+            else:
+                logger.warning("Not all models are loaded yet.")
+        except RequestException as e:
+            logger.error(f"Request failed: {str(e)}")
         except json.JSONDecodeError:
-            pass  # If the response is not valid JSON, we'll just retry
+            logger.error("Failed to parse JSON response")
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {str(e)}")
         
-        print("Not all models are loaded yet. Retrying...")
-        time.sleep(retry_interval)
+        # Exponential backoff
+        time.sleep(2 ** attempt)
     
-    print("Timeout: Not all models could be loaded.")
+    logger.error(f"Failed to confirm all models loaded after {cfg.max_load_retries} attempts")
     return False
 
 @hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/deploy_game/", config_name="deploy_game.yaml")
@@ -60,7 +71,7 @@ def main(cfg: DictConfig):
     env = os.environ.copy()
     env["HF_HOME"] = cfg.env.hf_home
     logdir = HydraConfig.get().run.dir
-    print(logdir)
+    logger.info("Log dir: {}".format(logdir))
     env["LOGDIR"] = logdir
 
     processes = []
@@ -98,15 +109,15 @@ def main(cfg: DictConfig):
     time.sleep(60)
 
     # Check if models are loaded
-    if not check_models_loaded(cfg, env):
-        print("Failed to load all models. Exiting.")
+    if not check_models_loaded(cfg):
+        logger.error("Failed to load all models. Exiting.")
         for process in processes:
             process.terminate()
         return
 
-    print(f"All services are running. Logs are being written to: {logdir}")
-    print("You can now run your game script separately.")
-    print("Remember to terminate these processes when you're done.")
+    logger.info(f"All services are running. Logs are being written to: {logdir}")
+    logger.info("You can now run your game script separately.")
+    logger.info("Remember to terminate these processes when you're done.")
 
     # # Keep the script running and periodically check if processes are still alive
     # while all(process.poll() is None for process in processes):

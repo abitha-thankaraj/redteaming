@@ -11,8 +11,12 @@ from redteam.envs.game import RedteamGame, get_lm_agent
 from redteam.utils.data_utils import read_json, write_json
 from redteam.data_generation.attack_prompts_dataset import get_dataset
 from redteam.utils.slack_me import slack_notification
+from hydra.core.hydra_config import HydraConfig
 
-log = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 global_config = None
 
 @hydra.main(
@@ -29,7 +33,8 @@ def main(config: DictConfig):
     os.makedirs(config.out_dir, exist_ok=True)
     global_config = OmegaConf.to_yaml(config)
     
-    log.info(OmegaConf.to_yaml(config))
+    logger.info(OmegaConf.to_yaml(config))
+    logger.info(f"Logging to {HydraConfig.get().run.dir}")
 
     attacker = get_lm_agent(ChatCompletionConfig(**config.attacker.chat_completion_config), "attacker")
     defender = get_lm_agent(ChatCompletionConfig(**config.defender.chat_completion_config), "defender")
@@ -62,8 +67,8 @@ def main(config: DictConfig):
                 traj, judgement = redteaming_game.simulate(judge=True)
                 trajs.append({"game": traj, "judge":judgement})
         except Exception as e:
-            log.error(f"Error in simulating game for goal: {goal}")
-            log.error(e)
+            logger.error(f"Error in simulating game for goal: {goal}")
+            logger.error(e)
             errors.append({"goal": goal, "error": str(e)})
             slack_notification(f"Error in simulating game for goal: {goal}, config: {global_config}")
         # valid_judge_response = False
@@ -91,5 +96,5 @@ if __name__ == "__main__":
         main()
         slack_notification(f"Redteaming game completed successfully: config: {global_config}")
     except Exception as e:
-        log.error(e)
+        logger.error(e)
         slack_notification(f"Error in running redteaming game: {e}, config: {global_config}")

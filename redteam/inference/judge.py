@@ -69,16 +69,16 @@ class LlamaGuardJudge:
             if i + 2 <= len(conversation):
                 turns.append(conversation[i : i + 2])
 
-        # Assuming no turn is longer than 2048 tokens
+        # Assuming no turn is longer than 8192 tokens
         input_ids = self.judge_tokenizer.apply_chat_template(
-            turns, return_tensors="pt", max_length=2048, padding=True
+            turns, return_tensors="pt", max_length=8192, padding=True
         ).to(self.device)
         judge_model_output = self.judge_model.generate(
             input_ids=input_ids,
             max_new_tokens=self.max_new_tokens,
             pad_token_id=self.judge_tokenizer.pad_token_id,
         )
-        prompt_len = input_ids.shape[-1]  # 2048
+        prompt_len = input_ids.shape[-1]  # 8192
 
         judgements = [
             self.judge_tokenizer.decode(
