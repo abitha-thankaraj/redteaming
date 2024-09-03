@@ -50,6 +50,7 @@ class GameConversation:
         ret = []
         for role, msg in self.messages:
             ret.append({"role": role, "content": msg})
+        return ret
 
 # TODO : Make abstraction later
 # class LanguageModelAgent:
