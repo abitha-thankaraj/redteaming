@@ -16,11 +16,13 @@ models:
     worker_port: 22014
     gpu_id: 0
     device: "cuda"
-  - name: "rwr_trained_defender_/data/group_data/rl/experiments/redteaming/multiturn_rwr_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-01-16-50-37-588/checkpoint-16"
-    path: "/data/group_data/rl/experiments/redteaming/multiturn_rwr_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-01-16-50-37-588/checkpoint-16"
+  
+  - name: "defender_meta-llama/Meta-Llama-3.1-8B-Instruct"
+    path: "meta-llama/Meta-Llama-3.1-8B-Instruct"
     worker_port: 22015
     gpu_id: 1
     device: "cuda"
+  
   # - type: "trained_attacker"
   #   name: "{type}_{path}"
   #   path: "/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135"

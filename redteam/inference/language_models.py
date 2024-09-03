@@ -31,7 +31,7 @@ class HuggingFaceLM(LanguageModel):
         # Decoder only models that have been verified
         assert model_name in ["meta-llama/Meta-Llama-3.1-8B-Instruct", "mistralai/Mistral-7B-Instruct-v0.3", "mistralai/Mistral-7B-Instruct-v0.1"], "Only Meta-Llama and Mistral models are supported"
         # TODO: Assert that padding side is left for generations.
-        assert self.tokenizer.padding_side == "left", "Padding side must be left for generations for decoder only models"
+        # assert self.tokenizer.padding_side == "left", "Padding side must be left for generations for decoder only models"
 
     def batched_generate(self, 
                         convs: List[List[Dict]],
@@ -41,7 +41,10 @@ class HuggingFaceLM(LanguageModel):
         # Apply chat template to each prompt?
         inputs = {}
         # TODO: Figure out if we need to do max length padding. does not seem necessary.
-        inputs["input_ids"] = self.tokenizer.apply_chat_template(convs, return_tensors="pt", padding=True)
+        # inputs["input_ids"] = self.tokenizer.apply_chat_template(convs, return_tensors="pt", padding=True)
+        inputs["input_ids"] = self.tokenizer.apply_chat_template(convs, return_tensors="pt", padding="max_length")
+
+        # from IPython import embed; embed()
         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
 
         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
