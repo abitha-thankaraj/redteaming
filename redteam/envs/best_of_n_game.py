@@ -241,7 +241,7 @@ class BestOfNRedteamingGame:
             categories.append(chosen["category"])
             self.env_state.update({f"turn_{self._turn}": all_responses})
             self._turn+=1
-        self.env_state.update({"game_conversation": conversation,
+        self.env_state.update({"game_conversation": conversation.to_game_message(),
             "game_rewards": rewards,
             "game_categories": categories})
         
