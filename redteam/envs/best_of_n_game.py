@@ -148,7 +148,7 @@ def calculate_scores(judge, attacker_actions, defender_actions):
     return rewards, categories
 
 
-def rejection_sampling(judge, attacker_responses, defender_responses):
+def rejection_sampling(judge, attacker_responses, defender_responses, choose_safe=True):
     """Get responses from the model."""
     # Sample actor responses
     # attacker_responses = sample_n_responses(attacker, conversation, attacker_config)
@@ -157,10 +157,11 @@ def rejection_sampling(judge, attacker_responses, defender_responses):
     # Rejection sampling from best of n. score using llamaguard
     rewards, categories = calculate_scores(judge, attacker_responses, defender_responses)
     # Pick the first response that given reward =0.0 ie is_safe.
-    # If all are unsafe, pick the last one.
+    # If all are unsafe, pick the last one.        
+    chosen_score = 0.0 if choose_safe else 1.0
     chosen_idx = -1
     for i, reward in enumerate(rewards):
-        if reward == 0.0:  # TODO: Check if this is safe
+        if reward == chosen_score:  # TODO: Check if this is safe
             chosen_idx = i
     chosen = {
         "attacker": attacker_responses[chosen_idx],
@@ -187,6 +188,7 @@ class BestOfNRedteamingGame:
         judge: Optional[Any],
         goals: list[str],
         max_turns: int = 3,
+        choose_safe = True
     ):
         self.goals = goals
         self.attacker = attacker
@@ -194,6 +196,7 @@ class BestOfNRedteamingGame:
         self.judge = judge
         self.max_turns = max_turns
         self._turn = 0
+        self.choose_safe = choose_safe
 
         self._np_random = None
         if seed is not None:
@@ -235,6 +238,7 @@ class BestOfNRedteamingGame:
                 self.judge,
                 attacker_responses=attacker_actions,
                 defender_responses=defender_actions,
+                choose_safe=self.choose_safe
             )
             conversation.append_message("attacker", chosen["attacker"])
             conversation.append_message("defender", chosen["defender"])

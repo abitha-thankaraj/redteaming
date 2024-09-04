@@ -45,13 +45,13 @@ def main(config: DictConfig):
     save_config = OmegaConf.to_yaml(config)
     with open(os.path.join(config.out_dir, "config.yaml"), "w") as f:
         f.write(save_config)
-
     redteaming_game = BestOfNRedteamingGame(config.seed,
                 attacker=attacker,
                 defender=defender,
                 judge= judge,
                 goals = goals, 
-                max_turns = config.max_turns)
+                max_turns = config.max_turns,
+                choose_safe=config.choose_safe)
     config.out_fname = os.path.join(config.out_dir,config.out_fname.replace("/", ".."))
     trajs = []
     errors = []

@@ -1,7 +1,7 @@
 
 defaults:
   - _self_
-  - dataset_configs: jailbreakbench
+  - dataset_configs: openai
 
 seed: 69
 
@@ -31,10 +31,11 @@ defender:
 judge:
   device: cuda:2
 
+choose_safe: False
 
 max_turns: 3
 
-experiment_desc: best_of_n
+experiment_desc: best_of_n_unsafe
 out_dir: ${data_dir}/redteaming_game_evals/${experiment_desc}/${now:%H-%M-%s}
 out_fname: ${dataset_configs.dataset_name}_${experiment_desc}.json
 
