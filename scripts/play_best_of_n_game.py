@@ -52,12 +52,12 @@ def main(config: DictConfig):
                 judge= judge,
                 goals = goals, 
                 max_turns = config.max_turns)
-    env_state = redteaming_game.simulate(goal=goals[0])
     config.out_fname = os.path.join(config.out_dir,config.out_fname.replace("/", ".."))
     trajs = []
     errors = []
     for i, goal in tqdm(enumerate(goals)):
         try:
+            logger.info(f"Simulating game for goal: {goal}")
             start_time = time.time()
             env_state = redteaming_game.simulate(goal=goal)
             trajs.append(env_state)
@@ -69,10 +69,11 @@ def main(config: DictConfig):
             logger.error(e)
             errors.append({"goal": goal, "error": str(e)})
             slack_notification(f"Error in simulating game for goal: {goal}, config: {global_config}")
-        if i%5==0:
-            write_json(trajs, config.out_fname)
-            if len(errors) > 0:
-                write_json(errors, config.out_fname.replace(".json", "_errors.json"))
+        
+        # Keep dumping the trajs to file
+        write_json(trajs, config.out_fname)
+        if len(errors) > 0:
+            write_json(errors, config.out_fname.replace(".json", "_errors.json"))
 
     
     write_json(trajs, config.out_fname)
@@ -85,5 +86,5 @@ if __name__ == "__main__":
         main()
         slack_notification(f"Redteaming game completed successfully: config: {global_config}")
     except Exception as e:
-        logger.error(e)
-        slack_notification(f"Error in running redteaming game: {e}, config: {global_config}")
+        logger.error(str(e))
+        slack_notification(f"Error in running redteaming game: {str(e)}, config: {global_config}")
