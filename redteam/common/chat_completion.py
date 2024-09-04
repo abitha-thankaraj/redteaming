@@ -25,6 +25,7 @@ class ChatCompletionConfig:
     url: str = "http://localhost:8003/v1/"
     model: str = "Mistral-7B-Instruct-v0.1"
     temperature: float = 1.0
+    n: int = 1
 
 
 class ChatCompletion(ABC):
@@ -59,7 +60,6 @@ class OAIChatCompletion(ChatCompletion):
         self.conv = get_conversation_template("gpt-4")
         # We dont want the default system prompt to be set by the conversation template
         self.conv.set_system_message(self.system_prompt)
-
 
     def set_system_prompt(self, system_prompt):
         self.system_prompt = system_prompt
@@ -105,4 +105,3 @@ class OAIChatCompletion(ChatCompletion):
 
         return self.conv.to_openai_api_messages()
 
-        

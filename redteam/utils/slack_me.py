@@ -4,8 +4,8 @@ import traceback
 import urllib3
 
 # Personal chat webhook - TODO: Add to bashrc
-webhook_url = 'https://hooks.slack.com/services/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'
-
+# webhook_url = 'https://hooks.slack.com/services/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'
+webhook_url = "https://hooks.slack.com/services/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"
 # # Channel url
 # webhook_url_channel = ''
 

@@ -1,0 +1,50 @@
+
+defaults:
+  - _self_
+  - dataset_configs: openai
+
+seed: 69
+
+# Dirs
+repo_dir: ???
+data_dir: /data/group_data/rl/datasets/redteaming
+log_dir: /data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs
+
+oai_server_port: 6911
+
+attacker:
+  chat_completion_config:
+    port: ${oai_server_port}
+    url: http://localhost:${attacker.chat_completion_config.port}/v1/
+    model: rwr_trained_attacker_/data/group_data/rl/experiments/redteaming/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183
+    temperature: 0.7
+    n: 5
+
+defender:
+  chat_completion_config:
+    port: ${oai_server_port}
+    url: http://localhost:${defender.chat_completion_config.port}/v1/
+    model: defender_meta-llama/Meta-Llama-3.1-8B-Instruct
+    temperature: 0.7
+    n: 1
+
+judge:
+  device: cuda:2
+
+choose_safe: False
+
+max_turns: 3
+
+experiment_desc: best_of_n_unsafe
+out_dir: ${data_dir}/redteaming_game_evals/${experiment_desc}/${now:%H-%M-%s}
+out_fname: ${dataset_configs.dataset_name}_${experiment_desc}.json
+
+hydra:
+  run:
+      dir: ${log_dir}/${now:%Y.%m.%d}/${now:%H-%M-%s}
+  job_logging:
+    root:
+      level: DEBUG
+    formatters:
+      simple:
+        format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
