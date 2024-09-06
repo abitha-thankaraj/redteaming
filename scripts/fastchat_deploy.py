@@ -17,7 +17,7 @@ base_controller_shell = '''python3 -m fastchat.serve.controller \\
     --host 0.0.0.0 \\
     --port {controller_port} > "{logdir}/controller.out" 2>&1'''
 
-base_modelworker_shell = '''CUDA_VISIBLE_DEVICES={gpu_id} python3 -m fastchat.serve.model_worker \\
+base_modelworker_shell = '''CUDA_VISIBLE_DEVICES={gpu_id} python3 -m fastchat.serve.vllm_worker \\
     --model-path {model_path} \\
     --model-name {model_name} \\
     --host 0.0.0.0 \\

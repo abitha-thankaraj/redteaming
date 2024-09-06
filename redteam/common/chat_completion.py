@@ -26,6 +26,7 @@ class ChatCompletionConfig:
     model: str = "Mistral-7B-Instruct-v0.1"
     temperature: float = 1.0
     n: int = 1
+    max_tokens: int = 1024
 
 
 class ChatCompletion(ABC):

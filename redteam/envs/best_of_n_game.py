@@ -51,6 +51,14 @@ class GameConversation:
         for role, msg in self.messages:
             ret.append({"role": role, "content": msg})
         return ret
+    
+    @classmethod
+    def parse_messages(self, message_dict):
+        messages = []
+        for message in message_dict:
+            messages.append((message["role"], message["content"]))
+        return messages
+
 
 # TODO : Make abstraction later
 # class LanguageModelAgent:
@@ -110,10 +118,21 @@ class Defender:
                 messages=messages,
                 temperature=self.config.temperature,
                 n=1,
+                max_tokens=self.config.max_tokens
             )
             del messages
             responses.append(res.choices[0].message.content)
         return responses
+    
+    def sample_response(self, conversation):
+        res = self.client.chat.completions.create(
+            model=self.config.model,
+            messages=conversation.to_openai_api_messages(offset=1),
+            temperature=self.config.temperature,
+            n=1,
+            max_tokens=self.config.max_tokens
+        )
+        return res.choices[0].message.content
     
     # def get_batched_defender_response(self, conversation, attacker_samples):
     #     """Get responses from the model."""

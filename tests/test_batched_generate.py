@@ -11,7 +11,8 @@ def test_batched_generate():
     example_conv_file ="/data/tir/projects/tir7/user_data/athankar/redteaming/tests/dummy_conversations.json"
     example_convs = [d["conversation"] for d in read_json(example_conv_file)]
 
-
+    tokenizer = AutoTokenizer.from_pretrained(model_dir)
+    tokenizer.padding_side = "left"
     model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=model_dir,
             trust_remote_code=True,
@@ -20,30 +21,32 @@ def test_batched_generate():
         ).to(device)
 
     model.tie_weights()
-
-    tokenizer = AutoTokenizer.from_pretrained(model_dir)
     # tokenizer.padding_side = "left"
     model.resize_token_embeddings(len(tokenizer))
     #Inference
     conversations = []
     # tokenizer.padding_side = "left"
     import copy
-    model.generation_config = copy.deepcopy(model.generation_config)
+    # model.generation_config = copy.deepcopy(model.generation_config)
 
 
     # model.generation_config.eos_token_id =  [128004] + model.generation_config.eos_token_id
     # tokenizer.padding_side = "left" 
 
-    hf_model = HuggingFaceLM(model_name="meta-llama/Meta-Llama-3.1-8B-Instruct", 
+    attacker_model = HuggingFaceLM(model_name="meta-llama/Meta-Llama-3.1-8B-Instruct", 
                             model=model, 
                             tokenizer=tokenizer)
     autotok = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3.1-8B-Instruct")
     autotok.pad_token_id = 128004
-    print(autotok.padding_side)
+    
 
-    hf_model_2 = HuggingFaceLM(model_name="meta-llama/Meta-Llama-3.1-8B-Instruct", 
-                            model=AutoModelForCausalLM.from_pretrained("meta-llama/Meta-Llama-3.1-8B-Instruct").to("cuda:3"), 
-                            tokenizer=autotok)
+
+
+    # print(autotok.padding_side)
+
+    # hf_model_2 = HuggingFaceLM(model_name="meta-llama/Meta-Llama-3.1-8B-Instruct", 
+    #                         model=AutoModelForCausalLM.from_pretrained("meta-llama/Meta-Llama-3.1-8B-Instruct").to("cuda:3"), 
+    #                         tokenizer=autotok)
     from IPython import embed; embed()
 
 
