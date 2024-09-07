@@ -17,7 +17,7 @@ base_controller_shell = '''python3 -m fastchat.serve.controller \\
     --host 0.0.0.0 \\
     --port {controller_port} > "{logdir}/controller.out" 2>&1'''
 
-base_modelworker_shell = '''CUDA_VISIBLE_DEVICES={gpu_id} python3 -m fastchat.serve.model_worker \\
+base_modelworker_shell = '''CUDA_VISIBLE_DEVICES={gpu_id} python3 -m fastchat.serve.vllm_worker \\
     --model-path {model_path} \\
     --model-name {model_name} \\
     --host 0.0.0.0 \\
@@ -65,7 +65,10 @@ def check_models_loaded(cfg):
     logger.error(f"Failed to confirm all models loaded after {cfg.max_load_retries} attempts")
     return False
 
-@hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/deploy_game/", config_name="deploy_game.yaml")
+# @hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/deploy_game/", config_name="deploy_game.yaml")
+@hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/", config_name="deploy_fastchat_defender.yaml")
+# , config_name="${config_file}")
+
 def main(cfg: DictConfig):
     # Set up environment
     env = os.environ.copy()
