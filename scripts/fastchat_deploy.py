@@ -65,7 +65,10 @@ def check_models_loaded(cfg):
     logger.error(f"Failed to confirm all models loaded after {cfg.max_load_retries} attempts")
     return False
 
-@hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/deploy_game/", config_name="deploy_game.yaml")
+# @hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/deploy_game/", config_name="deploy_game.yaml")
+@hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/", config_name="deploy_fastchat_defender.yaml")
+# , config_name="${config_file}")
+
 def main(cfg: DictConfig):
     # Set up environment
     env = os.environ.copy()

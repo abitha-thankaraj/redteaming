@@ -1,25 +1,25 @@
 #!/bin/bash
 
-#SBATCH --job-name=llama_$SLURM_ARRAY_TASK_ID
+#SBATCH --job-name=def_1_$SLURM_ARRAY_TASK_ID
 #SBATCH --output=/home/athankar/slurm/%A_%a.out
 #SBATCH --error=/home/athankar/slurm/%A_%a.err
-#SBATCH --time=3:00:00
+#SBATCH --time=12:00:00
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=16G
 #SBATCH --partition=general
 #SBATCH --gres=gpu:A6000:1
 #SBATCH --mail-user=athankar@cs.cmu.edu
 #SBATCH --mail-type=END,FAIL
-#SBATCH --array=0-9%8
+#SBATCH --array=1-2
 
 # Chunked files directory
 CHUNKED_DATA_DIR="/data/group_data/rl/datasets/redteaming/"
 SCRIPTS_DIR="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts"
 SLURM_OUT_DIR="/home/athankar/slurm"
 
-FAST_CHAT_API_PORT=$((6987 + SLURM_ARRAY_TASK_ID))
-WORKER_PORT=$((26090 + SLURM_ARRAY_TASK_ID))
-CONTROLLER_PORT=$((26191 + SLURM_ARRAY_TASK_ID))
+FAST_CHAT_API_PORT=$((8137 + SLURM_ARRAY_TASK_ID))
+WORKER_PORT=$((22840 + SLURM_ARRAY_TASK_ID))
+CONTROLLER_PORT=$((22331 + SLURM_ARRAY_TASK_ID))
 # Start
 source ~/.bashrc
 source ~/miniconda3/etc/profile.d/conda.sh
