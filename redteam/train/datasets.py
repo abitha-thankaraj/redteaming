@@ -20,7 +20,9 @@ class MultiturnSFTDataset(Dataset):
     ):
 
         self.input_ids, self.labels, self.attention_mask = [], [], []
-        for i, conversation in tqdm(enumerate(conversations), desc="Masking Conversations - MT-SFT"):
+        for i, conversation in tqdm(
+            enumerate(conversations), desc="Masking Conversations - MT-SFT"
+        ):
             data_dict = mask_non_assistant_tokens(
                 tokenizer, conversation, tokenizer_separator, ignore_token_id
             )
@@ -44,26 +46,39 @@ class MultiturnSFTDataset(Dataset):
 
 
 class MultiturnRWRDataset(MultiturnSFTDataset):
-    """Reward Weighted Returns (RWR),  an extension of SFT. 
+    """Reward Weighted Returns (RWR),  an extension of SFT.
     Assumptions:
     1. Each turn in the conversation is assigned a reward.
-    2. For conversation-level rewards, only the final turn receives a raw reward. The other turns should have r_min. 
+    2. For conversation-level rewards, only the final turn receives a raw reward. The other turns should have r_min.
     3. For any token in a specific turn, its reward is the "reward-to-go" calculated for that turn.
        The reward-to-go represents the cumulative future rewards from that point onward.
 
     Note: This implementation supports both conversation-level and potential future
     turn-level reward labeling without requiring changes to this class.
     """
+
     def __init__(
         self,
-        conversations: List[Dict[str,str]],
+        conversations: List[Dict[str, str]],
         tokenizer: Any,
         tokenizer_separator: Any,
         ignore_token_id: int,
         reward_per_turns: List[List[float]],
         gamma: float = 0.9,
         min_reward: float = 0.0,
+        value_function_type: str = None,
+        model_name: str = None,
     ):
+        # Ugly; but should work.
+        if value_function_type is not None:
+            for i, conversation in enumerate(conversations):
+                conversations[i] = relabel_conversation(
+                    value_function_type, 
+                    conversation, 
+                    reward_per_turns[i], 
+                    gamma, model_name
+                )
+
         super().__init__(
             conversations=conversations,
             tokenizer=tokenizer,
@@ -217,6 +232,83 @@ def get_token_level_reward_to_gos(
         # replace all token_rewards in turn i with reward_to_gos[i]
         token_rewards.masked_fill_(turn_masks.eq(i), reward_to_gos[i])
     return token_rewards
+
+
+# relabelling strategies
+# 1. Binary. Prefix: Expected mode collapse? Prefix - semantically, conditional generation? SUffix? Model's belief of it's own response?
+# 2. Value function. -> Get rtgs; disctrete value function; <GOOD> <BAD> <NEUTRAL> ?
+
+
+def relabel_conversation(
+    value_function_type: str,
+    conversation: List[Dict[str, str]],
+    reward_per_turn: List[List[float]],
+    gamma: float = 0.9,
+    model_name: str = "meta-llama/Meta-Llama-3.1-8B-Instruct",
+) -> List[Dict[str, str]]:
+    """
+    Add prefix to assistant response on value function type.
+    Args:
+        value_function_type: Type of value function to use for relabelling.
+        conversation: List of messages in the conversation.
+        reward_per_turn: List of rewards per turn.
+        gamma: Discount factor for reward to go.
+        model_name: Model name to use for special tokens.
+    """
+    # add value function to the beginning/end of each assistant response.
+    value_function_reserved_strs = get_value_function_keywords(
+        value_function_type=value_function_type, gamma=gamma, model_name=model_name
+    )
+    reward_to_gos = get_reward_to_gos(reward_per_turn, gamma)
+    for j, message in enumerate(conversation):
+        if message["role"] == "assistant":
+            if value_function_type == "binary":
+                # 0. 1. -> Only user direct rewards
+                message["content"] = (
+                    f"{value_function_reserved_strs[reward_per_turn[j//2]]} {message['content']}"
+                )
+            elif value_function_type == "multilabel":
+                # Use discounted rewards for each turn
+                message["content"] = (
+                    f"{value_function_reserved_strs[reward_to_gos[j//2]]} {message['content']}"
+                )
+            elif value_function_type == "overfit_value_function":
+                # Use discounted rewards for each turn
+                message["content"] = (
+                    f"{value_function_reserved_strs[reward_per_turn[j//2]]}"
+                )
+            else:
+                raise NotImplementedError(
+                    f"Value function strategy {value_function_type} not implemented"
+                )
+    return conversation
+
+
+
+def get_value_function_keywords(
+    value_function_type, gamma=0.9, model_name="meta-llama/Meta-Llama-3.1-8B-Instruct"
+):
+
+    LLAMA_SPECIAL_TOKEN_MAP = {
+        "binary": {0.0: "<|reserved_id_24|>", 1.0: "<|reserved_id_25|>"},
+        # 3 turn based
+        "multilabel": {
+            0.0: "<|reserved_id_24|>",
+            1.0: "<|reserved_id_25|>",
+            gamma: "<|reserved_id_26|>",
+            gamma**2: "<|reserved_id_27|>",
+            gamma + gamma**2: "<|reserved_id_28|>",
+            1 + gamma: "<|reserved_id_29|>",
+            1 + gamma**2: "<|reserved_id_30|>",
+            1 + gamma + gamma**2: "<|reserved_id_31|>",
+        },
+    }
+
+    if model_name == "meta-llama/Meta-Llama-3.1-8B-Instruct":
+        return LLAMA_SPECIAL_TOKEN_MAP[value_function_type]
+    else:
+        raise ValueError(f"Model {model_name} not supported")
+
 
 
 # def get_reward_to_gos(rewards, gamma):

@@ -16,6 +16,9 @@ AGENT_TYPE="defender"
 MASTER_PORT=29500
 MAX_LENGTH=4096
 DATASET_TYPE="naive_balance"
+VALUE_FUNCTION_TYPE="overfit_value_function"
+MODEL_NAME="meta-llama/Meta-Llama-3.1-8B-Instruct"
+
 # "Meta-Llama-3.1-8B-Instruct_length"
 # MODEL_PATH=$1
 # AGENT_TYPE=$2
@@ -44,6 +47,8 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train_rwr.py  \
         --dataset_type $DATASET_TYPE \
         --length_key $LENGTH_KEY \
         --max_length $MAX_LENGTH \
+        --value_function_type $VALUE_FUNCTION_TYPE \
+        --model_name $MODEL_NAME \
         --output_dir $LOGDIR  \
         --cache_dir $HF_HOME \
         --run_name $RUN_NAME \

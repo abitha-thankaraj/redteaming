@@ -136,8 +136,8 @@ class HuggingFaceLM(LanguageModel):
         # Batch decoding
         # print(self.tokenizer.batch_decode(output_ids, skip_special_tokens=False))
         # from IPython import embed; embed()
-
-        outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+        print(output_ids)
+        outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=False)
         if "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name:
             outputs_list = [output.replace("assistant\n\n", "") for output in outputs_list]
 

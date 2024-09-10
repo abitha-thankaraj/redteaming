@@ -52,6 +52,8 @@ class DataArguments:
     dataset_type: str = field(default="naive_balance")
     length_key: str = field(default="")
     max_length: int = field(default=-1)
+    value_function_type: str = field(default=None),
+    model_name: str = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
 
 
 
@@ -65,10 +67,11 @@ class TrainingArguments(transformers.TrainingArguments):
         default=4096,
         metadata={
             "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
-        }
+        },
     )
-    torch_empty_cache_steps: int =field(default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"})
-    
+    torch_empty_cache_steps: int = field(
+        default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"}
+    )
 
 
 # Debugging utils
@@ -98,6 +101,8 @@ def get_dataset(
     dataset_type: str = "naive_balance",
     length_key: str = "",
     max_length: int = -1,
+    value_function_type: str = None,
+    model_name: str = None,
 ) -> Tuple[Dataset, Dataset]:
     """Get train test dataset for multiturn sft"""
     dataset_helper = RWRDatasetHelper(
@@ -109,12 +114,17 @@ def get_dataset(
     )
 
     conversation_reward_dict = dataset_helper.get_conversations()
+
+
+
     train_dataset = MultiturnRWRDataset(
         conversation_reward_dict["conversations"],
         tokenizer,
         tokenizer_separator,
         IGNORE_TOKEN_ID,
         conversation_reward_dict["rewards"],
+        value_function_type=value_function_type,
+        model_name = model_name
     )
 
     eval_conversation_reward_dict = RWRDatasetHelper(
@@ -131,6 +141,8 @@ def get_dataset(
         tokenizer_separator,
         IGNORE_TOKEN_ID,
         eval_conversation_reward_dict["rewards"],
+        value_function_type=value_function_type,
+        model_name = model_name
     )
     return train_dataset, eval_dataset
 
@@ -140,15 +152,16 @@ def train():
     # Parse args; All configs sent to the model
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-    
-    # Add this for huggingface logging
-    for k, v in asdict(model_args).items():
-        training_args.__dict__["model_args/"+k] = v
-    for k, v in asdict(data_args).items():
-        training_args.__dict__["data_args/"+k] = v
-    
-    assert training_args.model_max_length >= data_args.max_length, "Model max length should be greater than data max length"
 
+    # # Add this for huggingface logging
+    # for k, v in asdict(model_args).items():
+    #     training_args.__dict__["model_args/" + k] = v
+    # for k, v in asdict(data_args).items():
+    #     training_args.__dict__["data_args/" + k] = v
+
+    assert (
+        training_args.model_max_length >= data_args.max_length
+    ), "Model max length should be greater than data max length"
 
     # Seed everything
     set_seed_everywhere(training_args.seed)
@@ -197,14 +210,14 @@ def train():
     model.resize_token_embeddings(len(tokenizer))
 
     train_dataset, eval_dataset = get_dataset(
-        data_dir = data_args.data_path,
-        eval_data_dir = data_args.eval_data_path,
-        agent_type = data_args.agent_type,
-        tokenizer = tokenizer,
-        tokenizer_separator = tokenizer_separator,
-        dataset_type = data_args.dataset_type,
-        length_key = data_args.length_key,
-        max_length = data_args.max_length,
+        data_dir=data_args.data_path,
+        eval_data_dir=data_args.eval_data_path,
+        agent_type=data_args.agent_type,
+        tokenizer=tokenizer,
+        tokenizer_separator=tokenizer_separator,
+        dataset_type=data_args.dataset_type,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
     )
 
     trainer = RWRTrainer(
@@ -214,7 +227,7 @@ def train():
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
     )
-    
+
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:

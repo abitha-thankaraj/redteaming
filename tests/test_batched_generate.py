@@ -6,7 +6,8 @@ from redteam.utils.data_utils import read_json
 
 
 def test_batched_generate():
-    model_dir = "/data/group_data/rl/experiments/redteaming/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183"
+    # model_dir = "/data/group_data/rl/experiments/redteaming/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183"
+    model_dir = "/data/group_data/rl/experiments/redteaming/multiturn_rwr_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-09-17-12-29-447/checkpoint-12"
     device = "cuda:2"
     example_conv_file ="/data/tir/projects/tir7/user_data/athankar/redteaming/tests/dummy_conversations.json"
     example_convs = [d["conversation"] for d in read_json(example_conv_file)]
@@ -23,6 +24,9 @@ def test_batched_generate():
     model.tie_weights()
     # tokenizer.padding_side = "left"
     model.resize_token_embeddings(len(tokenizer))
+    hf_model = HuggingFaceLM("meta-llama/Meta-Llama-3.1-8B-Instruct", model, tokenizer)
+    hf_model.batched_generate(convs = example_convs[0], max_n_tokens=3500, temperature=0.7)
+    from IPython import embed; embed()
     #Inference
     conversations = []
     # tokenizer.padding_side = "left"
@@ -38,6 +42,7 @@ def test_batched_generate():
                             tokenizer=tokenizer)
     autotok = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3.1-8B-Instruct")
     autotok.pad_token_id = 128004
+    
     
 
 
