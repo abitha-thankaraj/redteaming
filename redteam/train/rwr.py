@@ -62,11 +62,11 @@ class RWRTrainer(Trainer):
         labels = inputs["labels"]
         rewards = inputs.pop("rewards", torch.zeros_like(labels))  # shape should be (B, T)
         # weighted loss for value function tokens
-        value_function_token_idxs = inputs.pop("value_function_token_idxs", torch.zeros_like(labels))
+        value_function_token_idxs = inputs.pop("value_function_token_idxs", torch.zeros_like(labels).bool())
         # default weight for regular tokens = 1.
         per_token_weights = torch.ones_like(labels)
         #TODO: Uncomment
-        # per_token_weights.masked_fill_(value_function_token_idxs, self.value_function_token_weight)
+        per_token_weights.masked_fill_(value_function_token_idxs, self.value_function_token_weight)
         
         model_output = model(
             **inputs
