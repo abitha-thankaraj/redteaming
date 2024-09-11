@@ -60,9 +60,27 @@ def get_llama_tokenizer():
                                         use_fast=False, 
                                         trust_remote_code=True)
 
-def test_multiturn_rwr_dataset():
-    # conversations, rewards = get_attacker_conversations_and_rewards()
+def test_multiturn_rwr_dataset(value_function_type, model_name ="meta-llama/Meta-Llama-3.1-8B-Instruct"):
+
     
+    conversations, rewards = [SAMPLE_CONVERSATION], [SAMPLE_REWARDS]
+    tokenizer = get_llama_tokenizer()
+    tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
+    
+    dataset = MultiturnRWRDataset(conversations=conversations,
+        tokenizer=tokenizer,
+        tokenizer_separator=tokenizer_separator,
+        ignore_token_id=-100,
+        reward_per_turns=rewards,
+        gamma= 0.9,
+        min_reward = 0.0,
+        value_function_type = value_function_type,
+        model_name = model_name)
+
+
+
+def test_tokenizer():
+
     tokenizer = get_llama_tokenizer()
     tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
     
@@ -77,6 +95,8 @@ def test_multiturn_rwr_dataset():
                                     conv, 
                                     tokenizer_separator, 
                                     -100)
+    
+    # conversations, rewards = get_attacker_conversations_and_rewards()
     
     # In [2]: out["labels"][:100]
     # Out[2]: 
@@ -99,4 +119,6 @@ def test_multiturn_rwr_dataset():
 
 
 if __name__ == "__main__":
-    test_multiturn_rwr_dataset()
+    value_function_types = [ "overfit_value_function"]
+    for value_function_type in value_function_types:
+        test_multiturn_rwr_dataset(value_function_type)

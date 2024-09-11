@@ -54,6 +54,7 @@ class DataArguments:
     max_length: int = field(default=-1)
     value_function_type: str = field(default=None),
     model_name: str = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
+    value_function_experiment: str = field(default=None)
 
 
 
@@ -103,6 +104,7 @@ def get_dataset(
     max_length: int = -1,
     value_function_type: str = None,
     model_name: str = None,
+    value_function_experiment: str = None
 ) -> Tuple[Dataset, Dataset]:
     """Get train test dataset for multiturn sft"""
     dataset_helper = RWRDatasetHelper(
@@ -124,7 +126,8 @@ def get_dataset(
         IGNORE_TOKEN_ID,
         conversation_reward_dict["rewards"],
         value_function_type=value_function_type,
-        model_name = model_name
+        model_name = model_name,
+        value_function_experiment = value_function_experiment
     )
 
     eval_conversation_reward_dict = RWRDatasetHelper(
@@ -142,7 +145,8 @@ def get_dataset(
         IGNORE_TOKEN_ID,
         eval_conversation_reward_dict["rewards"],
         value_function_type=value_function_type,
-        model_name = model_name
+        model_name = model_name,
+        value_function_experiment = value_function_experiment
     )
     return train_dataset, eval_dataset
 
@@ -218,6 +222,9 @@ def train():
         dataset_type=data_args.dataset_type,
         length_key=data_args.length_key,
         max_length=data_args.max_length,
+        value_function_type = data_args.value_function_type,
+        model_name = data_args.model_name,
+        value_function_experiment = data_args.value_function_experiment
     )
 
     trainer = RWRTrainer(

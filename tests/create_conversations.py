@@ -43,7 +43,3 @@ if __name__ == "__main__":
     for raw_msg in raw_data:
         attacker_messages.append(get_attacker_message(raw_msg))
         defender_messages.append(get_defender_message(raw_msg))
-
-    from IPython import embed
-
-    embed()
