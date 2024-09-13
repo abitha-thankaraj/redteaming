@@ -175,7 +175,6 @@ class HuggingFaceLM(LanguageModel):
         # outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
         if "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name:
             outputs = outputs.split("assistant\n\n")[-1]
-            # outputs_list = [output.split("assistant\n\n")[-1] for output in outputs_list]
             
         for key in inputs:
             inputs[key].to("cpu")
