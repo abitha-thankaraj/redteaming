@@ -38,7 +38,7 @@ def main(config: DictConfig):
 
     logger.debug("Loading attacker")
     attacker = get_policy(config.attacker)
-    logger.debug("Loading attacker")
+    logger.debug("Loading defender")
     defender = get_policy(config.defender)
     logger.debug("Loading judge")
     if config.judge.judge_type == "llama-guard":

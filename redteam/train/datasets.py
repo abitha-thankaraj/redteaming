@@ -326,6 +326,8 @@ def get_value_function_keywords(
     }
 
     if model_name == "meta-llama/Meta-Llama-3.1-8B-Instruct":
+        if value_function_type=="all":
+            return LLAMA_SPECIAL_TOKEN_MAP
         return LLAMA_SPECIAL_TOKEN_MAP[value_function_type]
     else:
         raise ValueError(f"Model {model_name} not supported")

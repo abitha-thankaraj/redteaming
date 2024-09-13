@@ -3,6 +3,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from gym.utils import seeding
 from typing import Optional, Any
 from redteam.envs.common import GameConversation
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Game:
@@ -35,8 +38,11 @@ class Game:
         return self._env_goal
 
     def simulate_one_turn(self):
+        print(f"Attacker message: {self.env_state.to_attacker_message()}")
         attacker_action = self.attacker.act(self.env_state.to_attacker_message())
         self.env_state.messages.append(("attacker", attacker_action))
+        print("*********************************************************")
+        print(f"Defender message: {self.env_state.to_defender_message()}")
         defender_action = self.defender.act(self.env_state.to_defender_message())
         self.env_state.messages.append(("defender", defender_action))
         self._turn += 1

@@ -2,13 +2,14 @@ from gym.utils import seeding
 from typing import Optional, Any
 
 from redteam.inference.language_models import LanguageModel, HuggingFaceLM, load_model_and_tokenizer
-
+from redteam.train.datasets import get_value_function_keywords
 
 class GameConversation:
-    def __init__(self, system_message: str = "", messages=None):
+    def __init__(self, system_message: str = "", messages=None, value_function_keywords=None):
         self.messages = messages if messages is not None else []
         self.system_message = system_message
-
+        self.value_function_keywords = value_function_keywords if value_function_keywords is not None else get_all_value_function_keywords()
+    
     def set_system_message(self, system_message: str):
         self.system_message = system_message
 
@@ -23,7 +24,12 @@ class GameConversation:
         """
         self.messages[-1][1] = message
 
-    def _format_messages(self, system_role, user_role, assistant_role, offset=0):
+    def _format_messages(self, 
+                        system_role, 
+                        user_role, 
+                        assistant_role, 
+                        offset=0, 
+                        strip_user_messages=True):
         """Convert the conversation to OpenAI chat completion format."""
         if self.system_message == "":
             ret = []
@@ -32,15 +38,17 @@ class GameConversation:
 
         for i, (_, msg) in enumerate(self.messages[offset:]):
             if i % 2 == 0:
+                if strip_user_messages:
+                    msg = split_message(self.value_function_keywords, msg)
                 ret.append({"role": user_role, "content": msg})
             else:
                 if msg is not None:
                     ret.append({"role": assistant_role, "content": msg})
         return ret
 
-    def to_openai_api_messages(self, offset=0):
+    def to_openai_api_messages(self, offset=0, strip_user_messages=True):
         """Convert the conversation to OpenAI chat completion format."""
-        return self._format_messages("system", "user", "assistant", offset=offset)
+        return self._format_messages("system", "user", "assistant", offset=offset, strip_user_messages=strip_user_messages)
 
     def to_game_message(self):
         """Convert the conversation to a game message."""
@@ -50,10 +58,10 @@ class GameConversation:
         return ret
     
     def to_attacker_message(self):
-        return self.to_openai_api_messages(offset=0)
+        return self.to_openai_api_messages(offset=0, strip_user_messages=True)
     
     def to_defender_message(self):
-        return self.to_openai_api_messages(offset=1)
+        return self.to_openai_api_messages(offset=1, strip_user_messages=True)
     
     @classmethod
     def parse_messages(self, message_dict):
@@ -85,3 +93,19 @@ def get_policy(config):
                                                 config.device)
     return Policy(config.model_name, model, tokeniser, config.generation_kwargs)
     
+def get_all_value_function_keywords():
+    value_function_map = get_value_function_keywords(value_function_type="all")
+    value_function_keywords = set()
+    for value_fn_type in value_function_map.keys():
+        for k, v in value_function_map[value_fn_type].items():
+            value_function_keywords.add(v)
+    return value_function_keywords
+
+def split_message(value_keywords, msg):
+    for keyword in value_keywords:
+        if msg.startswith(keyword):
+            return msg[len(keyword):].strip()
+    return msg
+
+# if __name__ == "__main__":
+#     from IPython import embed; embed()

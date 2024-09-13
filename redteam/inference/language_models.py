@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def load_model_and_tokenizer(model_name, model_dir, model_cache_dir, device):
 
-    tokenizer = AutoTokenizer.from_pretrained(model_dir)
+    tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path=model_dir)
     tokenizer.padding_side = "left"
 
     # Llama3 models don't have pad token
