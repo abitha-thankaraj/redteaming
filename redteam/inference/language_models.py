@@ -4,9 +4,35 @@ from typing import List, Dict
 import torch
 import gc, os, time
 import openai
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 logger = logging.getLogger(__name__)
 
+
+
+def load_model_and_tokenizer(model_name, model_dir, model_cache_dir, device):
+
+    tokenizer = AutoTokenizer.from_pretrained(model_dir)
+    tokenizer.padding_side = "left"
+
+    # Llama3 models don't have pad token
+    if (
+        tokenizer.pad_token_id is None
+        and model_name == "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    ):
+        tokenizer.pad_token_id = 128004
+
+    model = AutoModelForCausalLM.from_pretrained(
+        pretrained_model_name_or_path=model_dir,
+        trust_remote_code=True,
+        torch_dtype=torch.bfloat16,
+        attn_implementation="flash_attention_2",
+        cache_dir=model_cache_dir,
+    ).to(device)
+    model.tie_weights()
+    model.resize_token_embeddings(len(tokenizer))
+
+    return model, tokenizer
 
 class LanguageModel:
     def __init__(self, model_name):
@@ -29,43 +55,15 @@ class LanguageModel:
         Initializes conversations for the language model.
         """
         raise NotImplementedError
-
-
-# from vllm.entrypoints.llm import LLM
-
-# class VLLMLanguageModel(LanguageModel):
-#     def __init__(self, model_name, model, tokenizer):
-
-#         self.model_name = model_name
-#         self.model = model
-#         if tokenizer.padding_side != "left":
-#             logger.warning(
-#                 "Padding side is not left. We use decoder only model. Setting padding side to left for inference"
-#             )
-#             tokenizer.padding_side = "left"
-        
-#         self.tokenizer = tokenizer
-#         self.llm = LLM(
-#             model=self.model,
-#             tokenizer=self.tokenizer,
-#             tokenizer_mode="slow",
-#             trust_remote_code=True,
-#             dtype=torch.bfloat16,  # We train in half precision. We should also do inference?
-#             seed=42,
-#             # TODO: 
-#             max_seq_len_to_capture=tokenizer.max_model_length,
-#         )
-
-
-#     def batched_generate(self, convs: List[List[Dict]], generation_config: Dict):
-#         # Apply chat template to each prompt?
-#         inputs = {}
-#         inputs["input_ids"] = self.tokenizer.apply_chat_template(
-#             convs, return_tensors="pt", padding=True, add_generation_prompt=True
-#         )
-#         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
-#         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
-
+    
+    def generate(self,
+        conv: List[Dict],
+        max_n_tokens: int,
+        temperature: float,
+        top_p: float= 1.0,
+        ):
+        """Generates a response for a prompt using a language model."""
+        raise NotImplementedError
 
 
 
@@ -129,14 +127,9 @@ class HuggingFaceLM(LanguageModel):
                 top_p=1,
                 temperature=1,  # To prevent warning messages
             )
-
-        # print(self.tokenizer.batch_decode(output_ids, skip_special_tokens=False))
         if not self.model.config.is_encoder_decoder:
             output_ids = output_ids[:, inputs["input_ids"].shape[1] :]
-        # Batch decoding
-        # print(self.tokenizer.batch_decode(output_ids, skip_special_tokens=False))
-        # from IPython import embed; embed()
-        print(output_ids)
+
         outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=False)
         if "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name:
             outputs_list = [output.replace("assistant\n\n", "") for output in outputs_list]
@@ -150,6 +143,48 @@ class HuggingFaceLM(LanguageModel):
 
         return outputs_list
 
+    def generate(self, conv: List[Dict], max_n_tokens: int = None, temperature: float = 0.7,top_p: float = 1.0):
+        # Apply chat template to each prompt?
+        inputs = {}
+        inputs["input_ids"] = self.tokenizer.apply_chat_template(
+            conv, return_tensors="pt", padding=True, add_generation_prompt=True
+        )
+        
+        inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
+        inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
+        
+        if temperature > 0:
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=max_n_tokens,
+                do_sample=True,
+                temperature=temperature,
+                top_p=top_p,
+                num_return_sequences=1, # https://github.com/huggingface/blog/blob/main/how-to-generate.md
+            )
+        else:
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=max_n_tokens,
+                do_sample=False,
+                top_p=1,
+                temperature=1,  # To prevent warning messages
+            )
+        outputs = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
+
+        # outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+        if "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name:
+            outputs = outputs.split("assistant\n\n")[-1]
+            # outputs_list = [output.split("assistant\n\n")[-1] for output in outputs_list]
+            
+        for key in inputs:
+            inputs[key].to("cpu")
+        output_ids.to("cpu")
+        del inputs, output_ids
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        return outputs
 
 class GPT(LanguageModel):
     API_RETRY_SLEEP = 10
@@ -197,3 +232,39 @@ class GPT(LanguageModel):
         top_p: float = 1.0,
     ):
         return [self.generate(conv, max_n_tokens, temperature, top_p) for conv in convs_list]
+
+
+# from vllm.entrypoints.llm import LLM
+
+# class VLLMLanguageModel(LanguageModel):
+#     def __init__(self, model_name, model, tokenizer):
+
+#         self.model_name = model_name
+#         self.model = model
+#         if tokenizer.padding_side != "left":
+#             logger.warning(
+#                 "Padding side is not left. We use decoder only model. Setting padding side to left for inference"
+#             )
+#             tokenizer.padding_side = "left"
+        
+#         self.tokenizer = tokenizer
+#         self.llm = LLM(
+#             model=self.model,
+#             tokenizer=self.tokenizer,
+#             tokenizer_mode="slow",
+#             trust_remote_code=True,
+#             dtype=torch.bfloat16,  # We train in half precision. We should also do inference?
+#             seed=42,
+#             # TODO: 
+#             max_seq_len_to_capture=tokenizer.max_model_length,
+#         )
+
+
+#     def batched_generate(self, convs: List[List[Dict]], generation_config: Dict):
+#         # Apply chat template to each prompt?
+#         inputs = {}
+#         inputs["input_ids"] = self.tokenizer.apply_chat_template(
+#             convs, return_tensors="pt", padding=True, add_generation_prompt=True
+#         )
+#         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
+#         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}

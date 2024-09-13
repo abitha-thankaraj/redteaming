@@ -94,30 +94,20 @@ def rank0_debug(interval=9999999):
 
 
 def get_dataset(
-    data_dir: str,
-    eval_data_dir: str,
-    agent_type: str,
+    data_args: dataclass,
     tokenizer: transformers.AutoTokenizer,
     tokenizer_separator: TokenizerSeparators,
-    dataset_type: str = "naive_balance",
-    length_key: str = "",
-    max_length: int = -1,
-    value_function_type: str = None,
-    model_name: str = None,
-    value_function_experiment: str = None
 ) -> Tuple[Dataset, Dataset]:
     """Get train test dataset for multiturn sft"""
     dataset_helper = RWRDatasetHelper(
-        data_dir,
-        agent_type,
-        dataset_type=dataset_type,
-        length_key=length_key,
-        max_length=max_length,
+        data_args.data_path,
+        data_args.agent_type,
+        dataset_type=data_args.dataset_type,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
     )
 
     conversation_reward_dict = dataset_helper.get_conversations()
-
-
 
     train_dataset = MultiturnRWRDataset(
         conversation_reward_dict["conversations"],
@@ -125,17 +115,17 @@ def get_dataset(
         tokenizer_separator,
         IGNORE_TOKEN_ID,
         conversation_reward_dict["rewards"],
-        value_function_type=value_function_type,
-        model_name = model_name,
-        value_function_experiment = value_function_experiment
+        value_function_type=data_args.value_function_type,
+        model_name = data_args.model_name,
+        value_function_experiment = data_args.value_function_experiment
     )
 
     eval_conversation_reward_dict = RWRDatasetHelper(
-        eval_data_dir,
-        agent_type,
-        dataset_type=dataset_type,
-        length_key=length_key,
-        max_length=max_length,
+        data_args.eval_data_path,
+        data_args.agent_type,
+        dataset_type=data_args.dataset_type,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
     ).get_conversations()
 
     eval_dataset = MultiturnRWRDataset(
@@ -144,9 +134,9 @@ def get_dataset(
         tokenizer_separator,
         IGNORE_TOKEN_ID,
         eval_conversation_reward_dict["rewards"],
-        value_function_type=value_function_type,
-        model_name = model_name,
-        value_function_experiment = value_function_experiment
+        value_function_type=data_args.value_function_type,
+        model_name = data_args.model_name,
+        value_function_experiment = data_args.value_function_experiment
     )
     return train_dataset, eval_dataset
 
@@ -214,17 +204,9 @@ def train():
     model.resize_token_embeddings(len(tokenizer))
 
     train_dataset, eval_dataset = get_dataset(
-        data_dir=data_args.data_path,
-        eval_data_dir=data_args.eval_data_path,
-        agent_type=data_args.agent_type,
+        data_args=data_args,
         tokenizer=tokenizer,
         tokenizer_separator=tokenizer_separator,
-        dataset_type=data_args.dataset_type,
-        length_key=data_args.length_key,
-        max_length=data_args.max_length,
-        value_function_type = data_args.value_function_type,
-        model_name = data_args.model_name,
-        value_function_experiment = data_args.value_function_experiment
     )
 
     trainer = RWRTrainer(

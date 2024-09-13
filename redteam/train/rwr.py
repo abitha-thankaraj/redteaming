@@ -12,19 +12,22 @@ class RWRArguments:
         metadata={"help": "RWR temperature (β) . Higher -> | Lower -> "},
     )
     rwr_type: str = field(
-        default="exp", metadata={"help": "RWR term type. Available options: exp"}
+        default="exp", metadata={"help": "RWR term type. Available options: exp"}),
+    
+    rwr_value_function_token_weight: float = field(
+        default=1.0,
+        metadata={"help": "Weight for the value function tokens in the RWR term."},
     )
 
 
 # Offline RWR -  TODO: Test step by step.
-
 
 class RWRTrainer(Trainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.rwr_temperature = kwargs.get("rwr_temperature", 1.0)
         self.rwr_type = kwargs.get("rwr_type", "exp")
-        self.value_function_token_weight = kwargs.get("value_function_token_weight", 1.0)
+        self.rwr_value_function_token_weight = kwargs.get("rwr_value_function_token_weight", 1.0)
 
     def get_rwr_term(
         self, rewards: torch.Tensor, rwr_type: str, per_token_weights: torch.Tensor = None
@@ -66,7 +69,7 @@ class RWRTrainer(Trainer):
         # default weight for regular tokens = 1.
         per_token_weights = torch.ones_like(labels)
         #TODO: Uncomment
-        per_token_weights.masked_fill_(value_function_token_idxs, self.value_function_token_weight)
+        per_token_weights.masked_fill_(value_function_token_idxs, self.rwr_value_function_token_weight)
         
         model_output = model(
             **inputs

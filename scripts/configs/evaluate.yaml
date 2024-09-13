@@ -1,0 +1,49 @@
+
+defaults:
+  - _self_
+  - dataset_configs: openai
+
+env:
+  hf_home: "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
+  log_dir: "/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs"
+  data_dir: "/data/group_data/rl/datasets/redteaming"
+seed: 69
+
+
+attacker:
+  model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+  model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+  model_type: sft_attacker
+  model_cache_dir: ${env.hf_home}
+  device: "cuda:0"
+  generation_kwargs:
+    max_n_tokens: 4096
+    temperature: 0.7
+    top_p: 1.0
+
+defender:
+  model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+  model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+  model_type: untrained_defender
+  model_cache_dir: ${env.hf_home}
+  device: "cuda:1"
+  generation_kwargs:
+    max_n_tokens: 4096
+    temperature: 0.7
+    top_p: 1.0
+
+judge:
+  judge_type: "llama-guard"
+  device: "cuda:2"
+
+  
+# Game
+max_turns: 3
+
+# Result of simulating the game will be saved in this file
+experiment_desc: dry-run
+out_dir: ${env.data_dir}/redteaming_evals/${experiment_desc}/${now:%H-%M-%s}
+out_fname: ${dataset_configs.dataset_name}_${experiment_desc}.json
+hydra:
+    run:
+        dir: ${env.log_dir}/${now:%Y.%m.%d}/${now:%H-%M-%s}

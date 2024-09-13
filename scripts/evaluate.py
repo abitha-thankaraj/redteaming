@@ -1,0 +1,89 @@
+import hydra
+import numpy as np
+import os
+from omegaconf import OmegaConf, DictConfig
+from redteam.constants import PARENT_DIR, SCRIPTS_CONFIG_DIR
+import logging
+from tqdm import tqdm
+from redteam.envs.common import get_policy
+from redteam.inference.judge import LlamaGuardJudge
+from redteam.utils.data_utils import read_json, write_json
+from redteam.data_generation.attack_prompts_dataset import get_dataset
+from redteam.utils.slack_me import slack_notification
+from hydra.core.hydra_config import HydraConfig
+from redteam.envs.evaluation import Game
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+global_config = None
+
+@hydra.main(
+    version_base=None,
+    config_path=SCRIPTS_CONFIG_DIR,
+    config_name="evaluate.yaml",
+)
+def main(config: DictConfig):
+    global global_config
+    # config.repo_dir = PARENT_DIR
+
+    OmegaConf.resolve(config)
+    np.random.seed(config.seed)
+    os.makedirs(config.out_dir, exist_ok=True)
+    global_config = OmegaConf.to_yaml(config)
+    
+    logger.debug(OmegaConf.to_yaml(config))
+    logger.debug(f"Logging to {HydraConfig.get().run.dir}")
+
+    logger.debug("Loading attacker")
+    attacker = get_policy(config.attacker)
+    logger.debug("Loading attacker")
+    defender = get_policy(config.defender)
+    logger.debug("Loading judge")
+    if config.judge.judge_type == "llama-guard":
+        judge = LlamaGuardJudge(config.judge.device)
+    else:
+        raise NotImplementedError(f"Judge {config.judge.judge_type} not implemented")
+    
+    logger.debug("Loading dataset")
+    goals = get_dataset(**config.dataset_configs)["prompt"]
+    
+    save_config = OmegaConf.to_yaml(config)
+    with open(os.path.join(config.out_dir, "config.yaml"), "w") as f:
+        f.write(save_config)
+
+    redteaming_game = Game(
+                config.seed, 
+                attacker,
+                defender,
+                judge,
+                goals, 
+                config.max_turns)
+    
+    trajs = []
+    errors = []
+    for goal in tqdm(goals[:2]):
+        try:
+            redteaming_game.reset(goal=goal)
+            traj, judge_score = redteaming_game.simulate()
+            trajs.append({"game": traj, "judge": judge_score})
+        except Exception as e:
+            logger.error(f"Error in simulating game for goal: {goal}")
+            logger.error(e)
+            errors.append({"goal": goal, "error": str(e)})
+            slack_notification(f"Error in simulating game for goal: {goal}, config: {global_config}")
+            
+    config.out_fname = os.path.join(config.out_dir,config.out_fname.replace("/", ".."))
+    write_json(trajs, config.out_fname)
+    if len(errors) > 0:
+        write_json(errors, config.out_fname.replace(".json", "_errors.json"))
+    
+
+if __name__ == "__main__":
+    try:
+        main()
+        slack_notification(f"Redteaming game completed successfully: config: {global_config}")
+    except Exception as e:
+        logger.error(e)
+        slack_notification(f"Error in running redteaming game: {e}, config: {global_config}")
