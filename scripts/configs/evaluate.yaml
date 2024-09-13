@@ -13,7 +13,7 @@ seed: 69
 attacker:
   model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
   model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_type: sft_attacker
+  model_type: untrained_attacker
   model_cache_dir: ${env.hf_home}
   device: "cuda:0"
   generation_kwargs:
@@ -23,8 +23,8 @@ attacker:
 
 defender:
   model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_type: untrained_defender
+  model_dir: "/data/group_data/rl/experiments/redteaming/multiturn_rwr_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-10-15-33-18-430/checkpoint-12"
+  model_type: trained_defender_natural_lang_multiclass_overfit
   model_cache_dir: ${env.hf_home}
   device: "cuda:1"
   generation_kwargs:
@@ -36,7 +36,23 @@ judge:
   judge_type: "llama-guard"
   device: "cuda:2"
 
-  
+
+value_function_evaluate:  
+  do_eval: true
+  # Do you evaluate the value function for the attacker?
+  attacker:
+    evaluate: false
+    value_function_type: null
+  # Do you evaluate the value function for the defender?
+  defender:
+    evaluate: true
+    value_function_type: "natural_lang_multiclass"
+
+
+# value_function_eval:
+#   eval_attacker: false
+#   eval_defender: true
+
 # Game
 max_turns: 3
 
