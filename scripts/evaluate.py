@@ -32,6 +32,7 @@ def main(config: DictConfig):
 
     OmegaConf.resolve(config)
     set_seed_everywhere(config.seed)
+    config.out_fname = os.path.join(config.out_dir, config.out_fname)
     os.makedirs(config.out_dir, exist_ok=True)
     global_config = OmegaConf.to_yaml(config)
 
@@ -59,6 +60,7 @@ def main(config: DictConfig):
 
     trajs = []
     errors = []
+    
     for goal in tqdm(goals):
         try:
             redteaming_game.reset(goal=goal)
@@ -88,6 +90,7 @@ def main(config: DictConfig):
                     "defender_value_function_evals": defender_value_function_evals,
                 }
             )
+            write_json(trajs, config.out_fname)
         except Exception as e:
             logger.error(f"Error in simulating game for goal: {goal}")
             logger.error(e)
@@ -96,7 +99,6 @@ def main(config: DictConfig):
                 f"Error in simulating game for goal: {goal}, config: {global_config}"
             )
 
-    config.out_fname = os.path.join(config.out_dir, config.out_fname)
     write_json(trajs, config.out_fname)
     if len(errors) > 0:
         write_json(errors, config.out_fname.replace(".json", "_errors.json"))
