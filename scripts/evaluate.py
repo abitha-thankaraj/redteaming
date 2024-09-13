@@ -63,7 +63,7 @@ def main(config: DictConfig):
     
     trajs = []
     errors = []
-    for goal in tqdm(goals[:2]):
+    for goal in tqdm(goals):
         try:
             redteaming_game.reset(goal=goal)
             traj, judge_score = redteaming_game.simulate()
@@ -74,7 +74,7 @@ def main(config: DictConfig):
             errors.append({"goal": goal, "error": str(e)})
             slack_notification(f"Error in simulating game for goal: {goal}, config: {global_config}")
             
-    config.out_fname = os.path.join(config.out_dir,config.out_fname.replace("/", ".."))
+    config.out_fname = os.path.join(config.out_dir,config.out_fname)
     write_json(trajs, config.out_fname)
     if len(errors) > 0:
         write_json(errors, config.out_fname.replace(".json", "_errors.json"))
