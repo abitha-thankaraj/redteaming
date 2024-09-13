@@ -106,6 +106,3 @@ def split_message(value_keywords, msg):
         if msg.startswith(keyword):
             return msg[len(keyword):].strip()
     return msg
-
-# if __name__ == "__main__":
-#     from IPython import embed; embed()
