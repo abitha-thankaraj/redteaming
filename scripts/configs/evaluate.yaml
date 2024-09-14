@@ -1,7 +1,7 @@
 
 defaults:
   - _self_
-  - dataset_configs: openai
+  - dataset_configs: jailbreakbench
 
 env:
   hf_home: "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
@@ -12,8 +12,8 @@ seed: 69
 
 attacker:
   model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_type: untrained_attacker
+  model_dir: "/data/group_data/rl/experiments/redteaming/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135/"
+  model_type: sft_trained_attacker
   model_cache_dir: ${env.hf_home}
   device: "cuda:0"
   generation_kwargs:
@@ -23,8 +23,8 @@ attacker:
 
 defender:
   model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_dir: "/data/group_data/rl/experiments/redteaming/multiturn_rwr_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-10-15-33-18-430/checkpoint-12"
-  model_type: trained_defender_natural_lang_multiclass_overfit
+  model_dir: ???
+  model_type: ???
   model_cache_dir: ${env.hf_home}
   device: "cuda:1"
   generation_kwargs:
@@ -46,7 +46,7 @@ value_function_evaluate:
   # Do you evaluate the value function for the defender?
   defender:
     evaluate: true
-    value_function_type: "natural_lang_multiclass"
+    value_function_type: ???
 
 
 # value_function_eval:
@@ -57,9 +57,9 @@ value_function_evaluate:
 max_turns: 3
 
 # Result of simulating the game will be saved in this file
-experiment_desc: dry-run
+experiment_desc: value_function_evals
 out_dir: ${env.data_dir}/redteaming_evals/${experiment_desc}/${now:%H-%M-%s}
-out_fname: ${dataset_configs.dataset_name}_${experiment_desc}.json
+out_fname: ${dataset_configs.dataset_name}_${attacker.model_type}_${defender.model_type}_${experiment_desc}.json
 hydra:
     run:
         dir: ${env.log_dir}/${now:%Y.%m.%d}/${now:%H-%M-%s}
