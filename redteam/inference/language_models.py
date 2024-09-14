@@ -18,7 +18,7 @@ def load_model_and_tokenizer(model_name, model_dir, model_cache_dir, device):
     # Llama3 models don't have pad token
     if (
         tokenizer.pad_token_id is None
-        and model_name == "meta-llama/Meta-Llama-3.1-8B-Instruct"
+        and model_name in ["meta-llama/Meta-Llama-3.1-8B-Instruct", "meta-llama/Meta-Llama-3-8B-Instruct"]
     ):
         tokenizer.pad_token_id = 128004
 
@@ -78,6 +78,7 @@ class HuggingFaceLM(LanguageModel):
             "meta-llama/Meta-Llama-3.1-8B-Instruct",
             "mistralai/Mistral-7B-Instruct-v0.3",
             "mistralai/Mistral-7B-Instruct-v0.1",
+            "meta-llama/Meta-Llama-3-8B-Instruct"
         ], "Only Meta-Llama and Mistral models are supported"
         # TODO: Assert that padding side is left for generations.
         assert (
@@ -131,7 +132,7 @@ class HuggingFaceLM(LanguageModel):
             output_ids = output_ids[:, inputs["input_ids"].shape[1] :]
 
         outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=False)
-        if "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name:
+        if "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name or "meta-llama/Meta-Llama-3-8B-Instruct" in self.model_name:
             outputs_list = [output.replace("assistant\n\n", "") for output in outputs_list]
 
         for key in inputs:
@@ -173,7 +174,7 @@ class HuggingFaceLM(LanguageModel):
         outputs = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
         # outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
-        if "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name:
+        if "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name or "meta-llama/Meta-Llama-3-8B-Instruct" in self.model_name:
             outputs = outputs.split("assistant\n\n")[-1]
             
         for key in inputs:

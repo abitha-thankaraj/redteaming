@@ -22,9 +22,9 @@ attacker:
     top_p: 1.0
 
 defender:
-  model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_dir: ???
-  model_type: ???
+  model_name: "meta-llama/Meta-Llama-3-8B-Instruct"
+  model_dir: "meta-llama/Meta-Llama-3-8B-Instruct"
+  model_type: untrained_defender
   model_cache_dir: ${env.hf_home}
   device: "cuda:1"
   generation_kwargs:
@@ -38,15 +38,15 @@ judge:
 
 
 value_function_evaluate:  
-  do_eval: true
+  do_eval: false
   # Do you evaluate the value function for the attacker?
   attacker:
     evaluate: false
     value_function_type: null
   # Do you evaluate the value function for the defender?
   defender:
-    evaluate: true
-    value_function_type: ???
+    evaluate: false
+    value_function_type: null
 
 
 # value_function_eval:
@@ -57,7 +57,7 @@ value_function_evaluate:
 max_turns: 3
 
 # Result of simulating the game will be saved in this file
-experiment_desc: value_function_evals
+experiment_desc: llama3_evals
 out_dir: ${env.data_dir}/redteaming_evals/${experiment_desc}/${now:%Y.%m.%d}/${now:%H-%M-%s}
 out_fname: ${dataset_configs.dataset_name}_${attacker.model_type}_${defender.model_type}_${experiment_desc}.json
 hydra:

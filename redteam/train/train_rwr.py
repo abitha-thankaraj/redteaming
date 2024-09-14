@@ -73,6 +73,8 @@ class TrainingArguments(transformers.TrainingArguments):
     torch_empty_cache_steps: int = field(
         default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"}
     )
+    data_args: DataArguments = field(default=None)
+    model_args: ModelArguments = field(default=None)
 
 
 # Debugging utils
@@ -146,6 +148,8 @@ def train():
     # Parse args; All configs sent to the model
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    training_args.data_args = data_args
+    training_args.model_args = model_args
 
     # # Add this for huggingface logging
     # for k, v in asdict(model_args).items():
