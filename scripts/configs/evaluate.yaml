@@ -58,7 +58,7 @@ max_turns: 3
 
 # Result of simulating the game will be saved in this file
 experiment_desc: value_function_evals
-out_dir: ${env.data_dir}/redteaming_evals/${experiment_desc}/${now:%H-%M-%s}
+out_dir: ${env.data_dir}/redteaming_evals/${experiment_desc}/${now:%Y.%m.%d}/${now:%H-%M-%s}
 out_fname: ${dataset_configs.dataset_name}_${attacker.model_type}_${defender.model_type}_${experiment_desc}.json
 hydra:
     run:
