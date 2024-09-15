@@ -1,0 +1,65 @@
+
+defaults:
+  - _self_
+  - dataset_configs: jailbreakbench
+
+env:
+  hf_home: "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
+  log_dir: "/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs"
+  data_dir: "/data/group_data/rl/datasets/redteaming"
+seed: 69
+
+
+attacker:
+  model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+  model_dir: "/data/group_data/rl/experiments/redteaming/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135/"
+  model_type: sft_trained_attacker
+  model_cache_dir: ${env.hf_home}
+  device: "cuda:0"
+  generation_kwargs:
+    max_n_tokens: 4096
+    temperature: 0.7
+    top_p: 1.0
+
+defender:
+  model_name: "mistralai/Mistral-7B-Instruct-v0.1"
+  model_dir: "mistralai/Mistral-7B-Instruct-v0.1"
+  model_type: untrained_defender
+  model_cache_dir: ${env.hf_home}
+  device: "cuda:1"
+  generation_kwargs:
+    max_n_tokens: 4096
+    temperature: 0.7
+    top_p: 1.0
+
+judge:
+  judge_type: "llama-guard"
+  device: "cuda:2"
+
+
+value_function_evaluate:  
+  do_eval: false
+  # Do you evaluate the value function for the attacker?
+  attacker:
+    evaluate: false
+    value_function_type: null
+  # Do you evaluate the value function for the defender?
+  defender:
+    evaluate: false
+    value_function_type: null
+
+
+# value_function_eval:
+#   eval_attacker: false
+#   eval_defender: true
+
+# Game
+max_turns: 3
+
+# Result of simulating the game will be saved in this file
+experiment_desc: mistral_evals
+out_dir: ${env.data_dir}/redteaming_evals/${experiment_desc}/${now:%Y.%m.%d}/${now:%H-%M-%s}
+out_fname: ${dataset_configs.dataset_name}_${attacker.model_type}_${defender.model_type}_${experiment_desc}.json
+hydra:
+    run:
+        dir: ${env.log_dir}/${now:%Y.%m.%d}/${now:%H-%M-%s}

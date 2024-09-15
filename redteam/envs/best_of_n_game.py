@@ -7,6 +7,7 @@ from redteam.common.chat_completion import ChatCompletionConfig
 
 logger = logging.getLogger(__name__)
 
+
 class GameConversation:
     def __init__(self, system_message: str = "", messages=None):
         self.messages = messages if messages is not None else []
@@ -51,7 +52,7 @@ class GameConversation:
         for role, msg in self.messages:
             ret.append({"role": role, "content": msg})
         return ret
-    
+
     @classmethod
     def parse_messages(self, message_dict):
         messages = []
@@ -85,6 +86,7 @@ class Attacker:
             )
             responses.append(res.choices[0].message.content)
         return responses
+
     # Attacker action : Sample n to do best of N
     def sample_n_responses_batched(self, conversation: GameConversation):
         """Get responses from the model."""
@@ -118,22 +120,22 @@ class Defender:
                 messages=messages,
                 temperature=self.config.temperature,
                 n=1,
-                max_tokens=self.config.max_tokens
+                max_tokens=self.config.max_tokens,
             )
             del messages
             responses.append(res.choices[0].message.content)
         return responses
-    
+
     def sample_response(self, conversation):
         res = self.client.chat.completions.create(
             model=self.config.model,
             messages=conversation.to_openai_api_messages(offset=1),
             temperature=self.config.temperature,
             n=1,
-            max_tokens=self.config.max_tokens
+            max_tokens=self.config.max_tokens,
         )
         return res.choices[0].message.content
-    
+
     # def get_batched_defender_response(self, conversation, attacker_samples):
     #     """Get responses from the model."""
     #     messages = conversation.to_openai_api_messages(offset=1)
@@ -146,6 +148,7 @@ class Defender:
     #     )
     #     from IPython import embed; embed()
     #     return res.choices[0].message.content
+
 
 # Judge action
 def calculate_scores(judge, attacker_actions, defender_actions):
@@ -161,7 +164,9 @@ def calculate_scores(judge, attacker_actions, defender_actions):
             ]
         )
         logger.debug(f"Turn {i} scores: {turn_level_scores}")
-        assert len(turn_level_scores["rewards"]) == 1, "Judge should return a single reward per turn."
+        assert (
+            len(turn_level_scores["rewards"]) == 1
+        ), "Judge should return a single reward per turn."
         rewards.append(turn_level_scores["rewards"][0])
         categories.append(turn_level_scores["categories"][0])
     return rewards, categories
@@ -176,7 +181,7 @@ def rejection_sampling(judge, attacker_responses, defender_responses, choose_saf
     # Rejection sampling from best of n. score using llamaguard
     rewards, categories = calculate_scores(judge, attacker_responses, defender_responses)
     # Pick the first response that given reward =0.0 ie is_safe.
-    # If all are unsafe, pick the last one.        
+    # If all are unsafe, pick the last one.
     chosen_score = 0.0 if choose_safe else 1.0
     chosen_idx = -1
     for i, reward in enumerate(rewards):
@@ -187,7 +192,7 @@ def rejection_sampling(judge, attacker_responses, defender_responses, choose_saf
         "defender": defender_responses[chosen_idx],
         "reward": rewards[chosen_idx],
         "category": categories[chosen_idx],
-    }            
+    }
     all_responses = {
         "attacker_responses": attacker_responses,
         "defender_responses": defender_responses,
@@ -196,7 +201,6 @@ def rejection_sampling(judge, attacker_responses, defender_responses, choose_saf
     }
     return chosen, all_responses
 
-    
 
 class BestOfNRedteamingGame:
     def __init__(
@@ -207,7 +211,7 @@ class BestOfNRedteamingGame:
         judge: Optional[Any],
         goals: list[str],
         max_turns: int = 3,
-        choose_safe = True
+        choose_safe=True,
     ):
         self.goals = goals
         self.attacker = attacker
@@ -252,25 +256,27 @@ class BestOfNRedteamingGame:
             defender_actions = self.defender.act(conversation, attacker_actions)
             logger.debug("Calculating scores for rejection sampling")
 
-
-            chosen, all_responses= rejection_sampling(
+            chosen, all_responses = rejection_sampling(
                 self.judge,
                 attacker_responses=attacker_actions,
                 defender_responses=defender_actions,
-                choose_safe=self.choose_safe
+                choose_safe=self.choose_safe,
             )
             conversation.append_message("attacker", chosen["attacker"])
             conversation.append_message("defender", chosen["defender"])
             rewards.append(chosen["reward"])
             categories.append(chosen["category"])
             self.env_state.update({f"turn_{self._turn}": all_responses})
-            self._turn+=1
-        self.env_state.update({"game_conversation": conversation.to_game_message(),
-            "game_rewards": rewards,
-            "game_categories": categories})
-        
+            self._turn += 1
+        self.env_state.update(
+            {
+                "game_conversation": conversation.to_game_message(),
+                "game_rewards": rewards,
+                "game_categories": categories,
+            }
+        )
+
         return self.env_state
 
     def render(self):
         print(self.env_state)
-

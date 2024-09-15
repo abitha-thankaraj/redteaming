@@ -1,7 +1,8 @@
 # Borrowed from https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py
 import os
-# Add this here for wandb project name
-# os.environ["WANDB_PROJECT"] = "redteam" 
+
+os.environ["WANDB_ENTITY"] = "mt_redteam"
+os.environ["WANDB_PROJECT"] = "redteaming"
 
 from dataclasses import dataclass, field
 from typing import Optional, Tuple
@@ -45,7 +46,7 @@ class DataArguments:
     train_ratio: float = field(
         default=0.99, metadata={"help": "Ratio of data to use for training."}
     )
-    
+
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
@@ -143,7 +144,7 @@ def train():
         trust_remote_code=True,
         cache_dir=training_args.cache_dir,
         attn_implementation="flash_attention_2",
-        torch_dtype=torch.bfloat16
+        torch_dtype=torch.bfloat16,
     )
     # Tie the weights - Commonly used for memory efficient training?
     model.tie_weights()
@@ -178,7 +179,7 @@ def train():
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
     )
-  
+
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:
@@ -186,6 +187,7 @@ def train():
 
     trainer.save_state()
     safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
+
 
 if __name__ == "__main__":
 

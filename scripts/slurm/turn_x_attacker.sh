@@ -10,7 +10,7 @@
 #SBATCH --gres=gpu:A6000:1
 #SBATCH --mail-user=athankar@cs.cmu.edu
 #SBATCH --mail-type=END,FAIL
-#SBATCH --array=1-2
+#SBATCH --array=6
 
 # Chunked files directory
 CHUNKED_DATA_DIR="/data/group_data/rl/datasets/redteaming/"

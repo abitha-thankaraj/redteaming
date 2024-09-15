@@ -15,7 +15,15 @@ AGENT_TYPE="defender"
 # "meta-llama/Meta-Llama-3.1-8B-Instruct"
 MASTER_PORT=29500
 MAX_LENGTH=4096
-DATASET_TYPE="naive_balance"
+DATASET_TYPE="all"
+VALUE_FUNCTION_TYPE=""
+VALUE_FUNCTION_EXPERIMENT=""
+# VALUE_FUNCTION_TYPE=$1
+# VALUE_FUNCTION_EXPERIMENT=$2
+MODEL_NAME="meta-llama/Meta-Llama-3.1-8B-Instruct"
+
+LEARNING_RATE=1e-5
+
 # "Meta-Llama-3.1-8B-Instruct_length"
 # MODEL_PATH=$1
 # AGENT_TYPE=$2
@@ -44,12 +52,17 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train_rwr.py  \
         --dataset_type $DATASET_TYPE \
         --length_key $LENGTH_KEY \
         --max_length $MAX_LENGTH \
+        --value_function_type "" \
+        --model_name $MODEL_NAME \
+        --value_function_experiment "" \
+        --rwr_temperature 1.0 \
+        --rwr_type "exp" \
         --output_dir $LOGDIR  \
         --cache_dir $HF_HOME \
         --run_name $RUN_NAME \
         --deepspeed $REPO_DIR/scripts/configs/deepspeed/zero3.json     \
         --bf16 True \
-        --num_train_epochs 3  \
+        --num_train_epochs 2  \
         --per_device_train_batch_size 2 \
         --per_device_eval_batch_size 1   \
         --gradient_accumulation_steps 16 \
@@ -58,7 +71,7 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train_rwr.py  \
         --save_strategy "steps"  \
         --save_steps 100000  \
         --save_total_limit 1 \
-        --learning_rate 1e-5  \
+        --learning_rate $LEARNING_RATE  \
         --weight_decay 0.    \
         --warmup_ratio 0.04   \
         --lr_scheduler_type "cosine"   \

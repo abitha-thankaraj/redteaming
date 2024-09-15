@@ -13,30 +13,33 @@ from requests.exceptions import RequestException
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-base_controller_shell = '''python3 -m fastchat.serve.controller \\
+base_controller_shell = """python3 -m fastchat.serve.controller \\
     --host 0.0.0.0 \\
-    --port {controller_port} > "{logdir}/controller.out" 2>&1'''
+    --port {controller_port} > "{logdir}/controller.out" 2>&1"""
 
-base_modelworker_shell = '''CUDA_VISIBLE_DEVICES={gpu_id} python3 -m fastchat.serve.vllm_worker \\
+base_modelworker_shell = """CUDA_VISIBLE_DEVICES={gpu_id} python3 -m fastchat.serve.vllm_worker \\
     --model-path {model_path} \\
     --model-name {model_name} \\
     --host 0.0.0.0 \\
     --controller-address "http://localhost:{controller_port}" \\
     --port {worker_port} \\
     --worker-address "http://localhost:{worker_port}" \\
-    --device {device} > "{logdir}/{out_fname}.out" 2>&1'''
+    --device {device} > "{logdir}/{out_fname}.out" 2>&1"""
 
-base_openai_shell = '''python3 -m fastchat.serve.openai_api_server \\
+base_openai_shell = """python3 -m fastchat.serve.openai_api_server \\
     --host 0.0.0.0 \\
     --port {openai_port} \\
-    --controller-address "http://localhost:{controller_port}" > "{logdir}/openai_api_server.out" 2>&1'''
+    --controller-address "http://localhost:{controller_port}" > "{logdir}/openai_api_server.out" 2>&1"""
+
 
 def get_conda_activate_cmd(cfg):
     return f"source {cfg.env.conda_profile} && conda activate {cfg.env.conda_env}"
 
+
 def run_background(cfg, cmd, env):
     full_cmd = f"{get_conda_activate_cmd(cfg)} && {cmd}"
-    return subprocess.Popen(full_cmd, shell=True, executable='/bin/bash', env=env)
+    return subprocess.Popen(full_cmd, shell=True, executable="/bin/bash", env=env)
+
 
 def check_models_loaded(cfg):
     url = f"http://localhost:{cfg.ports.controller}/list_models"
@@ -58,16 +61,22 @@ def check_models_loaded(cfg):
             logger.error("Failed to parse JSON response")
         except Exception as e:
             logger.error(f"An unexpected error occurred: {str(e)}")
-        
+
         # Exponential backoff
-        time.sleep(2 ** attempt)
-    
+        time.sleep(2**attempt)
+
     logger.error(f"Failed to confirm all models loaded after {cfg.max_load_retries} attempts")
     return False
 
+
 # @hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/deploy_game/", config_name="deploy_game.yaml")
-@hydra.main(version_base=None, config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/", config_name="deploy_fastchat_defender.yaml")
+@hydra.main(
+    version_base=None,
+    config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/",
+    config_name="deploy_fastchat_defender.yaml",
+)
 # , config_name="${config_file}")
+
 
 def main(cfg: DictConfig):
     # Set up environment
@@ -81,8 +90,7 @@ def main(cfg: DictConfig):
 
     # Generate and run controller command
     controller_cmd = base_controller_shell.format(
-        controller_port=cfg.ports.controller,
-        logdir=logdir
+        controller_port=cfg.ports.controller, logdir=logdir
     )
     processes.append(run_background(cfg, controller_cmd, env))
 
@@ -96,15 +104,13 @@ def main(cfg: DictConfig):
             worker_port=model.worker_port,
             device=model.device,
             logdir=logdir,
-            out_fname=model.name.replace("/", "_")
+            out_fname=model.name.replace("/", "_"),
         )
         processes.append(run_background(cfg, cmd, env))
 
     # Generate and run OpenAI API server command
     openai_cmd = base_openai_shell.format(
-        controller_port=cfg.ports.controller,
-        openai_port=cfg.ports.openai,
-        logdir=logdir
+        controller_port=cfg.ports.controller, openai_port=cfg.ports.openai, logdir=logdir
     )
     processes.append(run_background(cfg, openai_cmd, env))
 
@@ -132,8 +138,9 @@ def main(cfg: DictConfig):
     #     if process.poll() is None:
     #         process.terminate()
 
-    while(1):
+    while 1:
         time.sleep(60)
+
 
 if __name__ == "__main__":
     main()

@@ -1,9 +1,10 @@
 # Borrowed from https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py
 import os
-
 # Add this here for wandb project name
 os.environ["WANDB_ENTITY"] = "mt_redteam"
 os.environ["WANDB_PROJECT"] = "redteaming"
+
+from typing import Any
 
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Tuple
@@ -47,12 +48,30 @@ class DataArguments:
     agent_type: str = field(
         default="attacker",
         metadata={"help": "Type of agent to train on. Available options: attacker, defender"},
-        # choices=["attacker", "defender", "llama_attacker"],
     )
+    gamma: float = field(default=0.9, metadata={"help": "Discount factor for the rewards."})
     dataset_type: str = field(default="naive_balance")
     length_key: str = field(default="")
     max_length: int = field(default=-1)
+    value_function_type: str = (field(default=""),)
+    model_name: str = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
+    value_function_experiment: str = field(default=None)
 
+
+@dataclass
+class RWRArguments:
+    rwr_temperature: float = field(
+        default=1.0,
+        metadata={"help": "RWR temperature (β) . Higher -> | Lower -> "},
+    )
+    rwr_type: str = (
+        field(default="exp", metadata={"help": "RWR term type. Available options: exp"}),
+    )
+
+    rwr_value_function_token_weight: float = field(
+        default=1.0,
+        metadata={"help": "Weight for the value function tokens in the RWR term."},
+    )
 
 
 @dataclass
@@ -65,10 +84,15 @@ class TrainingArguments(transformers.TrainingArguments):
         default=4096,
         metadata={
             "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
-        }
+        },
     )
-    torch_empty_cache_steps: int =field(default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"})
-    
+    torch_empty_cache_steps: int = field(
+        default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"}
+    )
+    # Adding args for data, model and rwr
+    data_args: Any = field(default=None)
+    model_args: Any = field(default=None)
+    rwr_args: Any = field(default=None)
 
 
 # Debugging utils
@@ -90,39 +114,39 @@ def rank0_debug(interval=9999999):
 
 
 def get_dataset(
-    data_dir: str,
-    eval_data_dir: str,
-    agent_type: str,
+    data_args: dataclass,
     tokenizer: transformers.AutoTokenizer,
     tokenizer_separator: TokenizerSeparators,
-    dataset_type: str = "naive_balance",
-    length_key: str = "",
-    max_length: int = -1,
 ) -> Tuple[Dataset, Dataset]:
     """Get train test dataset for multiturn sft"""
     dataset_helper = RWRDatasetHelper(
-        data_dir,
-        agent_type,
-        dataset_type=dataset_type,
-        length_key=length_key,
-        max_length=max_length,
+        data_args.data_path,
+        data_args.agent_type,
+        dataset_type=data_args.dataset_type,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
     )
 
     conversation_reward_dict = dataset_helper.get_conversations()
+
     train_dataset = MultiturnRWRDataset(
         conversation_reward_dict["conversations"],
         tokenizer,
         tokenizer_separator,
         IGNORE_TOKEN_ID,
         conversation_reward_dict["rewards"],
+        gamma=data_args.gamma,
+        value_function_type=data_args.value_function_type,
+        model_name=data_args.model_name,
+        value_function_experiment=data_args.value_function_experiment,
     )
 
     eval_conversation_reward_dict = RWRDatasetHelper(
-        eval_data_dir,
-        agent_type,
-        dataset_type=dataset_type,
-        length_key=length_key,
-        max_length=max_length,
+        data_args.eval_data_path,
+        data_args.agent_type,
+        dataset_type=data_args.dataset_type,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
     ).get_conversations()
 
     eval_dataset = MultiturnRWRDataset(
@@ -131,6 +155,10 @@ def get_dataset(
         tokenizer_separator,
         IGNORE_TOKEN_ID,
         eval_conversation_reward_dict["rewards"],
+        gamma=data_args.gamma,
+        value_function_type=data_args.value_function_type,
+        model_name=data_args.model_name,
+        value_function_experiment=data_args.value_function_experiment,
     )
     return train_dataset, eval_dataset
 
@@ -138,17 +166,17 @@ def get_dataset(
 def train():
     global local_rank
     # Parse args; All configs sent to the model
-    parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
-    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-    
-    # Add this for huggingface logging
-    for k, v in asdict(model_args).items():
-        training_args.__dict__["model_args/"+k] = v
-    for k, v in asdict(data_args).items():
-        training_args.__dict__["data_args/"+k] = v
-    
-    assert training_args.model_max_length >= data_args.max_length, "Model max length should be greater than data max length"
+    parser = transformers.HfArgumentParser(
+        (ModelArguments, DataArguments, RWRArguments, TrainingArguments)
+    )
+    model_args, data_args, rwr_args, training_args = parser.parse_args_into_dataclasses()
+    training_args.data_args = data_args
+    training_args.model_args = model_args
+    training_args.rwr_args = rwr_args
 
+    assert (
+        training_args.model_max_length >= data_args.max_length
+    ), "Model max length should be greater than data max length"
 
     # Seed everything
     set_seed_everywhere(training_args.seed)
@@ -197,14 +225,9 @@ def train():
     model.resize_token_embeddings(len(tokenizer))
 
     train_dataset, eval_dataset = get_dataset(
-        data_dir = data_args.data_path,
-        eval_data_dir = data_args.eval_data_path,
-        agent_type = data_args.agent_type,
-        tokenizer = tokenizer,
-        tokenizer_separator = tokenizer_separator,
-        dataset_type = data_args.dataset_type,
-        length_key = data_args.length_key,
-        max_length = data_args.max_length,
+        data_args=data_args,
+        tokenizer=tokenizer,
+        tokenizer_separator=tokenizer_separator,
     )
 
     trainer = RWRTrainer(
@@ -214,7 +237,7 @@ def train():
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
     )
-    
+
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:

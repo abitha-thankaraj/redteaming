@@ -19,6 +19,7 @@ logger.setLevel(logging.DEBUG)
 
 global_config = None
 
+
 @hydra.main(
     version_base=None,
     config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/",
@@ -32,45 +33,48 @@ def main(config: DictConfig):
     np.random.seed(config.seed)
     os.makedirs(config.out_dir, exist_ok=True)
     global_config = OmegaConf.to_yaml(config)
-    
+
     logger.info(OmegaConf.to_yaml(config))
     logger.info(f"Logging to {HydraConfig.get().run.dir}")
 
-    attacker = get_lm_agent(ChatCompletionConfig(**config.attacker.chat_completion_config), "attacker")
-    defender = get_lm_agent(ChatCompletionConfig(**config.defender.chat_completion_config), "defender")
+    attacker = get_lm_agent(
+        ChatCompletionConfig(**config.attacker.chat_completion_config), "attacker"
+    )
+    defender = get_lm_agent(
+        ChatCompletionConfig(**config.defender.chat_completion_config), "defender"
+    )
     judge = get_lm_agent(ChatCompletionConfig(**config.judge.chat_completion_config), "judge")
 
     goals = get_dataset(**config.dataset_configs)["prompt"]
-    
+
     save_config = OmegaConf.to_yaml(config)
     with open(os.path.join(config.out_dir, "config.yaml"), "w") as f:
         f.write(save_config)
 
-    redteaming_game = RedteamGame(config.seed, 
-                attacker,
-                defender,
-                judge,
-                goals, 
-                config.max_turns)
-    
+    redteaming_game = RedteamGame(
+        config.seed, attacker, defender, judge, goals, config.max_turns
+    )
+
     redteaming_game.reset()
 
     trajs = []
     errors = []
     for goal in tqdm(goals):
         try:
-            redteaming_game.reset(goal = goal)
+            redteaming_game.reset(goal=goal)
             if config.no_judge:
                 traj = redteaming_game.simulate(judge=False)
                 trajs.append({"game": traj, "judge": None})
             else:
                 traj, judgement = redteaming_game.simulate(judge=True)
-                trajs.append({"game": traj, "judge":judgement})
+                trajs.append({"game": traj, "judge": judgement})
         except Exception as e:
             logger.error(f"Error in simulating game for goal: {goal}")
             logger.error(e)
             errors.append({"goal": goal, "error": str(e)})
-            slack_notification(f"Error in simulating game for goal: {goal}, config: {global_config}")
+            slack_notification(
+                f"Error in simulating game for goal: {goal}, config: {global_config}"
+            )
         # valid_judge_response = False
         # while not valid_judge_response:
         #     response = chat_completion.multiturn_chat_completion(
@@ -84,12 +88,12 @@ def main(config: DictConfig):
         #     )
 
         # output_dict = {key: llm_judge_trace[key] for key in llm_judge_trace}
-    
-    config.out_fname = os.path.join(config.out_dir,config.out_fname.replace("/", ".."))
+
+    config.out_fname = os.path.join(config.out_dir, config.out_fname.replace("/", ".."))
     write_json(trajs, config.out_fname)
     if len(errors) > 0:
         write_json(errors, config.out_fname.replace(".json", "_errors.json"))
-    
+
 
 if __name__ == "__main__":
     try:

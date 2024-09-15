@@ -28,15 +28,18 @@ from redteam.utils.hash_utils import get_question_id_sha256
 
 
 def rename_savefile(save_file, input_file):
-    save_file = save_file.replace(".json", "_input_{input_fname}".format(input_fname = input_file.split("/")[-1]))
+    save_file = save_file.replace(
+        ".json", "_input_{input_fname}".format(input_fname=input_file.split("/")[-1])
+    )
     return save_file
+
 
 def get_generation_model_name(input_file):
     return input_file.split("/")[-1].split("_")[0]
 
+
 def get_prompt_dataset(input_file):
     return input_file.split("/")[-1].split("_")[1]
-
 
 
 @hydra.main(
@@ -50,7 +53,7 @@ def main(config: DictConfig):
     Follows the method of this paper: Leveraging the Context through Multi-Round Interactions for Jailbreaking Attacks (https://arxiv.org/abs/2402.09177)
     """
     config.repo_dir = PARENT_DIR
-    
+
     config.prompt_dataset = get_prompt_dataset(config.multiturn_conversations_fname)
     config.save_file = rename_savefile(config.save_file, config.multiturn_conversations_fname)
 
@@ -61,7 +64,7 @@ def main(config: DictConfig):
     if missing_keys:
         raise ValueError(f"Got missing keys in config:\n{missing_keys}")
     os.makedirs(config.out_dir, exist_ok=True)
-    
+
     generation_model = get_generation_model_name(
         input_file=config.multiturn_conversations_fname,
     )
@@ -85,7 +88,6 @@ def main(config: DictConfig):
         # removing system prompt if it is the first message
         if multiturn_conversations[i]["conversation"][0]["role"] == "system":
             multiturn_conversation["conversation"] = multiturn_conversation["conversation"][1:]
-
 
         messages = [
             user_template.format(

@@ -8,13 +8,15 @@ from redteam.data_generation.parsers import (
     parse_llm_judge_evaluation,
     is_valid_llm_judge_trace,
 )
+
+
 class LMAgent:
     def __init__(self, chat_completion, role) -> None:
         self.role = role
         self.chat_completion = chat_completion
 
-    def act(self, obs: str) -> str:        
-        response = self.chat_completion.single_turn_chat_completion(message = obs, history = True)
+    def act(self, obs: str) -> str:
+        response = self.chat_completion.single_turn_chat_completion(message=obs, history=True)
         return response[-1]["content"]
 
     def reset(self):
@@ -65,7 +67,7 @@ class RedteamGame:
         self.defender.reset()
         self._turn = 0
 
-    def reset(self, goal:Optional[str] = None) -> str:
+    def reset(self, goal: Optional[str] = None) -> str:
         self.reset_model()
         # Sample a goal for the attacker. Do you need to system rompt the attacker too?
         if goal is None:
@@ -91,14 +93,18 @@ class RedteamGame:
         self._turn += 1
 
     def judge_conversation(self) -> int:
-        self.judge.chat_completion.conv.set_system_message(GAME_JUDGE_PROMPTS["gpt-4"]["system"])
-        message = GAME_JUDGE_PROMPTS["gpt-4"]["user_template"].format(goal = self._env_goal, conversation = self.env_state[1:])
-        
+        self.judge.chat_completion.conv.set_system_message(
+            GAME_JUDGE_PROMPTS["gpt-4"]["system"]
+        )
+        message = GAME_JUDGE_PROMPTS["gpt-4"]["user_template"].format(
+            goal=self._env_goal, conversation=self.env_state[1:]
+        )
+
         valid_judge_response = False
         i = 0
         while not valid_judge_response:
             response = self.judge.chat_completion.single_turn_chat_completion(
-                message = message, history = False
+                message=message, history=False
             )
             print(response)
             llm_judge_trace = parse_llm_judge_evaluation(
@@ -107,15 +113,15 @@ class RedteamGame:
             valid_judge_response = is_valid_llm_judge_trace(
                 llm_judge_trace=llm_judge_trace,
             )
-            i+=1
-            if i>5:
+            i += 1
+            if i > 5:
                 response = None
                 llm_judge_trace = None
                 break
         self.judge.reset()
         return response, llm_judge_trace
 
-    def simulate(self, judge = False):
+    def simulate(self, judge=False):
         self.reset()
         defender_action = (
             self._env_goal

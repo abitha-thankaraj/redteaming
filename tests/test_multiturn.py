@@ -5,7 +5,7 @@ from redteam.train.multiturn_sft import (
     preprocess,
     tokenize_conversations,
     mask_targets,
-    SupervisedDataset
+    SupervisedDataset,
 )
 from fastchat.model.model_adapter import get_conversation_template
 
@@ -90,23 +90,28 @@ if __name__ == "__main__":
     template_id = model_name
 
     from redteam.train.datasets import get_conversations
+
     EXAMPLE_FNAME = "/data/tir/projects/tir7/user_data/athankar/redteaming/data/gen_judge_multiturn_conversation/gpt-4_judge_generated_multiturn_conversations_22-00-1722564014.json"
     attacker_raw_messages = get_conversations(EXAMPLE_FNAME, "attacker")
-    
+
     dataset = SupervisedDataset(attacker_raw_messages, tokenizer, template_id)
     test_data_point = dataset[0]
     print("Decoding inputs")
     print(tokenizer.decode(test_data_point["input_ids"]))
     print("Masked labels")
-    print(tokenizer.decode(torch.where(test_data_point['labels'] == IGNORE_TOKEN_ID, tokenizer.unk_token_id, test_data_point['labels'])))
+    print(
+        tokenizer.decode(
+            torch.where(
+                test_data_point["labels"] == IGNORE_TOKEN_ID,
+                tokenizer.unk_token_id,
+                test_data_point["labels"],
+            )
+        )
+    )
 
+    from IPython import embed
 
-    from IPython import embed; embed()
-
-    
-
-
-
+    embed()
 
     raw_data = TEST_SOURCES
 
