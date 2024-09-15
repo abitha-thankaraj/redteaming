@@ -2,23 +2,12 @@ import torch
 import torch.nn.functional as F
 from transformers import Trainer
 from transformers.models.auto.modeling_auto import MODEL_FOR_CAUSAL_LM_MAPPING_NAMES
-from dataclasses import dataclass, field
 
-
-
-# Offline RWR -  TODO: Test step by step.
 
 class RWRTrainer(Trainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.rwr_args = kwargs.get("rwr_args", None)
-
-        # self.rwr_temperature = rwr_args.rwr_temperature
-        # # kwargs.get("rwr_temperature", 1.0)
-        # self.rwr_type = rwr_args.rwr_type
-        # # kwargs.get("rwr_type", "exp")
-        # self.rwr_value_function_token_weight = rwr_args.rwr_value_function_token_weight
-        # kwargs.get("rwr_value_function_token_weight", 1.0)
+        self.rwr_args = self.args.rwr_args
 
     def get_rwr_term(
         self, rewards: torch.Tensor, rwr_type: str, per_token_weights: torch.Tensor = None
@@ -41,7 +30,6 @@ class RWRTrainer(Trainer):
         # elif rwr_type == "baseline_ema_batch_mean":
         #     return rewards - self._ema_rewards.mean()
         # elif rwr_type == "baseline_running_mean":
-
         # elif rwr_type == "rloo":
 
         else:

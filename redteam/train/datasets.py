@@ -67,12 +67,12 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
         gamma: float = 0.9,
         min_reward: float = 0.0,
         # Create a dataclass or a dictionary?
-        value_function_type: str = None,
+        value_function_type: str = "",
         value_function_experiment: str = None,
         model_name: str = None,
     ):
         # Ugly; but should work.
-        if value_function_type is not None or value_function_type!="":
+        if value_function_type!="":
             value_function_reserved_strs = get_value_function_keywords(value_function_type=value_function_type, 
                                                                         gamma=gamma, 
                                                                         model_name=model_name)

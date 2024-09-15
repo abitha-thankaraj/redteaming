@@ -1,6 +1,6 @@
 # Borrowed from https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py
 import os
-
+from typing import Any
 # Add this here for wandb project name
 os.environ["WANDB_ENTITY"] = "mt_redteam"
 os.environ["WANDB_PROJECT"] = "redteaming"
@@ -37,7 +37,6 @@ IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 class ModelArguments:
     model_name_or_path: Optional[str] = field(default="mistralai/Mistral-7B-Instruct-v0.1")
 
-
 @dataclass
 class DataArguments:
     data_path: str = field(default=None, metadata={"help": "Path to the training data."})
@@ -47,7 +46,6 @@ class DataArguments:
     agent_type: str = field(
         default="attacker",
         metadata={"help": "Type of agent to train on. Available options: attacker, defender"},
-        # choices=["attacker", "defender", "llama_attacker"],
     )
     gamma: float = field(
         default=0.9, metadata={"help": "Discount factor for the rewards."}
@@ -55,7 +53,7 @@ class DataArguments:
     dataset_type: str = field(default="naive_balance")
     length_key: str = field(default="")
     max_length: int = field(default=-1)
-    value_function_type: str = field(default=None),
+    value_function_type: str = field(default=""),
     model_name: str = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
     value_function_experiment: str = field(default=None)
 
@@ -88,9 +86,12 @@ class TrainingArguments(transformers.TrainingArguments):
     torch_empty_cache_steps: int = field(
         default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"}
     )
-    data_args: DataArguments = field(default=None)
-    model_args: ModelArguments = field(default=None)
-    rwr_args: RWRArguments = field(default=None)
+    # data_args: DataArguments = field(default=DataArguments())
+    # model_args: ModelArguments = field(default=ModelArguments())
+    # rwr_args: RWRArguments = field(default=RWRArguments())
+    data_args:Any = field(default=None)
+    model_args:Any = field(default=None)
+    rwr_args:Any = field(default=None)
 
 
 # Debugging utils
@@ -170,7 +171,6 @@ def train():
     training_args.model_args = model_args
     training_args.rwr_args = rwr_args
 
-
     assert (
         training_args.model_max_length >= data_args.max_length
     ), "Model max length should be greater than data max length"
@@ -233,7 +233,6 @@ def train():
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        rwr_args= rwr_args
     )
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
