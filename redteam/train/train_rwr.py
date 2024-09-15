@@ -86,9 +86,7 @@ class TrainingArguments(transformers.TrainingArguments):
     torch_empty_cache_steps: int = field(
         default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"}
     )
-    # data_args: DataArguments = field(default=DataArguments())
-    # model_args: ModelArguments = field(default=ModelArguments())
-    # rwr_args: RWRArguments = field(default=RWRArguments())
+    # Adding args for data, model and rwr
     data_args:Any = field(default=None)
     model_args:Any = field(default=None)
     rwr_args:Any = field(default=None)
