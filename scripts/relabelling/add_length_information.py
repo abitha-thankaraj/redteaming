@@ -33,20 +33,23 @@ def main(filename, savefile):
     for record in data:
         for conversation_type in ["positives", "negatives"]:
             for datapoint in record[conversation_type]:
-                new_convs = deepcopy(datapoint['conversation'])
+                new_convs = deepcopy(datapoint["conversation"])
 
-                for i in range(len(datapoint['conversation'])):
-                    new_convs[i]["content"] = datapoint['conversation'][i]["content"].strip(" \t\n\r")
-        
+                for i in range(len(datapoint["conversation"])):
+                    new_convs[i]["content"] = datapoint["conversation"][i]["content"].strip(
+                        " \t\n\r"
+                    )
+
                 for model_name in tokenizers:
                     tokenizer = tokenizers[model_name]
                     tokenized = tokenizer.apply_chat_template(new_convs, tokenize=True)
                     length = len(tokenized)
                     datapoint[model_name.split("/")[-1] + "_length"] = length
 
-                datapoint['conversation'] = new_convs
+                datapoint["conversation"] = new_convs
 
     write_json(data, savefile)
+
 
 def main_flat(filename, savefile):
     tokenizers = load_tokenizers()
@@ -54,11 +57,11 @@ def main_flat(filename, savefile):
 
     for record in data:
         # for conversation_type in ["positives", "negatives"]:
-            # for datapoint in record[conversation_type]:
-        new_convs = deepcopy(record['conversation'])
+        # for datapoint in record[conversation_type]:
+        new_convs = deepcopy(record["conversation"])
 
-        for i in range(len(record['conversation'])):
-            new_convs[i]["content"] = record['conversation'][i]["content"].strip(" \t\n\r")
+        for i in range(len(record["conversation"])):
+            new_convs[i]["content"] = record["conversation"][i]["content"].strip(" \t\n\r")
 
         for model_name in tokenizers:
             tokenizer = tokenizers[model_name]
@@ -66,17 +69,20 @@ def main_flat(filename, savefile):
             length = len(tokenized)
             record[model_name.split("/")[-1] + "_length"] = length
 
-        record['conversation'] = new_convs
+        record["conversation"] = new_convs
 
     write_json(data, savefile)
 
+
 if __name__ == "__main__":
-    DATA_DIR = "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined"
+    DATA_DIR = (
+        "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined"
+    )
     # main(
     #     filename=f"{DATA_DIR}/combined_eval_data_llama_rewards_paired.json",
     #     savefile=f"{DATA_DIR}/combined_eval_data_llama_rewards_paired_length_added.json",
     # )
     main_flat(
-            filename=f"{DATA_DIR}/combined_eval_data_llama_rewards_flat.json",
-            savefile=f"{DATA_DIR}/combined_eval_data_llama_rewards_flat_length_added.json",
-        )
+        filename=f"{DATA_DIR}/combined_eval_data_llama_rewards_flat.json",
+        savefile=f"{DATA_DIR}/combined_eval_data_llama_rewards_flat_length_added.json",
+    )

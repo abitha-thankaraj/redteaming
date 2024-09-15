@@ -66,12 +66,8 @@ def get_jailbreakbench_dataset(dataset_path: str) -> ArrowDataset:
             print(dataset[i]['prompt'])
     """
     return load_dataset(
-        "JailbreakBench/JBB-Behaviors", 
-        "behaviors",
-        split="harmful"
-    ).rename_column(
-        "Goal", "prompt"
-    )
+        "JailbreakBench/JBB-Behaviors", "behaviors", split="harmful"
+    ).rename_column("Goal", "prompt")
 
 
 def get_dataset(

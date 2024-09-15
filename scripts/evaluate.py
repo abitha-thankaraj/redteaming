@@ -60,7 +60,7 @@ def main(config: DictConfig):
 
     trajs = []
     errors = []
-    
+
     for goal in tqdm(goals):
         try:
             redteaming_game.reset(goal=goal)

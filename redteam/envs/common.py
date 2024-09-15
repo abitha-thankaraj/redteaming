@@ -1,15 +1,24 @@
 from gym.utils import seeding
 from typing import Optional, Any
 
-from redteam.inference.language_models import LanguageModel, HuggingFaceLM, load_model_and_tokenizer
+from redteam.inference.language_models import (
+    LanguageModel,
+    HuggingFaceLM,
+    load_model_and_tokenizer,
+)
 from redteam.train.datasets import get_value_function_keywords
+
 
 class GameConversation:
     def __init__(self, system_message: str = "", messages=None, value_function_keywords=None):
         self.messages = messages if messages is not None else []
         self.system_message = system_message
-        self.value_function_keywords = value_function_keywords if value_function_keywords is not None else get_all_value_function_keywords()
-    
+        self.value_function_keywords = (
+            value_function_keywords
+            if value_function_keywords is not None
+            else get_all_value_function_keywords()
+        )
+
     def set_system_message(self, system_message: str):
         self.system_message = system_message
 
@@ -24,12 +33,9 @@ class GameConversation:
         """
         self.messages[-1][1] = message
 
-    def _format_messages(self, 
-                        system_role, 
-                        user_role, 
-                        assistant_role, 
-                        offset=0, 
-                        strip_user_messages=True):
+    def _format_messages(
+        self, system_role, user_role, assistant_role, offset=0, strip_user_messages=True
+    ):
         """Convert the conversation to OpenAI chat completion format."""
         if self.system_message == "":
             ret = []
@@ -48,7 +54,13 @@ class GameConversation:
 
     def to_openai_api_messages(self, offset=0, strip_user_messages=True):
         """Convert the conversation to OpenAI chat completion format."""
-        return self._format_messages("system", "user", "assistant", offset=offset, strip_user_messages=strip_user_messages)
+        return self._format_messages(
+            "system",
+            "user",
+            "assistant",
+            offset=offset,
+            strip_user_messages=strip_user_messages,
+        )
 
     def to_game_message(self):
         """Convert the conversation to a game message."""
@@ -56,13 +68,13 @@ class GameConversation:
         for role, msg in self.messages:
             ret.append({"role": role, "content": msg})
         return ret
-    
+
     def to_attacker_message(self):
         return self.to_openai_api_messages(offset=0, strip_user_messages=True)
-    
+
     def to_defender_message(self):
         return self.to_openai_api_messages(offset=1, strip_user_messages=True)
-    
+
     @classmethod
     def parse_messages(self, message_dict):
         messages = []
@@ -70,29 +82,29 @@ class GameConversation:
             messages.append((message["role"], message["content"]))
         return messages
 
+
 class Policy(HuggingFaceLM):
     def __init__(self, model_name, model, tokenizer, generation_kwargs):
         super().__init__(model_name, model, tokenizer)
         self.generation_kwargs = generation_kwargs
-    
+
     def act(self, obs):
         return self.generate(obs, **self.generation_kwargs)
-    
+
     def act_batch(self, obses):
         raise NotImplementedError
-    
+
     def reset(self):
         pass
-        
 
 
 def get_policy(config):
-    model, tokeniser = load_model_and_tokenizer(config.model_name, 
-                                                config.model_dir, 
-                                                config.model_cache_dir, 
-                                                config.device)
+    model, tokeniser = load_model_and_tokenizer(
+        config.model_name, config.model_dir, config.model_cache_dir, config.device
+    )
     return Policy(config.model_name, model, tokeniser, config.generation_kwargs)
-    
+
+
 def get_all_value_function_keywords():
     value_function_map = get_value_function_keywords(value_function_type="all")
     value_function_keywords = set()
@@ -101,8 +113,9 @@ def get_all_value_function_keywords():
             value_function_keywords.add(v)
     return value_function_keywords
 
+
 def split_message(value_keywords, msg):
     for keyword in value_keywords:
         if msg.startswith(keyword):
-            return msg[len(keyword):].strip()
+            return msg[len(keyword) :].strip()
     return msg

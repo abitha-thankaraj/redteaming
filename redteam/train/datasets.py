@@ -72,18 +72,20 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
         model_name: str = None,
     ):
         # Ugly; but should work.
-        if value_function_type!="":
-            value_function_reserved_strs = get_value_function_keywords(value_function_type=value_function_type, 
-                                                                        gamma=gamma, 
-                                                                        model_name=model_name)
+        if value_function_type != "":
+            value_function_reserved_strs = get_value_function_keywords(
+                value_function_type=value_function_type, gamma=gamma, model_name=model_name
+            )
             for i, conversation in enumerate(conversations):
-                conversations[i] = relabel_conversation(value_function_experiment,
+                conversations[i] = relabel_conversation(
+                    value_function_experiment,
                     value_function_type=value_function_type,
                     conversation=conversations[i],
-                    reward_per_turn= reward_per_turns[i],
+                    reward_per_turn=reward_per_turns[i],
                     gamma=gamma,
-                    value_function_reserved_strs=value_function_reserved_strs)
-                
+                    value_function_reserved_strs=value_function_reserved_strs,
+                )
+
         super().__init__(
             conversations=conversations,
             tokenizer=tokenizer,
@@ -250,7 +252,7 @@ def relabel_conversation(
     conversation: List[Dict[str, str]],
     reward_per_turn: List[List[float]],
     gamma: float = 0.9,
-    value_function_reserved_strs = None
+    value_function_reserved_strs=None,
 ) -> List[Dict[str, str]]:
     """
     Add prefix to assistant response on value function type.
@@ -263,7 +265,7 @@ def relabel_conversation(
         model_name: Model name to use for special tokens.
     """
     # add value function to the beginning/end of each assistant response.
-    
+
     reward_to_gos = get_reward_to_gos(reward_per_turn, gamma)
 
     if value_function_type in ["binary", "natural_lang_binary"]:
@@ -277,19 +279,18 @@ def relabel_conversation(
         if message["role"] == "assistant":
             if value_function_experiment == "prefix":
                 # prefic the special token or the natural language value function
-                    message["content"] = (
-                        f"{value_function_reserved_strs[rews[j//2]]}{message['content']}" #do //2 becuase of turn level rewards
-                    )
+                message["content"] = (
+                    f"{value_function_reserved_strs[rews[j//2]]}{message['content']}"  # do //2 becuase of turn level rewards
+                )
             elif value_function_experiment == "overfit":
                 message["content"] = (
-                    f"{value_function_reserved_strs[rews[j//2]]} $$" # Add $$ in the end to prevent stripping of the spaces
-                )            
+                    f"{value_function_reserved_strs[rews[j//2]]} $$"  # Add $$ in the end to prevent stripping of the spaces
+                )
             else:
                 raise NotImplementedError(
                     f"Value function strategy {value_function_experiment} not implemented"
                 )
     return conversation
-
 
 
 def get_value_function_keywords(
@@ -326,12 +327,11 @@ def get_value_function_keywords(
     }
 
     if model_name == "meta-llama/Meta-Llama-3.1-8B-Instruct":
-        if value_function_type=="all":
+        if value_function_type == "all":
             return LLAMA_SPECIAL_TOKEN_MAP
         return LLAMA_SPECIAL_TOKEN_MAP[value_function_type]
     else:
         raise ValueError(f"Model {model_name} not supported")
-
 
 
 # def get_reward_to_gos(rewards, gamma):

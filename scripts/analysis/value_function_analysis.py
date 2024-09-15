@@ -8,8 +8,6 @@ def get_metrics(fname):
     # get rewards
     rewards = []
     for d in data:
-        rewards.append(d["judge"]['reward'])
-        
-    
-    
+        rewards.append(d["judge"]["reward"])
+
     # COnvert to pandas dataframe

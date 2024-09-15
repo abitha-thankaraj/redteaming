@@ -13,14 +13,16 @@ webhook_url = "https://hooks.slack.com/services/TT6H5QP8V/B07KV40RQUU/QyNh4kVLVX
 # Send Slack notification based on the given message
 def slack_notification(message):
     try:
-        slack_message = {'text': message}
+        slack_message = {"text": message}
 
         http = urllib3.PoolManager()
-        response = http.request('POST',
-                                webhook_url,
-                                body=json.dumps(slack_message),
-                                headers={'Content-Type': 'application/json'},
-                                retries=False)
+        response = http.request(
+            "POST",
+            webhook_url,
+            body=json.dumps(slack_message),
+            headers={"Content-Type": "application/json"},
+            retries=False,
+        )
     except:
         traceback.print_exc()
 

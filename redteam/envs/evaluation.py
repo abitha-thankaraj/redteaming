@@ -3,6 +3,7 @@ from typing import Optional, Any
 from redteam.envs.common import GameConversation
 from redteam.train.datasets import get_value_function_keywords, get_reward_to_gos
 
+
 class Game:
     def __init__(self, seed, attacker, defender, judge, goals=None, max_turns=3):
         self.seed(seed)
@@ -42,7 +43,7 @@ class Game:
     def simulate_n_turns(self, n):
         for _ in range(n):
             self.simulate_one_turn()
-    
+
     def simulate(self):
         while self._turn < self.max_turns:
             self.simulate_one_turn()
@@ -50,6 +51,7 @@ class Game:
         # Remove the goal. Pass in as openai format for judge
         judge_score = self.judge.score(self.env_state.to_defender_message())
         return self.env_state, judge_score
+
 
 def evaluate_value_function(conversation, value_function_type, rewards, policy_type):
     if policy_type == "defender":
@@ -63,19 +65,23 @@ def evaluate_value_function(conversation, value_function_type, rewards, policy_t
     else:
         raise NotImplementedError(f"Value function type {value_function_type} not implemented")
 
-    value_function_token_map = get_value_function_keywords(value_function_type, 
-                                                           gamma=0.9, 
-                                                           model_name="meta-llama/Meta-Llama-3.1-8B-Instruct")
+    value_function_token_map = get_value_function_keywords(
+        value_function_type, gamma=0.9, model_name="meta-llama/Meta-Llama-3.1-8B-Instruct"
+    )
     gt_vfs = []
     is_correct_value_function_predictions = []
     for i, rew in enumerate(rews):
         gt_vfs.append(value_function_token_map[rew])
         # get assistant turn
-        assert conversation[i*2+1]["role"] == "assistant", "Assistant turn not found"
+        assert conversation[i * 2 + 1]["role"] == "assistant", "Assistant turn not found"
         # Did the assistant predict the correct value function for future states?
-        is_correct_value_function_predictions.append(conversation[i*2+1]["content"].strip().startswith(value_function_token_map[rew]))
+        is_correct_value_function_predictions.append(
+            conversation[i * 2 + 1]["content"]
+            .strip()
+            .startswith(value_function_token_map[rew])
+        )
 
     return {
         "ground_truth_value_functions": gt_vfs,
-        "is_correct_value_function_predictions": is_correct_value_function_predictions
+        "is_correct_value_function_predictions": is_correct_value_function_predictions,
     }

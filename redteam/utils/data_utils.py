@@ -15,7 +15,7 @@ def write_json(data, fname):
 
 
 def find_all_files(
-    root_dir: str, 
+    root_dir: str,
     file_suffix: Optional[str] = None,
 ) -> List[str]:
     """
@@ -24,9 +24,9 @@ def find_all_files(
 
     Input:
         root_dir (str): The absolute path to the root directory where all files should be in.
-        file_suffix (Optional[str]): The suffix (e.g., json) to filter by. 
+        file_suffix (Optional[str]): The suffix (e.g., json) to filter by.
             Default: None
-    
+
     Output:
         A List of str, with absolute paths to all files in the directory with the given suffix.
 
@@ -41,7 +41,7 @@ def find_all_files(
     """
     if not os.path.isdir(root_dir):
         raise ValueError(f"Given directory {root_dir} is not a directory.")
-    
+
     all_sub_file_or_dirs = os.listdir(root_dir)
 
     all_files = []

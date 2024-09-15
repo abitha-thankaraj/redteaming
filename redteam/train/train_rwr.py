@@ -1,9 +1,10 @@
 # Borrowed from https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py
 import os
-from typing import Any
 # Add this here for wandb project name
 os.environ["WANDB_ENTITY"] = "mt_redteam"
 os.environ["WANDB_PROJECT"] = "redteaming"
+
+from typing import Any
 
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Tuple
@@ -37,6 +38,7 @@ IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 class ModelArguments:
     model_name_or_path: Optional[str] = field(default="mistralai/Mistral-7B-Instruct-v0.1")
 
+
 @dataclass
 class DataArguments:
     data_path: str = field(default=None, metadata={"help": "Path to the training data."})
@@ -47,15 +49,14 @@ class DataArguments:
         default="attacker",
         metadata={"help": "Type of agent to train on. Available options: attacker, defender"},
     )
-    gamma: float = field(
-        default=0.9, metadata={"help": "Discount factor for the rewards."}
-    )
+    gamma: float = field(default=0.9, metadata={"help": "Discount factor for the rewards."})
     dataset_type: str = field(default="naive_balance")
     length_key: str = field(default="")
     max_length: int = field(default=-1)
-    value_function_type: str = field(default=""),
+    value_function_type: str = (field(default=""),)
     model_name: str = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
     value_function_experiment: str = field(default=None)
+
 
 @dataclass
 class RWRArguments:
@@ -63,13 +64,15 @@ class RWRArguments:
         default=1.0,
         metadata={"help": "RWR temperature (β) . Higher -> | Lower -> "},
     )
-    rwr_type: str = field(
-        default="exp", metadata={"help": "RWR term type. Available options: exp"}),
-    
+    rwr_type: str = (
+        field(default="exp", metadata={"help": "RWR term type. Available options: exp"}),
+    )
+
     rwr_value_function_token_weight: float = field(
         default=1.0,
         metadata={"help": "Weight for the value function tokens in the RWR term."},
     )
+
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
@@ -87,9 +90,9 @@ class TrainingArguments(transformers.TrainingArguments):
         default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"}
     )
     # Adding args for data, model and rwr
-    data_args:Any = field(default=None)
-    model_args:Any = field(default=None)
-    rwr_args:Any = field(default=None)
+    data_args: Any = field(default=None)
+    model_args: Any = field(default=None)
+    rwr_args: Any = field(default=None)
 
 
 # Debugging utils
@@ -134,8 +137,8 @@ def get_dataset(
         conversation_reward_dict["rewards"],
         gamma=data_args.gamma,
         value_function_type=data_args.value_function_type,
-        model_name = data_args.model_name,
-        value_function_experiment = data_args.value_function_experiment
+        model_name=data_args.model_name,
+        value_function_experiment=data_args.value_function_experiment,
     )
 
     eval_conversation_reward_dict = RWRDatasetHelper(
@@ -154,8 +157,8 @@ def get_dataset(
         eval_conversation_reward_dict["rewards"],
         gamma=data_args.gamma,
         value_function_type=data_args.value_function_type,
-        model_name = data_args.model_name,
-        value_function_experiment = data_args.value_function_experiment
+        model_name=data_args.model_name,
+        value_function_experiment=data_args.value_function_experiment,
     )
     return train_dataset, eval_dataset
 
@@ -163,7 +166,9 @@ def get_dataset(
 def train():
     global local_rank
     # Parse args; All configs sent to the model
-    parser = transformers.HfArgumentParser((ModelArguments, DataArguments, RWRArguments, TrainingArguments))
+    parser = transformers.HfArgumentParser(
+        (ModelArguments, DataArguments, RWRArguments, TrainingArguments)
+    )
     model_args, data_args, rwr_args, training_args = parser.parse_args_into_dataclasses()
     training_args.data_args = data_args
     training_args.model_args = model_args

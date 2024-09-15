@@ -21,6 +21,7 @@ logger.setLevel(logging.INFO)
 
 global_config = None
 
+
 @hydra.main(
     version_base=None,
     config_path="/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/configs/",
@@ -41,18 +42,20 @@ def main(config: DictConfig):
     judge = LlamaGuardJudge(config.judge.device)
 
     goals = get_dataset(**config.dataset_configs)["prompt"]
-    
+
     save_config = OmegaConf.to_yaml(config)
     with open(os.path.join(config.out_dir, "config.yaml"), "w") as f:
         f.write(save_config)
-    redteaming_game = BestOfNRedteamingGame(config.seed,
-                attacker=attacker,
-                defender=defender,
-                judge= judge,
-                goals = goals, 
-                max_turns = config.max_turns,
-                choose_safe=config.choose_safe)
-    config.out_fname = os.path.join(config.out_dir,config.out_fname.replace("/", ".."))
+    redteaming_game = BestOfNRedteamingGame(
+        config.seed,
+        attacker=attacker,
+        defender=defender,
+        judge=judge,
+        goals=goals,
+        max_turns=config.max_turns,
+        choose_safe=config.choose_safe,
+    )
+    config.out_fname = os.path.join(config.out_dir, config.out_fname.replace("/", ".."))
     trajs = []
     errors = []
     for i, goal in tqdm(enumerate(goals)):
@@ -68,18 +71,19 @@ def main(config: DictConfig):
             logger.error(f"Error in simulating game for goal: {goal}")
             logger.error(e)
             errors.append({"goal": goal, "error": str(e)})
-            slack_notification(f"Error in simulating game for goal: {goal}, config: {global_config}")
-        
+            slack_notification(
+                f"Error in simulating game for goal: {goal}, config: {global_config}"
+            )
+
         # Keep dumping the trajs to file
         write_json(trajs, config.out_fname)
         if len(errors) > 0:
             write_json(errors, config.out_fname.replace(".json", "_errors.json"))
 
-    
     write_json(trajs, config.out_fname)
     if len(errors) > 0:
         write_json(errors, config.out_fname.replace(".json", "_errors.json"))
-    
+
 
 if __name__ == "__main__":
     try:
@@ -87,4 +91,6 @@ if __name__ == "__main__":
         slack_notification(f"Redteaming game completed successfully: config: {global_config}")
     except Exception as e:
         logger.error(str(e))
-        slack_notification(f"Error in running redteaming game: {str(e)}, config: {global_config}")
+        slack_notification(
+            f"Error in running redteaming game: {str(e)}, config: {global_config}"
+        )

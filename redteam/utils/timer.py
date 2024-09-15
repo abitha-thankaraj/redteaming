@@ -1,5 +1,7 @@
 import time
 import functools
+
+
 class DebugTimer:
     def __init__(self, name="snippet"):
         self.name = name
@@ -18,13 +20,14 @@ class DebugTimer:
     def get_time_str(self):
         if self.start is None:
             return "Timer hasn't started"
-        
+
         current_time = time.time()
         interval = current_time - self.start if self.end is None else self.interval
-        
+
         minutes, seconds = divmod(interval, 60)
         milliseconds = (seconds - int(seconds)) * 1000
         return f"{int(minutes):02d}m {int(seconds):02d}s {int(milliseconds):03d}ms"
+
 
 def debug_timer(func):
     @functools.wraps(func)
@@ -33,6 +36,7 @@ def debug_timer(func):
             result = func(*args, **kwargs)
         print(f"{func.__name__} executed in {timer.get_time_str()}")
         return result
+
     return wrapper
 
 
@@ -41,4 +45,3 @@ def get_timeelapsed(start, end):
     minutes, seconds = divmod(elapsed, 60)
     milliseconds = (seconds - int(seconds)) * 1000
     return f"{int(minutes):02d}m {int(seconds):02d}s {int(milliseconds):03d}ms"
-    

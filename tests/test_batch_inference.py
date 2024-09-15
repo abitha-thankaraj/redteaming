@@ -6,7 +6,10 @@ from redteam.inference.language_models import HuggingFaceLM
 
 
 CACHE_DIR = "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
-CONVERSATIONS_FNAME = "/data/tir/projects/tir7/user_data/athankar/redteaming/tests/dummy_conversations.json"
+CONVERSATIONS_FNAME = (
+    "/data/tir/projects/tir7/user_data/athankar/redteaming/tests/dummy_conversations.json"
+)
+
 
 def set_seed_everywhere(seed):
     torch.manual_seed(seed)
@@ -14,8 +17,7 @@ def set_seed_everywhere(seed):
         torch.cuda.manual_seed_all(seed)
 
 
-
-def main(model_name = "meta-llama/Meta-Llama-3.1-8B-Instruct"):
+def main(model_name="meta-llama/Meta-Llama-3.1-8B-Instruct"):
     set_seed_everywhere(42)
     conversations = [c["conversation"] for c in read_json(CONVERSATIONS_FNAME)]
     config = transformers.AutoConfig.from_pretrained(
@@ -30,7 +32,7 @@ def main(model_name = "meta-llama/Meta-Llama-3.1-8B-Instruct"):
         trust_remote_code=True,
         cache_dir=CACHE_DIR,
         # attn_implementation="flash_attention_2",
-        torch_dtype=torch.float32
+        torch_dtype=torch.float32,
     ).to("cuda:0")
     model.tie_weights()
 
@@ -48,9 +50,8 @@ def main(model_name = "meta-llama/Meta-Llama-3.1-8B-Instruct"):
     tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
     # tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    lm = HuggingFaceLM(model_name = model_name, model = model, tokenizer = tokenizer)    
-    outputs = lm.batched_generate(convs = conversations, max_n_tokens = 500, temperature = 0.)
-
+    lm = HuggingFaceLM(model_name=model_name, model=model, tokenizer=tokenizer)
+    outputs = lm.batched_generate(convs=conversations, max_n_tokens=500, temperature=0.0)
 
 
 if __name__ == "__main__":

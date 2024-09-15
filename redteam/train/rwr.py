@@ -16,7 +16,7 @@ class RWRTrainer(Trainer):
         Compute the RWR weight term for the given rewards.
         rewards: Tensor of shape (B, T) where B is the batch size and T is the sequence length.
         rwr_type: Type of RWR term to use.
-        per_token_weights: Weights for each token in the sequence; shape should be (B, T). 
+        per_token_weights: Weights for each token in the sequence; shape should be (B, T).
         Used to upweight the value function tokens.
         """
         if rwr_type == "exp":
@@ -44,12 +44,16 @@ class RWRTrainer(Trainer):
         labels = inputs["labels"]
         rewards = inputs.pop("rewards", torch.zeros_like(labels))  # shape should be (B, T)
         # weighted loss for value function tokens
-        value_function_token_idxs = inputs.pop("value_function_token_idxs", torch.zeros_like(labels).bool())
+        value_function_token_idxs = inputs.pop(
+            "value_function_token_idxs", torch.zeros_like(labels).bool()
+        )
         # default weight for regular tokens = 1.
         per_token_weights = torch.ones_like(labels)
-        #TODO: Uncomment
-        per_token_weights.masked_fill_(value_function_token_idxs, self.rwr_args.rwr_value_function_token_weight)
-        
+        # TODO: Uncomment
+        per_token_weights.masked_fill_(
+            value_function_token_idxs, self.rwr_args.rwr_value_function_token_weight
+        )
+
         model_output = model(
             **inputs
         )  # Standard forward pass, for testing purposes we can use the loss term from here.
@@ -74,7 +78,9 @@ class RWRTrainer(Trainer):
             rewards = rewards[
                 ..., 1:
             ].contiguous()  # Shift rewards to the same extent as the labels; Rewards are on labels
-            per_token_weights = per_token_weights[..., 1:].contiguous() # Shift per_token_weights to the same extent as rewards
+            per_token_weights = per_token_weights[
+                ..., 1:
+            ].contiguous()  # Shift per_token_weights to the same extent as rewards
 
         # This is just cross-entropy; but weighted by the RWR term:
         log_probs = -F.log_softmax(logits, dim=-1)  # Log softmax over the vocabulary dimension
@@ -96,7 +102,9 @@ class RWRTrainer(Trainer):
         nll_loss = log_probs.gather(dim=-1, index=labels)
         nll_loss.masked_fill_(padding_mask, 0.0)
         # Multiply by the RWR term; You dont calculate the loss on any of the masked terms.
-        nll_loss = nll_loss * self.get_rwr_term(rewards, self.rwr_args.rwr_type, per_token_weights)
+        nll_loss = nll_loss * self.get_rwr_term(
+            rewards, self.rwr_args.rwr_type, per_token_weights
+        )
         # Take the mean over the label dimensions, then divide by the number of active elements (i.e. not-padded):
         num_active_elements = padding_mask.numel() - padding_mask.long().sum()
         # Average over only the non-masked elements

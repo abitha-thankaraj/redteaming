@@ -227,7 +227,9 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
                 lambda x: RLHFDatasetHelperBase.create_defender_message(x), axis=1
             )
             # All turns are not jailbroken.
-            self.raw_data["positives"] = self.raw_data["rewards"].apply(lambda x: x.sum() == 0.0)
+            self.raw_data["positives"] = self.raw_data["rewards"].apply(
+                lambda x: x.sum() == 0.0
+            )
             # Flip rewards for defender | # Defender is independent of the goal
             self.raw_data["rewards"] = self.raw_data["rewards"].apply(lambda x: 1.0 - x)
 
@@ -239,7 +241,9 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
                 axis=1,
             )
             # Anything with rewards > 0 is a positive example/ turnwise - sum works.
-            self.raw_data["positives"] = self.raw_data["rewards"].apply(lambda x: x.sum() > 0.0)
+            self.raw_data["positives"] = self.raw_data["rewards"].apply(
+                lambda x: x.sum() > 0.0
+            )
 
     def get_conversations(self):
         subsampled_indices = self._get_indices()
