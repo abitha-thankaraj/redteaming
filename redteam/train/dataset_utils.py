@@ -29,12 +29,6 @@ def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
             is_good_llama_attacker_message,
             RLHFDatasetHelperBase.create_attacker_message,
         ),
-        "attacker": (is_good_attacker_message, RLHFDatasetHelperBase.create_attacker_message),
-        "defender": (is_good_defender_message, RLHFDatasetHelperBase.create_defender_message),
-        "llama_attacker": (
-            is_good_llama_attacker_message,
-            RLHFDatasetHelperBase.create_attacker_message,
-        ),
     }
     if agent_type not in agent_config:
         raise ValueError(f"Invalid agent type: {agent_type}")
@@ -229,11 +223,14 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
         self.dataset_type = dataset_type
 
         if agent_type == "defender":
-            # Flip rewards for defender | # Defender is independant of the goal
-            self.raw_data["rewards"] = self.raw_data["rewards"].apply(lambda x: 1.0 - x)
             self.raw_data["defender_messages"] = self.raw_data[["conversation"]].apply(
                 lambda x: RLHFDatasetHelperBase.create_defender_message(x), axis=1
             )
+            # All turns are not jailbroken.
+            self.raw_data["positives"] = self.raw_data["rewards"].apply(lambda x: x.sum() == 0.0)
+            # Flip rewards for defender | # Defender is independent of the goal
+            self.raw_data["rewards"] = self.raw_data["rewards"].apply(lambda x: 1.0 - x)
+
         elif agent_type == "attacker":
             self.raw_data["attacker_messages"] = self.raw_data[["goal", "conversation"]].apply(
                 lambda x: RLHFDatasetHelperBase.create_attacker_message(
@@ -241,8 +238,8 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
                 ),
                 axis=1,
             )
-        # Anything with rewards > 0 is a positive example/ turnwise - sum works.
-        self.raw_data["positives"] = self.raw_data["rewards"].apply(lambda x: x.sum() > 0.0)
+            # Anything with rewards > 0 is a positive example/ turnwise - sum works.
+            self.raw_data["positives"] = self.raw_data["rewards"].apply(lambda x: x.sum() > 0.0)
 
     def get_conversations(self):
         subsampled_indices = self._get_indices()

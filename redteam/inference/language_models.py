@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 def load_model_and_tokenizer(model_name, model_dir, model_cache_dir, device):
 
-    tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path=model_dir)
+    tokenizer = AutoTokenizer.from_pretrained(
+                                pretrained_model_name_or_path=model_dir,
+                                use_fast=False)
     tokenizer.padding_side = "left"
 
     # Llama3 models don't have pad token
@@ -21,6 +23,11 @@ def load_model_and_tokenizer(model_name, model_dir, model_cache_dir, device):
         and model_name in ["meta-llama/Meta-Llama-3.1-8B-Instruct", "meta-llama/Meta-Llama-3-8B-Instruct"]
     ):
         tokenizer.pad_token_id = 128004
+    elif (
+        tokenizer.pad_token_id is None
+        and model_name in ["mistralai/Mistral-7B-Instruct-v0.1"]
+    ):
+        tokenizer.pad_token_id = tokenizer.unk_token_id
 
     model = AutoModelForCausalLM.from_pretrained(
         pretrained_model_name_or_path=model_dir,
@@ -133,7 +140,11 @@ class HuggingFaceLM(LanguageModel):
 
         outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=False)
         if "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name or "meta-llama/Meta-Llama-3-8B-Instruct" in self.model_name:
-            outputs_list = [output.replace("assistant\n\n", "") for output in outputs_list]
+            raise Exception("Not implemented")
+            # outputs_list = [output.replace("assistant\n\n", "") for output in outputs_list]
+        if "mistralai/Mistral-7B-Instruct-v0.1" in self.model_name:
+            raise Exception("Not implemented")
+            # outputs_list = [output.replace("[/INST]", "") for output in outputs_list]
 
         for key in inputs:
             inputs[key].to("cpu")
@@ -172,15 +183,18 @@ class HuggingFaceLM(LanguageModel):
                 temperature=1,  # To prevent warning messages
             )
         outputs = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
-
         # outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
         if "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name or "meta-llama/Meta-Llama-3-8B-Instruct" in self.model_name:
             outputs = outputs.split("assistant\n\n")[-1]
-            
+
+        if "mistralai/Mistral-7B-Instruct-v0.1" in self.model_name:
+            outputs = outputs.split("[/INST]")[-1]
+
         for key in inputs:
             inputs[key].to("cpu")
         output_ids.to("cpu")
         del inputs, output_ids
+        
         gc.collect()
         torch.cuda.empty_cache()
 

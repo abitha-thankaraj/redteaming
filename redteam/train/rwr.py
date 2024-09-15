@@ -5,29 +5,20 @@ from transformers.models.auto.modeling_auto import MODEL_FOR_CAUSAL_LM_MAPPING_N
 from dataclasses import dataclass, field
 
 
-@dataclass
-class RWRArguments:
-    rwr_temperature: float = field(
-        default=0.9,
-        metadata={"help": "RWR temperature (β) . Higher -> | Lower -> "},
-    )
-    rwr_type: str = field(
-        default="exp", metadata={"help": "RWR term type. Available options: exp"}),
-    
-    rwr_value_function_token_weight: float = field(
-        default=1.0,
-        metadata={"help": "Weight for the value function tokens in the RWR term."},
-    )
-
 
 # Offline RWR -  TODO: Test step by step.
 
 class RWRTrainer(Trainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.rwr_temperature = kwargs.get("rwr_temperature", 1.0)
-        self.rwr_type = kwargs.get("rwr_type", "exp")
-        self.rwr_value_function_token_weight = kwargs.get("rwr_value_function_token_weight", 1.0)
+        self.rwr_args = kwargs.get("rwr_args", None)
+
+        # self.rwr_temperature = rwr_args.rwr_temperature
+        # # kwargs.get("rwr_temperature", 1.0)
+        # self.rwr_type = rwr_args.rwr_type
+        # # kwargs.get("rwr_type", "exp")
+        # self.rwr_value_function_token_weight = rwr_args.rwr_value_function_token_weight
+        # kwargs.get("rwr_value_function_token_weight", 1.0)
 
     def get_rwr_term(
         self, rewards: torch.Tensor, rwr_type: str, per_token_weights: torch.Tensor = None
@@ -40,13 +31,13 @@ class RWRTrainer(Trainer):
         Used to upweight the value function tokens.
         """
         if rwr_type == "exp":
-            return torch.exp(rewards / self.rwr_temperature)
+            return torch.exp(rewards / self.rwr_args.rwr_temperature)
         elif rwr_type == "weighted_exp":  # Upweight the value function tokens
-            return torch.exp(rewards / self.rwr_temperature) * per_token_weights
+            return torch.exp(rewards / self.rwr_args.rwr_temperature) * per_token_weights
         elif rwr_type == "baseline_batch_mean":  # batch size is 1?
             return (
                 rewards - rewards.mean()
-            )  # if this diverges, then go to something online with impportance clipping.
+            )  # if this diverges, then go to something online with importance clipping.
         # elif rwr_type == "baseline_ema_batch_mean":
         #     return rewards - self._ema_rewards.mean()
         # elif rwr_type == "baseline_running_mean":
@@ -69,7 +60,7 @@ class RWRTrainer(Trainer):
         # default weight for regular tokens = 1.
         per_token_weights = torch.ones_like(labels)
         #TODO: Uncomment
-        per_token_weights.masked_fill_(value_function_token_idxs, self.rwr_value_function_token_weight)
+        per_token_weights.masked_fill_(value_function_token_idxs, self.rwr_args.rwr_value_function_token_weight)
         
         model_output = model(
             **inputs
@@ -117,7 +108,7 @@ class RWRTrainer(Trainer):
         nll_loss = log_probs.gather(dim=-1, index=labels)
         nll_loss.masked_fill_(padding_mask, 0.0)
         # Multiply by the RWR term; You dont calculate the loss on any of the masked terms.
-        nll_loss = nll_loss * self.get_rwr_term(rewards, self.rwr_type, per_token_weights)
+        nll_loss = nll_loss * self.get_rwr_term(rewards, self.rwr_args.rwr_type, per_token_weights)
         # Take the mean over the label dimensions, then divide by the number of active elements (i.e. not-padded):
         num_active_elements = padding_mask.numel() - padding_mask.long().sum()
         # Average over only the non-masked elements

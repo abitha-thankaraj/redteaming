@@ -49,6 +49,9 @@ class DataArguments:
         metadata={"help": "Type of agent to train on. Available options: attacker, defender"},
         # choices=["attacker", "defender", "llama_attacker"],
     )
+    gamma: float = field(
+        default=0.9, metadata={"help": "Discount factor for the rewards."}
+    )
     dataset_type: str = field(default="naive_balance")
     length_key: str = field(default="")
     max_length: int = field(default=-1)
@@ -56,7 +59,19 @@ class DataArguments:
     model_name: str = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
     value_function_experiment: str = field(default=None)
 
-
+@dataclass
+class RWRArguments:
+    rwr_temperature: float = field(
+        default=1.0,
+        metadata={"help": "RWR temperature (β) . Higher -> | Lower -> "},
+    )
+    rwr_type: str = field(
+        default="exp", metadata={"help": "RWR term type. Available options: exp"}),
+    
+    rwr_value_function_token_weight: float = field(
+        default=1.0,
+        metadata={"help": "Weight for the value function tokens in the RWR term."},
+    )
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
@@ -75,6 +90,7 @@ class TrainingArguments(transformers.TrainingArguments):
     )
     data_args: DataArguments = field(default=None)
     model_args: ModelArguments = field(default=None)
+    rwr_args: RWRArguments = field(default=None)
 
 
 # Debugging utils
@@ -117,6 +133,7 @@ def get_dataset(
         tokenizer_separator,
         IGNORE_TOKEN_ID,
         conversation_reward_dict["rewards"],
+        gamma=data_args.gamma,
         value_function_type=data_args.value_function_type,
         model_name = data_args.model_name,
         value_function_experiment = data_args.value_function_experiment
@@ -136,6 +153,7 @@ def get_dataset(
         tokenizer_separator,
         IGNORE_TOKEN_ID,
         eval_conversation_reward_dict["rewards"],
+        gamma=data_args.gamma,
         value_function_type=data_args.value_function_type,
         model_name = data_args.model_name,
         value_function_experiment = data_args.value_function_experiment
@@ -146,16 +164,12 @@ def get_dataset(
 def train():
     global local_rank
     # Parse args; All configs sent to the model
-    parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
-    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    parser = transformers.HfArgumentParser((ModelArguments, DataArguments, RWRArguments, TrainingArguments))
+    model_args, data_args, rwr_args, training_args = parser.parse_args_into_dataclasses()
     training_args.data_args = data_args
     training_args.model_args = model_args
+    training_args.rwr_args = rwr_args
 
-    # # Add this for huggingface logging
-    # for k, v in asdict(model_args).items():
-    #     training_args.__dict__["model_args/" + k] = v
-    # for k, v in asdict(data_args).items():
-    #     training_args.__dict__["data_args/" + k] = v
 
     assert (
         training_args.model_max_length >= data_args.max_length
@@ -219,6 +233,7 @@ def train():
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
+        rwr_args= rwr_args
     )
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):

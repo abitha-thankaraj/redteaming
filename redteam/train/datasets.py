@@ -72,7 +72,7 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
         model_name: str = None,
     ):
         # Ugly; but should work.
-        if value_function_type is not None:
+        if value_function_type is not None or value_function_type!="":
             value_function_reserved_strs = get_value_function_keywords(value_function_type=value_function_type, 
                                                                         gamma=gamma, 
                                                                         model_name=model_name)
