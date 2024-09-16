@@ -1,5 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=sweep
+#SBATCH --job-name=evaluation
+#SBATCH --output=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.out
+#SBATCH --error=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.err
 #SBATCH --account=bcgv-delta-gpu
 #SBATCH --mail-user=athankar@cs.cmu.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -12,6 +14,8 @@
 #SBATCH --gpu-bind=closest 
 #SBATCH --no-requeue
 #SBATCH --time=04:00:00
+#SBATCH --exclude=gpub054
+
 
 source ~/.bashrc
 source /sw/external/python/anaconda3/etc/profile.d/conda.sh

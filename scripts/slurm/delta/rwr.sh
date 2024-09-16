@@ -1,5 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=sweep
+#SBATCH --job-name=rwr_sweep
+#SBATCH --output=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.out
+#SBATCH --error=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.err
 #SBATCH --account=bcgv-delta-gpu
 #SBATCH --mail-user=athankar@cs.cmu.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -12,6 +14,8 @@
 #SBATCH --gpu-bind=closest 
 #SBATCH --no-requeue
 #SBATCH --time=09:00:00
+#SBATCH --exclude=gpub054
+
 
 
 source ~/.bashrc
@@ -31,7 +35,7 @@ VALUE_FUNCTION_EXPERIMENT=${6:-""}
 LEARNING_RATE=${7:-1e-5}
 RWR_TEMPERATURE=${8:-1.0}
 LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
-EXPEPERIMENT_DESC=${10:-"rwr_sweep_naive_balance"}
+EXPERIMENT_DESC=${10:-"rwr_lr_sweep_naive_balance"}
 
 
 MAX_LENGTH=4096
@@ -97,6 +101,6 @@ RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_meta-llama/Meta-
 # for loop through temperatures
 for temperature in 0.0 0.7 1.0
 do
-    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $SFT_ATTACKER_MODEL_DIR $SFT_ATTACKER_MODEL_TYPE $EXPEPERIMENT_DESC
-    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_TYPE $EXPEPERIMENT_DESC
+    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $SFT_ATTACKER_MODEL_DIR $SFT_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
+    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
 done
