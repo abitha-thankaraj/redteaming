@@ -2,13 +2,9 @@
 defaults:
   - _self_
   - dataset_configs: jailbreakbench
+  - env: babel
 
-env:
-  hf_home: "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
-  log_dir: "/data/tir/projects/tir7/user_data/athankar/redteaming/scripts/logs"
-  data_dir: "/data/group_data/rl/datasets/redteaming"
 seed: 69
-
 
 attacker:
   model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
@@ -22,9 +18,9 @@ attacker:
     top_p: 1.0
 
 defender:
-  model_name: "mistralai/Mistral-7B-Instruct-v0.1"
-  model_dir: "mistralai/Mistral-7B-Instruct-v0.1"
-  model_type: untrained_defender
+  model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+  model_dir: "/data/group_data/rl/experiments/redteaming/multiturn_rwr_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-15-14-47-28-373/checkpoint-122"
+  model_type: rwr_trained_defender
   model_cache_dir: ${env.hf_home}
   device: "cuda:1"
   generation_kwargs:
@@ -49,15 +45,11 @@ value_function_evaluate:
     value_function_type: null
 
 
-# value_function_eval:
-#   eval_attacker: false
-#   eval_defender: true
-
 # Game
 max_turns: 3
 
 # Result of simulating the game will be saved in this file
-experiment_desc: mistral_evals
+experiment_desc: eval_fixed_naive_balance
 out_dir: ${env.data_dir}/redteaming_evals/${experiment_desc}/${now:%Y.%m.%d}/${now:%H-%M-%s}
 out_fname: ${dataset_configs.dataset_name}_${attacker.model_type}_${defender.model_type}_${experiment_desc}.json
 hydra:

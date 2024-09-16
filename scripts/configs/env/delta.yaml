@@ -1,0 +1,3 @@
+hf_home: "/scratch/bcgv/athankaraj/.cache"
+log_dir: "/scratch/bcgv/athankaraj/redteaming/scripts/logs"
+data_dir: "/scratch/bcgv/datasets/redteaming"

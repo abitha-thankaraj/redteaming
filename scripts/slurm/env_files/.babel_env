@@ -1,0 +1,4 @@
+export HF_TOKEN="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"
+export HF_HOME="/data/tir/projects/tir6/bisk/athankar/projects/.cache"
+export REPO_DIR="/data/tir/projects/tir7/user_data/athankar/redteaming"
+export DATA_DIR="/data/group_data/rl/datasets/redteaming"
