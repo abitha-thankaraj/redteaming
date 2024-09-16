@@ -2,4 +2,4 @@ export HF_TOKEN="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"
 export HF_HOME="/scratch/bcgv/athankaraj/.cache"
 export REPO_DIR="/scratch/bcgv/athankaraj/redteaming"
 export DATA_DIR="/scratch/bcgv/datasets/redteaming"
-
+export MODEL_PARENT_DIR="/scratch/bcgv/models/redteaming"
