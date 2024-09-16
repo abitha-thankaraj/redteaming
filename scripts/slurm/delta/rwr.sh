@@ -31,7 +31,7 @@ VALUE_FUNCTION_EXPERIMENT=${6:-""}
 LEARNING_RATE=${7:-1e-5}
 RWR_TEMPERATURE=${8:-1.0}
 LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
-EXPEPERIMENT_DESC=${10:-"rwr_sweep"}
+EXPEPERIMENT_DESC=${10:-"rwr_sweep_naive_balance"}
 
 
 MAX_LENGTH=4096
@@ -86,10 +86,10 @@ RWR_DEFENDER_MODEL_NAME="rwr_trained_defender"
 # The checkpoint folder is where the model is loaded from
 RWR_DEFENDER_MODEL_PARENT_DIR=$LOGDIR
 
-SFT_ATTACKER_MODEL_NAME="sft_trained_attacker"
-SFT_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135/
-RWR_ATTACKER_MODEL_NAME="rwr_trained_attacker"
-RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnrwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135/
+SFT_ATTACKER_MODEL_TYPE="sft_trained_attacker"
+SFT_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135
+RWR_ATTACKER_MODEL_TYPE="rwr_trained_attacker"
+RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183
 
 
 
@@ -97,6 +97,6 @@ RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnrwr_attacker_meta-llama/Meta-L
 # for loop through temperatures
 for temperature in 0.0 0.7 1.0
 do
-    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $SFT_ATTACKER_MODEL_DIR $SFT_ATTACKER_MODEL_NAME $EXPEPERIMENT_DESC
-    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_NAME $EXPEPERIMENT_DESC
+    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $SFT_ATTACKER_MODEL_DIR $SFT_ATTACKER_MODEL_TYPE $EXPEPERIMENT_DESC
+    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_TYPE $EXPEPERIMENT_DESC
 done
