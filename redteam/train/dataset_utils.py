@@ -137,74 +137,122 @@ class SFTDatasetHelper(RLHFDatasetHelperBase):
         self.agent_type = agent_type
         self.dataset_type = dataset_type
 
-    def get_conversations(self):
-        if self.agent_type == "attacker":
-            self.raw_data["is_attacker"] = self.raw_data["rewards"].apply(
-                lambda x: x.sum() > 0.0
+        if agent_type == "defender":
+            self.raw_data["defender_messages"] = self.raw_data[["conversation"]].apply(
+                lambda x: RLHFDatasetHelperBase.create_defender_message(x), axis=1
             )
-            self.raw_data["attacker_messages"] = (
-                self.raw_data[["goal", "conversation"]]
-                .apply(
-                    lambda x: RLHFDatasetHelperBase.create_attacker_message(
-                        x, remove_last_defender_message=True
-                    ),
-                    axis=1,
-                )
-                .to_list()
-            )
-            # select by positives
-            return {
-                "conversations": self.raw_data[self.raw_data["is_attacker"] == True][
-                    "attacker_messages"
-                ].to_list(),
-                "rewards": self.raw_data[self.raw_data["is_attacker"] == True][
-                    "rewards"
-                ].to_list(),
-            }
-        elif (
-            self.agent_type == "defender"
-        ):  # All messages are safe. For sft we want all messages to be safe.
-            self.raw_data["is_defender"] = self.raw_data["rewards"].apply(
+            # All turns are not jailbroken.
+            self.raw_data["positives"] = self.raw_data["rewards"].apply(
                 lambda x: x.sum() == 0.0
             )
-            self.raw_data["defender_messages"] = (
-                self.raw_data[["conversation"]]
-                .apply(lambda x: RLHFDatasetHelperBase.create_defender_message(x), axis=1)
-                .to_list()
-            )
-            # select by positives
-            return {
-                "conversations": self.raw_data[self.raw_data["is_defender"] == True][
-                    "defender_messages"
-                ].to_list(),
-                "rewards": self.raw_data[self.raw_data["is_defender"] == True][
-                    "rewards"
-                ].to_list(),
-            }
+            # Flip rewards for defender | # Defender is independent of the goal
+            self.raw_data["rewards"] = self.raw_data["rewards"].apply(lambda x: 1.0 - x)
 
-    def filter_messages(self, messages: List[Dict], agent_type: str) -> List[Dict]:
-        """
-        Filter messages based on the agent type
-        """
-        agent_config = {
-            "attacker": (
-                is_good_attacker_message,
-                RLHFDatasetHelperBase.create_attacker_message,
-            ),
-            "defender": (
-                is_good_defender_message,
-                RLHFDatasetHelperBase.create_defender_message,
-            ),
-            "llama_attacker": (
-                is_good_llama_attacker_message,
-                RLHFDatasetHelperBase.create_attacker_message,
-            ),
+        elif agent_type == "attacker":
+            self.raw_data["attacker_messages"] = self.raw_data[["goal", "conversation"]].apply(
+                lambda x: RLHFDatasetHelperBase.create_attacker_message(
+                    x, remove_last_defender_message=True
+                ),
+                axis=1,
+            )
+            # Anything with rewards > 0 is a positive example/ turnwise - sum works.
+            self.raw_data["positives"] = self.raw_data["rewards"].apply(
+                lambda x: x.sum() > 0.0
+            )
+        else:
+            raise ValueError(f"Invalid agent type: {agent_type}")
+
+    def get_conversations(self):
+        subsampled_indices = self._get_indices()
+        return {
+            "conversations": self.raw_data[f"{self.agent_type}_messages"][
+                subsampled_indices
+            ].to_list(),
+            "rewards": None,
         }
 
-        if agent_type not in agent_config:
-            raise ValueError(f"Invalid agent type: {agent_type}")
-        is_good_message, get_message = agent_config[agent_type]
-        return list(map(get_message, filter(is_good_message, messages)))
+
+    def _get_indices(self):
+        positive_indices = np.where(self.raw_data.positives)[0]
+        sampling_indices = positive_indices
+        if (
+                "length_filtered" in self.raw_data.keys()
+            ):  # filter by length if available. #TODO: default length filtered to True
+                sampling_indices = np.intersect1d(
+                    sampling_indices, np.where(self.raw_data.length_filtered)[0]
+                )
+
+        return sampling_indices
+
+
+
+        # if self.agent_type == "attacker":
+        #     self.raw_data["is_attacker"] = self.raw_data["rewards"].apply(
+        #         lambda x: x.sum() > 0.0
+        #     )
+        #     self.raw_data["attacker_messages"] = (
+        #         self.raw_data[["goal", "conversation"]]
+        #         .apply(
+        #             lambda x: RLHFDatasetHelperBase.create_attacker_message(
+        #                 x, remove_last_defender_message=True
+        #             ),
+        #             axis=1,
+        #         )
+        #         .to_list()
+        #     )
+        #     # select by positives
+        #     return {
+        #         "conversations": self.raw_data[self.raw_data["is_attacker"] == True][
+        #             "attacker_messages"
+        #         ].to_list(),
+        #         "rewards": self.raw_data[self.raw_data["is_attacker"] == True][
+        #             "rewards"
+        #         ].to_list(),
+        #     }
+        # elif (
+        #     self.agent_type == "defender"
+        # ):  # All messages are safe. For sft we want all messages to be safe.
+        #     self.raw_data["is_defender"] = self.raw_data["rewards"].apply(
+        #         lambda x: x.sum() == 0.0
+        #     )
+        #     self.raw_data["defender_messages"] = (
+        #         self.raw_data[["conversation"]]
+        #         .apply(lambda x: RLHFDatasetHelperBase.create_defender_message(x), axis=1)
+        #         .to_list()
+        #     )
+        #     # select by positives
+        #     return {
+        #         "conversations": self.raw_data[self.raw_data["is_defender"] == True][
+        #             "defender_messages"
+        #         ].to_list(),
+        #         "rewards": self.raw_data[self.raw_data["is_defender"] == True][
+        #             "rewards"
+        #         ].to_list(),
+        #     }
+
+    # def filter_messages(self, messages: List[Dict], agent_type: str) -> List[Dict]:
+    #     """
+    #     Filter messages based on the agent type
+    #     """
+    #     agent_config = {
+    #         "attacker": (
+    #             is_good_attacker_message,
+    #             RLHFDatasetHelperBase.create_attacker_message,
+    #         ),
+    #         "defender": (
+    #             is_good_defender_message,
+    #             RLHFDatasetHelperBase.create_defender_message,
+    #         ),
+    #         "llama_attacker": (
+    #             is_good_llama_attacker_message,
+    #             RLHFDatasetHelperBase.create_attacker_message,
+    #         ),
+    #     }
+
+    #     if agent_type not in agent_config:
+    #         raise ValueError(f"Invalid agent type: {agent_type}")
+    #     is_good_message, get_message = agent_config[agent_type]
+    #     return list(map(get_message, filter(is_good_message, messages)))
 
 
 class RWRDatasetHelper(RLHFDatasetHelperBase):
@@ -261,11 +309,13 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
 
         if "length_filtered" in self.raw_data.keys():  # filter by length if available.
             length_filtered_indices = np.where(self.raw_data.length_filtered)[0]
+            # Only pick the ones with length < max_length
             positive_indices = np.intersect1d(positive_indices, length_filtered_indices)
             negative_indices = np.intersect1d(negative_indices, length_filtered_indices)
 
         if self.dataset_type == "naive_balance":
             if len(positive_indices) > len(negative_indices):
+                # Subsample to same length
                 positive_indices = np.random.choice(positive_indices, len(negative_indices))
             else:
                 negative_indices = np.random.choice(negative_indices, len(positive_indices))

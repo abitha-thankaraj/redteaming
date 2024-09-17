@@ -5,15 +5,14 @@ os.environ["WANDB_ENTITY"] = "mt_redteam"
 os.environ["WANDB_PROJECT"] = "redteaming"
 
 from dataclasses import dataclass, field
-from typing import Optional, Tuple
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 import transformers
 
 import math
 import pathlib
 import numpy as np
 from redteam.train.datasets import MultiturnSFTDataset
-from redteam.train.dataset_utils import get_conversations
+from redteam.train.dataset_utils import get_conversations, SFTDatasetHelper
 from redteam.train.common import (
     get_tokenizer_separators,
     safe_save_model_for_hf_trainer,
@@ -28,7 +27,6 @@ import torch, time
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
-
 # Args/ Arg parsers
 @dataclass
 class ModelArguments:
@@ -38,16 +36,16 @@ class ModelArguments:
 @dataclass
 class DataArguments:
     data_path: str = field(default=None, metadata={"help": "Path to the training data."})
+    eval_data_path: str = field(
+        default=None, metadata={"help": "Path to the evaluation data."}
+    )
     agent_type: str = field(
         default="attacker",
         metadata={"help": "Type of agent to train on. Available options: attacker, defender"},
-        # choices=["attacker", "defender", "llama_attacker"],
     )
-    train_ratio: float = field(
-        default=0.99, metadata={"help": "Ratio of data to use for training."}
-    )
-
-
+    length_key: str = field(default="")
+    max_length: int = field(default=-1)
+    
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
     cache_dir: Optional[str] = field(
@@ -61,6 +59,12 @@ class TrainingArguments(transformers.TrainingArguments):
             "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
         },
     )
+    torch_empty_cache_steps: int = field(
+        default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"}
+    )
+    # Adding args for data, model and rwr
+    data_args: Any = field(default=None)
+    model_args: Any = field(default=None)
 
 
 # Debugging utils
@@ -82,41 +86,54 @@ def rank0_debug(interval=9999999):
 
 
 def get_dataset(
-    data_dir: str,
-    agent_type: str,
-    train_ratio: float,
+    data_args: dataclass,
     tokenizer: transformers.AutoTokenizer,
     tokenizer_separator: TokenizerSeparators,
 ) -> Tuple[Dataset, Dataset]:
     """Get train test dataset for multiturn sft"""
-    # Can make this more gnearal by passing in the dataset_cls
+    dataset_helper = SFTDatasetHelper(
+        data_args.data_path,
+        data_args.agent_type,
+        dataset_type=data_args.dataset_type,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
+    )
 
-    train_ratio = min(train_ratio, 1.0)
-    # To resuse for another dataset - write your own get_conversations fn
-    conversations = get_conversations(data_dir, agent_type)
-    perm = np.random.permutation(len(conversations))
-    split = int(len(perm) * train_ratio)
-    train_indices = perm[:split]
-    if train_ratio < 1:
-        eval_indices = perm[split:]
-    else:
-        # if train_ratio==1, we use 1% of data as eval data, make sure trainer will not throw error when eval data is empty
-        eval_indices = perm[-int(len(perm) * 0.01) :]
-    train_raw_data = [conversations[i] for i in train_indices]
-    eval_raw_data = [conversations[i] for i in eval_indices]
+    conversation_reward_dict = dataset_helper.get_conversations()
 
-    rank0_print(f"#train {len(train_raw_data)}, #eval {len(eval_raw_data)}")
+    train_dataset = MultiturnSFTDataset(
+        conversation_reward_dict["conversations"],
+        tokenizer,
+        tokenizer_separator,
+        ignore_token_id=IGNORE_TOKEN_ID,
+    )
 
-    return MultiturnSFTDataset(
-        train_raw_data, tokenizer, tokenizer_separator, IGNORE_TOKEN_ID
-    ), MultiturnSFTDataset(eval_raw_data, tokenizer, tokenizer_separator, IGNORE_TOKEN_ID)
+    eval_dataset_helper = SFTDatasetHelper(
+        data_args.eval_data_path,
+        data_args.agent_type,
+        dataset_type=data_args.dataset_type,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
+    )
 
+    eval_conversation_reward_dict = eval_dataset_helper.get_conversations()
+
+    eval_dataset = MultiturnSFTDataset(
+        eval_conversation_reward_dict["conversations"],
+        tokenizer,
+        tokenizer_separator,
+        ignore_token_id=IGNORE_TOKEN_ID,
+    )
+
+    return train_dataset, eval_dataset
 
 def train():
     global local_rank
     # Parse args; All configs sent to the model
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    training_args.data_args = data_args
+    training_args.model_args = model_args
 
     # Seed everything
     set_seed_everywhere(training_args.seed)
@@ -165,13 +182,10 @@ def train():
     model.resize_token_embeddings(len(tokenizer))
 
     train_dataset, eval_dataset = get_dataset(
-        data_args.data_path,
-        data_args.agent_type,
-        data_args.train_ratio,
+        data_args,
         tokenizer,
         tokenizer_separator,
     )
-
     trainer = Trainer(
         model=model,
         tokenizer=tokenizer,
@@ -190,5 +204,4 @@ def train():
 
 
 if __name__ == "__main__":
-
     train()
