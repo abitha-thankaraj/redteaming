@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=rwr_sweep
+#SBATCH --job-name=sft_sweep
 #SBATCH --output=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.out
 #SBATCH --error=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.err
 #SBATCH --account=bcgv-delta-gpu
@@ -29,35 +29,29 @@ source /scratch/bcgv/athankaraj/redteaming/scripts/slurm/env_files/.delta_env
 MODEL_PATH=${1:-"meta-llama/Meta-Llama-3.1-8B-Instruct"}
 AGENT_TYPE=${2:-"defender"}
 MASTER_PORT=${3:-29500}
-DATASET_TYPE=${4:-"naive_balance"}
+DATASET_TYPE=${4:-""}
 VALUE_FUNCTION_TYPE=${5:-""}
 VALUE_FUNCTION_EXPERIMENT=${6:-""}
 LEARNING_RATE=${7:-1e-5}
 RWR_TEMPERATURE=${8:-1.0}
 LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
-EXPERIMENT_DESC=${10:-"rwr_lr_sweep_naive_balance"}
+EXPERIMENT_DESC=${10:-"sft_lr_sweep"}
 
 
 MAX_LENGTH=4096
-RUN_NAME="multiturn_rwr_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
+RUN_NAME="multiturn_sft_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
 LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
 
 
 # Run the first job
-deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train_rwr.py  \
+deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/sft.py  \
         --model_name_or_path $MODEL_PATH \
         --seed 42   \
         --data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/combined_train_data_llama_rewards_flat_length_added.json \
         --eval_data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat_length_added.json \
         --agent_type $AGENT_TYPE \
-        --dataset_type $DATASET_TYPE \
         --length_key $LENGTH_KEY \
         --max_length $MAX_LENGTH \
-        --value_function_type "$VALUE_FUNCTION_TYPE" \
-        --model_name $MODEL_PATH \
-        --value_function_experiment "$VALUE_FUNCTION_EXPERIMENT" \
-        --rwr_temperature $RWR_TEMPERATURE \
-        --rwr_type "exp" \
         --output_dir $LOGDIR  \
         --cache_dir $HF_HOME \
         --run_name $RUN_NAME \
@@ -83,7 +77,6 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train_rwr.py  \
         --torch_empty_cache_steps 1 \
         --gradient_checkpointing True \
         --remove_unused_columns False
-
 
 # Schedule the evals to run after the first job; 0, 0.7, 1.0 temperature
 

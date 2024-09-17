@@ -62,9 +62,14 @@ class TrainingArguments(transformers.TrainingArguments):
     torch_empty_cache_steps: int = field(
         default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"}
     )
+    save_only_model: bool = field(
+        default=True, metadata={"help": "Save only the model and not the trainer."}
+    )
     # Adding args for data, model and rwr
     data_args: Any = field(default=None)
     model_args: Any = field(default=None)
+    exp_desc:str = field(default="")
+
 
 
 # Debugging utils
@@ -94,7 +99,7 @@ def get_dataset(
     dataset_helper = SFTDatasetHelper(
         data_args.data_path,
         data_args.agent_type,
-        dataset_type=data_args.dataset_type,
+        dataset_type=None,
         length_key=data_args.length_key,
         max_length=data_args.max_length,
     )
@@ -111,7 +116,7 @@ def get_dataset(
     eval_dataset_helper = SFTDatasetHelper(
         data_args.eval_data_path,
         data_args.agent_type,
-        dataset_type=data_args.dataset_type,
+        dataset_type=None,
         length_key=data_args.length_key,
         max_length=data_args.max_length,
     )
