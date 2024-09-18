@@ -89,10 +89,14 @@ class TrainingArguments(transformers.TrainingArguments):
     torch_empty_cache_steps: int = field(
         default=1, metadata={"help": "Number of steps to call torch.cuda.empty_cache()"}
     )
+    save_only_model: bool = field(
+        default=True, metadata={"help": "Save only the model and not the trainer."}
+    )
     # Adding args for data, model and rwr
     data_args: Any = field(default=None)
     model_args: Any = field(default=None)
     rwr_args: Any = field(default=None)
+    exp_desc:str = field(default="")
 
 
 # Debugging utils

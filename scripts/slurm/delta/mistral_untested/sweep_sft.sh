@@ -2,12 +2,11 @@
 
 # Array of learning rates
 learning_rates=(1e-5 5e-6 1e-6 5e-7 1e-7)
-
 # Base master port
-base_master_port=29500
+base_master_port=29520
 
 # Path to your main SLURM script
-main_script="/scratch/bcgv/athankaraj/redteaming/scripts/slurm/delta/rwr.sh"
+main_script="/scratch/bcgv/athankaraj/redteaming/scripts/slurm/delta/sft.sh"
 
 # Loop through learning rates
 for i in "${!learning_rates[@]}"; do
@@ -26,5 +25,5 @@ for i in "${!learning_rates[@]}"; do
         "$lr" \
         "1.0" \
         "Meta-Llama-3.1-8B-Instruct_length" \
-        "rwr_sweep_naive_balance_${lr}"
+        "sft_sweep_${lr}"
 done
