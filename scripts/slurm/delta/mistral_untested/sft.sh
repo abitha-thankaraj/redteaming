@@ -29,11 +29,16 @@ source /scratch/bcgv/athankaraj/redteaming/scripts/slurm/env_files/.delta_env
 MODEL_PATH=${1:-"meta-llama/Meta-Llama-3.1-8B-Instruct"}
 AGENT_TYPE=${2:-"defender"}
 MASTER_PORT=${3:-29500}
+# Doesnt matter for sft
+#######################
 DATASET_TYPE=${4:-""}
 VALUE_FUNCTION_TYPE=${5:-""}
 VALUE_FUNCTION_EXPERIMENT=${6:-""}
+########################
 LEARNING_RATE=${7:-1e-5}
+###################
 RWR_TEMPERATURE=${8:-1.0}
+###################
 LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
 EXPERIMENT_DESC=${10:-"sft_lr_sweep"}
 
