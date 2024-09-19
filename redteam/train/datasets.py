@@ -17,21 +17,29 @@ class MultiturnSFTDataset(Dataset):
         tokenizer: Any,
         tokenizer_separator: Any,
         ignore_token_id: int,
-        value_function_type = None,
+        value_function_type=None,
     ):
 
-        self.input_ids, self.labels, self.attention_mask, self.value_function_token_idxs = [], [], [], []
+        self.input_ids, self.labels, self.attention_mask, self.value_function_token_idxs = (
+            [],
+            [],
+            [],
+            [],
+        )
         for i, conversation in tqdm(
             enumerate(conversations), desc="Masking Conversations - MT-SFT"
         ):
             data_dict = mask_non_assistant_tokens(
-                tokenizer, conversation, tokenizer_separator, ignore_token_id, value_function_type
+                tokenizer,
+                conversation,
+                tokenizer_separator,
+                ignore_token_id,
+                value_function_type,
             )
             self.input_ids.append(data_dict["input_ids"])
             self.labels.append(data_dict["labels"])
             self.attention_mask.append(data_dict["attention_mask"])
             self.value_function_token_idxs.append(data_dict["value_function_token_idxs"])
-
 
         self.input_ids = torch.stack(self.input_ids, dim=0)
         self.labels = torch.stack(self.labels, dim=0)
@@ -90,15 +98,17 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
                     value_function_reserved_strs=value_function_reserved_strs,
                 )
         if value_function_type not in ["", "multilabel", "binary"]:
-            raise NotImplementedError(f"Value function type {value_function_type} not implemented")
+            raise NotImplementedError(
+                f"Value function type {value_function_type} not implemented"
+            )
 
         super().__init__(
             conversations=conversations,
             tokenizer=tokenizer,
             tokenizer_separator=tokenizer_separator,
             ignore_token_id=ignore_token_id,
-            value_function_type=value_function_type
-            )
+            value_function_type=value_function_type,
+        )
 
         self.rewards = []
         # print(self.incorrect)
@@ -133,7 +143,7 @@ def mask_non_assistant_tokens(
     conversation: List[Dict[str, str]],
     tokenizer_separator: TokenizerSeparators,
     ignore_token_id: int,
-    value_function_type: str = None
+    value_function_type: str = None,
 ) -> Dict[str, torch.Tensor]:
     """Mask all tokens that are not part of the assistant's outputs.
     Note: We expect the end of assistant's output to be marked by the assistant_suffix token.
@@ -179,10 +189,12 @@ def mask_non_assistant_tokens(
                         value_function_masked_tokens[
                             start_index
                             + len(assistant_prefix_ids)
-                            + tokenizer_separator.prefix_offset] = tokens[
+                            + tokenizer_separator.prefix_offset
+                        ] = tokens[
                             start_index
                             + len(assistant_prefix_ids)
-                            + tokenizer_separator.prefix_offset]
+                            + tokenizer_separator.prefix_offset
+                        ]
                     break
             except Exception as e:
                 break
@@ -195,7 +207,9 @@ def mask_non_assistant_tokens(
         input_ids=input_ids,
         labels=labels,
         attention_mask=input_ids.ne(tokenizer.pad_token_id),
-        value_function_token_idxs=torch.tensor(value_function_masked_tokens).ne(ignore_token_id),
+        value_function_token_idxs=torch.tensor(value_function_masked_tokens).ne(
+            ignore_token_id
+        ),
     )
 
 

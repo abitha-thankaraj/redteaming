@@ -9,9 +9,7 @@ class RWRTrainer(Trainer):
         super().__init__(*args, **kwargs)
         self.rwr_args = self.args.rwr_args
 
-    def get_rwr_term(
-        self, rewards: torch.Tensor, rwr_type: str
-    ):
+    def get_rwr_term(self, rewards: torch.Tensor, rwr_type: str):
         """
         Compute the RWR weight term for the given rewards.
         rewards: Tensor of shape (B, T) where B is the batch size and T is the sequence length.
@@ -41,7 +39,7 @@ class RWRTrainer(Trainer):
 
         labels = inputs["labels"]
         rewards = inputs.pop("rewards", torch.zeros_like(labels))  # shape should be (B, T)
-        
+
         # weighted loss for value function tokens
         value_function_token_idxs = inputs.pop(
             "value_function_token_idxs", torch.zeros_like(labels).bool()
@@ -94,9 +92,7 @@ class RWRTrainer(Trainer):
         nll_loss = log_probs.gather(dim=-1, index=labels)
         nll_loss.masked_fill_(padding_mask, 0.0)
         # Multiply by the RWR term; You dont calculate the loss on any of the masked terms.
-        nll_loss = nll_loss * self.get_rwr_term(
-            rewards, self.rwr_args.rwr_type
-        )
+        nll_loss = nll_loss * self.get_rwr_term(rewards, self.rwr_args.rwr_type)
         # Take the mean over the label dimensions, then divide by the number of active elements (i.e. not-padded):
         num_active_elements = padding_mask.numel() - padding_mask.long().sum()
         # Average over only the non-masked elements

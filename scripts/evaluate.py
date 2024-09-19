@@ -106,7 +106,7 @@ def main(config: DictConfig):
     # Save aggregated results
 
     results = aggregate_results(trajs)
-    write_json(results, os.path.join(config.out_dir,"_results.json"))
+    write_json(results, os.path.join(config.out_dir, "_results.json"))
     slack_notification(f"Redteaming game completed successfully: config: {global_config}")
 
 
@@ -118,11 +118,9 @@ def aggregate_results(trajs):
     # TODO: Value function metrics
     return {
         "jailbreaks_per_turn": np.sum(rewards, axis=0).tolist(),
-        "num_jailbreaks": int(np.sum(np.any(rewards == 1., axis=1))),
-        "num_evals": len(trajs)
+        "num_jailbreaks": int(np.sum(np.any(rewards == 1.0, axis=1))),
+        "num_evals": len(trajs),
     }
-
-
 
 
 if __name__ == "__main__":
