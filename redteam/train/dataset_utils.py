@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 import pandas as pd
 import numpy as np
-
+from redteam.train.datasets import get_reward_to_gos
 
 def get_conversations(data_dir: str, agent_type: str) -> List[Dict]:
     data = RLHFDatasetHelperBase.read_files(data_dir)
@@ -123,6 +123,21 @@ class RLHFDatasetHelperBase:
     def get_conversations(self):
         raise NotImplementedError
 
+    @staticmethod
+    def is_positive_defender(rewards):
+        return rewards.sum() == 0.0
+
+    @staticmethod
+    def is_positive_attacker(rewards):
+        return rewards.sum() > 0.0
+
+    @staticmethod
+    def flip_rewards(rewards):
+        return 1.0 - rewards
+
+    @staticmethod
+    def calculate_reward_to_gos(rewards, gamma=0.9):
+        return get_reward_to_gos(rewards, gamma)
 
 class SFTDatasetHelper(RLHFDatasetHelperBase):
     def __init__(
@@ -343,3 +358,107 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
     #     model_indices =
     #     return model_indices
     # goal_wise = self.raw_data.groupby("goal").indices
+
+
+
+class RWRDatasetValueFunctionHelper(RLHFDatasetHelperBase):
+    def __init__(
+        self,
+        data_dir: str,
+        agent_type: str,
+        dataset_type: str = "naive_balance",
+        length_key="",
+        max_length=-1,
+        # good, mid, bad weights
+        dataset_type_weights = [1/3., 1/3., 1/3.]
+    ) -> None:
+        super().__init__(data_dir=data_dir, length_key=length_key, max_length=max_length)
+        assert agent_type in ["attacker", "defender"], f"Invalid agent type: {agent_type}"
+
+        self.agent_type = agent_type
+        self.dataset_type = dataset_type
+        self.dataset_type_weights = dataset_type_weights
+        # NOTE TO SELF: Stop writing functional programming code in a language with mutable state. 
+        # It is not worth it. The debugging will be a nightmare.
+
+        if agent_type == "defender":
+            # Flip rewards for defender
+            self.raw_data["rewards"] = 1.0 - self.raw_data["rewards"]
+            self.raw_data["defender_messages"] = self.raw_data[["conversation"]].apply(
+                lambda x: RLHFDatasetHelperBase.create_defender_message(x), axis=1
+            )
+        elif agent_type == "attacker":
+            self.raw_data["attacker_messages"] = self.raw_data[["goal", "conversation"]].apply(
+                lambda x: RLHFDatasetHelperBase.create_attacker_message(
+                    x, remove_last_defender_message=True
+                ),
+                axis=1,
+            )
+
+        # Get reward to gos; with default value for gamma =0.9
+        self.raw_data["reward_to_gos"] = self.raw_data["rewards"].apply(self.calculate_reward_to_gos).apply(np.array) 
+        self.raw_data["trajectory_quality"] = self.raw_data["reward_to_gos"].apply(np.sum)
+        
+        # data = sorted(self.raw_data["trajectory_quality"].unique())
+        # [0.0, 1.0, 1.9, 2.71, 2.9, 3.71, 4.609999999999999, 5.609999999999999]
+        # Split into 3 groups and add a new column for categorization
+        def categorize_trajectory(quality):
+            if quality > 5.0:
+                return 'good'
+            elif quality > 2.8:
+                return 'mid'
+            else:
+                return 'bad'
+
+        self.raw_data["trajectory_category"] = self.raw_data["trajectory_quality"].apply(categorize_trajectory)
+        # split into 3 groups:
+        self.indices = {
+            "good": self.raw_data.index[self.raw_data["trajectory_quality"] > 5.0].tolist(),
+            "mid": self.raw_data.index[(self.raw_data["trajectory_quality"] <= 5.0) & (self.raw_data["trajectory_quality"] > 2.8)].tolist(),
+            "bad": self.raw_data.index[self.raw_data["trajectory_quality"] <= 2.8].tolist()
+        }
+        if "length_filtered" in self.raw_data.keys():  # filter by length if available.
+            length_filtered_indices = np.where(self.raw_data.length_filtered)[0]
+            for key in self.indices.keys():
+                self.indices[key] = np.intersect1d(np.array(self.indices[key]), length_filtered_indices)
+    def _get_indices(self, num_samples=None):
+        num_good_samples = int(num_samples * self.dataset_type_weights[0])
+        num_mid_samples = int(num_samples * self.dataset_type_weights[1])
+        num_bad_samples = int(num_samples * self.dataset_type_weights[2])
+        
+        sampling_indices = np.concatenate(
+            [
+                np.random.choice(self.indices["good"], num_good_samples),
+                np.random.choice(self.indices["mid"], num_mid_samples),
+                np.random.choice(self.indices["bad"], num_bad_samples),
+            ],
+            axis=0,
+        )
+        if self.dataset_type == "class_balanced":
+            assert self.dataset_type_weights == [1/3., 1/3., 1/3.], "Weights are not supported for class balanced sampling"
+        elif self.dataset_type == "naive_balance":
+            assert self.dataset_type_weights == [1/2., 1/4., 1/4.], "Weights are not supported for class balanced sampling"
+            sampling_indices = np.concatenate(
+                [np.random.choice(self.indices["good"], num_good_samples),
+                np.random.choice(self.indices["mid"]+ self.indices["bad"], num_mid_samples + num_bad_samples)],
+                axis=0,
+            )
+        elif self.dataset_type == "weighted": # custom proportion
+            assert sum(self.dataset_type_weights)==1.0, "Weights should sum to 1.0"
+        elif self.dataset_type == "all":
+            sampling_indices = np.arange(len(self.raw_data))
+        return sampling_indices
+    
+
+    def get_conversations(self, num_samples):
+        subsampled_indices = self._get_indices(num_samples)
+
+        return {
+            "conversations": self.raw_data[f"{self.agent_type}_messages"][
+                subsampled_indices
+            ].to_list(),
+            "rewards": self.raw_data["rewards"][subsampled_indices].to_list(),
+            "trajectory_quality": self.raw_data["trajectory_quality"][subsampled_indices].to_list(),
+            "trajectory_category": self.raw_data["trajectory_category"][subsampled_indices].to_list(),
+            "reward_to_gos": self.raw_data["reward_to_gos"][subsampled_indices].to_list(),
+        }

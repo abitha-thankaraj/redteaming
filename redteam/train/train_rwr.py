@@ -7,8 +7,7 @@ os.environ["WANDB_PROJECT"] = "redteaming"
 from typing import Any
 
 from dataclasses import dataclass, field, asdict
-from typing import Optional, Tuple
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 import transformers
 
 import math
@@ -27,7 +26,7 @@ from transformers.trainer_pt_utils import LabelSmoother
 
 from transformers import Trainer
 from redteam.train.rwr import RWRTrainer
-from redteam.train.dataset_utils import RWRDatasetHelper
+from redteam.train.dataset_utils import RWRDatasetHelper, RWRDatasetValueFunctionHelper
 import torch, time
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
@@ -36,7 +35,7 @@ IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 # Args/ Arg parsers
 @dataclass
 class ModelArguments:
-    model_name_or_path: Optional[str] = field(default="mistralai/Mistral-7B-Instruct-v0.1")
+    model_name_or_path: Optional[str] = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
 
 
 @dataclass
@@ -56,6 +55,11 @@ class DataArguments:
     value_function_type: str = (field(default=""),)
     model_name: str = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
     value_function_experiment: str = field(default=None)
+    dataset_type_weights: List[float] = field(
+        default_factory=lambda: [0.5, 0.25, 0.25],
+        metadata={"help": "Weights for different dataset types"}
+    )
+    num_samples:int = field(default=7814, metadata={"help": "Number of samples to draw from the dataset."}) # 7814 is the number of samples from naive balance
 
 
 @dataclass
@@ -71,6 +75,14 @@ class RWRArguments:
     rwr_value_function_token_weight: float = field(
         default=1.0,
         metadata={"help": "Weight for the value function tokens in the RWR term."},
+    )
+    r_max:float = field(
+        default=2.71, # 3 turns ; \gamma = 0.9; r_max = \gamma^2 + \gamma + 1
+        metadata={"help": "Maximum reward value for the value function tokens."},
+    )
+    r_min:float = field(
+        default=0.0,
+        metadata={"help": "Minimum reward value for the value function tokens."},
     )
 
 
@@ -123,15 +135,23 @@ def get_dataset(
     tokenizer_separator: TokenizerSeparators,
 ) -> Tuple[Dataset, Dataset]:
     """Get train test dataset for multiturn sft"""
-    dataset_helper = RWRDatasetHelper(
+    # dataset_helper = RWRDatasetHelper(
+    #     data_args.data_path,
+    #     data_args.agent_type,
+    #     dataset_type=data_args.dataset_type,
+    #     length_key=data_args.length_key,
+    #     max_length=data_args.max_length,
+    # )
+    dataset_helper = RWRDatasetValueFunctionHelper(
         data_args.data_path,
         data_args.agent_type,
         dataset_type=data_args.dataset_type,
         length_key=data_args.length_key,
         max_length=data_args.max_length,
+        dataset_type_weights = data_args.dataset_type_weights,
     )
 
-    conversation_reward_dict = dataset_helper.get_conversations()
+    conversation_reward_dict = dataset_helper.get_conversations(num_samples=data_args.num_samples)
 
     train_dataset = MultiturnRWRDataset(
         conversation_reward_dict["conversations"],
@@ -144,14 +164,15 @@ def get_dataset(
         model_name=data_args.model_name,
         value_function_experiment=data_args.value_function_experiment,
     )
-
-    eval_conversation_reward_dict = RWRDatasetHelper(
+    # You never use the eval dataset, so ignore this for now
+    eval_conversation_reward_dict = RWRDatasetValueFunctionHelper(
         data_args.eval_data_path,
         data_args.agent_type,
         dataset_type=data_args.dataset_type,
         length_key=data_args.length_key,
         max_length=data_args.max_length,
-    ).get_conversations()
+        dataset_type_weights = data_args.dataset_type_weights,
+    ).get_conversations(num_samples=10)
 
     eval_dataset = MultiturnRWRDataset(
         eval_conversation_reward_dict["conversations"],
@@ -174,6 +195,11 @@ def train():
         (ModelArguments, DataArguments, RWRArguments, TrainingArguments)
     )
     model_args, data_args, rwr_args, training_args = parser.parse_args_into_dataclasses()
+    
+    # Set rwr args
+    rwr_args.r_max = data_args.gamma ** 2 + data_args.gamma + 1
+    rwr_args.r_min = 0.0
+
     training_args.data_args = data_args
     training_args.model_args = model_args
     training_args.rwr_args = rwr_args

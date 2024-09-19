@@ -17,22 +17,26 @@ class MultiturnSFTDataset(Dataset):
         tokenizer: Any,
         tokenizer_separator: Any,
         ignore_token_id: int,
+        value_function_type = None,
     ):
 
-        self.input_ids, self.labels, self.attention_mask = [], [], []
+        self.input_ids, self.labels, self.attention_mask, self.value_function_token_idxs = [], [], [], []
         for i, conversation in tqdm(
             enumerate(conversations), desc="Masking Conversations - MT-SFT"
         ):
             data_dict = mask_non_assistant_tokens(
-                tokenizer, conversation, tokenizer_separator, ignore_token_id
+                tokenizer, conversation, tokenizer_separator, ignore_token_id, value_function_type
             )
             self.input_ids.append(data_dict["input_ids"])
             self.labels.append(data_dict["labels"])
             self.attention_mask.append(data_dict["attention_mask"])
+            self.value_function_token_idxs.append(data_dict["value_function_token_idxs"])
+
 
         self.input_ids = torch.stack(self.input_ids, dim=0)
         self.labels = torch.stack(self.labels, dim=0)
         self.attention_mask = torch.stack(self.attention_mask, dim=0)
+        self.value_function_token_idxs = torch.stack(self.value_function_token_idxs, dim=0)
 
     def __len__(self):
         return self.input_ids.shape[0]
@@ -85,13 +89,16 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
                     gamma=gamma,
                     value_function_reserved_strs=value_function_reserved_strs,
                 )
+        if value_function_type not in ["", "multilabel", "binary"]:
+            raise NotImplementedError(f"Value function type {value_function_type} not implemented")
 
         super().__init__(
             conversations=conversations,
             tokenizer=tokenizer,
             tokenizer_separator=tokenizer_separator,
             ignore_token_id=ignore_token_id,
-        )
+            value_function_type=value_function_type
+            )
 
         self.rewards = []
         # print(self.incorrect)
@@ -117,6 +124,7 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
             "labels": self.labels[idx],
             "attention_mask": self.attention_mask[idx],
             "rewards": self.rewards[idx],
+            "value_function_token_idxs": self.value_function_token_idxs[idx],
         }
 
 
@@ -125,6 +133,7 @@ def mask_non_assistant_tokens(
     conversation: List[Dict[str, str]],
     tokenizer_separator: TokenizerSeparators,
     ignore_token_id: int,
+    value_function_type: str = None
 ) -> Dict[str, torch.Tensor]:
     """Mask all tokens that are not part of the assistant's outputs.
     Note: We expect the end of assistant's output to be marked by the assistant_suffix token.
@@ -135,6 +144,7 @@ def mask_non_assistant_tokens(
     )
 
     masked_tokens = [ignore_token_id] * len(tokens)  # Start with all tokens masked
+    value_function_masked_tokens = [ignore_token_id] * len(tokens)
     assert tokenizer_separator.assistant_prefix_ids is not None, "Assistant prefix ids not set"
     assistant_prefix_ids = tokenizer_separator.assistant_prefix_ids
 
@@ -165,16 +175,28 @@ def mask_non_assistant_tokens(
                         + tokenizer_separator.prefix_offset : start_index
                         + len(content_tokens)
                     ]
+                    if value_function_type in ["binary", "multilabel"]:
+                        value_function_masked_tokens[
+                            start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset] = tokens[
+                            start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset]
                     break
             except Exception as e:
                 break
 
     input_ids = torch.tensor(tokens)
     labels = torch.tensor(masked_tokens)
+    #TODO: Fix this.
+    value_function_token_idxs = torch.tensor(value_function_masked_tokens)
+    # value_function_token_idxs = torch.tensor([False if x == ignore_token_id else True for x in value_function_masked_tokens])
     return dict(
         input_ids=input_ids,
         labels=labels,
         attention_mask=input_ids.ne(tokenizer.pad_token_id),
+        value_function_token_idxs=torch.tensor(value_function_masked_tokens).ne(ignore_token_id),
     )
 
 
@@ -278,7 +300,7 @@ def relabel_conversation(
     for j, message in enumerate(conversation):
         if message["role"] == "assistant":
             if value_function_experiment == "prefix":
-                # prefic the special token or the natural language value function
+                # prefix the special token or the natural language value function
                 message["content"] = (
                     f"{value_function_reserved_strs[rews[j//2]]}{message['content']}"  # do //2 becuase of turn level rewards
                 )
@@ -299,18 +321,18 @@ def get_value_function_keywords(
 
     LLAMA_SPECIAL_TOKEN_MAP = {
         # Single turn - special tokens
-        "binary": {0.0: "<|reserved_id_24|>", 1.0: "<|reserved_id_25|>"},
+        "binary": {0.0: "<|reserved_special_token_24|>", 1.0: "<|reserved_special_token_25|>"},
         # 3 turn based
         # Use discounted rewards for each turn
         "multilabel": {
-            0.0: "<|reserved_id_24|>",
-            1.0: "<|reserved_id_25|>",
-            gamma: "<|reserved_id_26|>",
-            gamma**2: "<|reserved_id_27|>",
-            gamma + gamma**2: "<|reserved_id_28|>",
-            1 + gamma: "<|reserved_id_29|>",
-            1 + gamma**2: "<|reserved_id_30|>",
-            1 + gamma + gamma**2: "<|reserved_id_31|>",
+            0.0: "<|reserved_special_token_24|>",
+            1.0: "<|reserved_special_token_25|>",
+            gamma: "<|reserved_special_token_26|>",
+            gamma**2: "<|reserved_special_token_27|>",
+            gamma + gamma**2: "<|reserved_special_token_28|>",
+            1 + gamma: "<|reserved_special_token_29|>",
+            1 + gamma**2: "<|reserved_special_token_30|>",
+            1 + gamma + gamma**2: "<|reserved_special_token_31|>",
         },
         # Verbalize belief of the model
         "natural_lang_binary": {0.0: "RED     ", 1.0: "BLUE     "},
