@@ -189,9 +189,8 @@ def mask_non_assistant_tokens(
 
     input_ids = torch.tensor(tokens)
     labels = torch.tensor(masked_tokens)
-    #TODO: Fix this.
-    value_function_token_idxs = torch.tensor(value_function_masked_tokens)
-    # value_function_token_idxs = torch.tensor([False if x == ignore_token_id else True for x in value_function_masked_tokens])
+    # #TODO: Fix this.
+    # value_function_token_idxs = torch.tensor(value_function_masked_tokens)
     return dict(
         input_ids=input_ids,
         labels=labels,
