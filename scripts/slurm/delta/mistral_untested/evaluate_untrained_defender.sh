@@ -11,10 +11,10 @@ UNTRAINED_DEFENDER_MODEL_NAME="untrained_defender"
 # The checkpoint folder is where the model is loaded from
 UNTRAINED_DEFENDER_MODEL_DIR="meta-llama/Meta-Llama-3.1-8B-Instruct"
 
-SFT_ATTACKER_MODEL_TYPE="sft_trained_attacker"
-SFT_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135
-RWR_ATTACKER_MODEL_TYPE="rwr_trained_attacker"
-RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183
+SFT_ATTACKER_MODEL_TYPE="sft_trained_attacker_mistral"
+SFT_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_mistralai/Mistral-7B-Instruct-v0.1_2024-08-10-16-11-32-379/checkpoint-135
+RWR_ATTACKER_MODEL_TYPE="rwr_trained_attacker_mistral"
+RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_mistralai/Mistral-7B-Instruct-v0.1_2024-08-19-17-16-11-631/checkpoint-366
 
 
 
@@ -23,5 +23,6 @@ RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_meta-llama/Meta-
 for temperature in 0.0 0.7 1.0
 do
     sbatch $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $UNTRAINED_DEFENDER_MODEL_DIR $UNTRAINED_DEFENDER_MODEL_NAME $SFT_ATTACKER_MODEL_DIR $SFT_ATTACKER_MODEL_TYPE "$EXPERIMENT_DESC.$SFT_ATTACKER_MODEL_TYPE"
+    sleep 1
     sbatch $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $UNTRAINED_DEFENDER_MODEL_DIR $UNTRAINED_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_TYPE "$EXPERIMENT_DESC.$RWR_ATTACKER_MODEL_TYPE"
 done
