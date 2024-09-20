@@ -185,6 +185,7 @@ def mask_non_assistant_tokens(
                         + len(content_tokens)
                     ]
                     if value_function_type in ["binary", "multilabel"]:
+                        # single token
                         value_function_masked_tokens[
                             start_index
                             + len(assistant_prefix_ids)
