@@ -43,7 +43,6 @@ class RedteamGame:
         goals: list[str],
         max_turns: int = 3,
     ):
-
         self.goals = goals
 
         self.attacker = attacker

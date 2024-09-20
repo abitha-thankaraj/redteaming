@@ -48,7 +48,6 @@ def read_and_parse_csv(file_path):
 
 
 def main(fname: str, judge: LlamaGuardJudge):
-
     save_fname = fname.replace(".json", "_llama_rewards.json")
     dataset = read_json(fname)
     for i, data in tqdm(enumerate(dataset)):

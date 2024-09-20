@@ -200,6 +200,7 @@ class SFTDatasetHelper(RLHFDatasetHelperBase):
 
         return sampling_indices
 
+
 class RWRDatasetHelper(RLHFDatasetHelperBase):
     def __init__(
         self,

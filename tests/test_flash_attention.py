@@ -196,7 +196,6 @@ Out[15]: 'system\n\nCutting Knowledge Date: December 2023\nToday Date: 26 Jul 20
     """
     # TODO - Load trained attacker and see what happens? Your mask is causal then?
     for i in range(len(conversations)):
-
         flash_attn_op = tokenizer.decode(op1_.cpu()[i], skip_special_tokens=True)
         og = tokenizer.decode(v_op1_.cpu()[i], skip_special_tokens=True)
 

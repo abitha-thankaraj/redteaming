@@ -49,7 +49,6 @@ def get_llama_tokenizer():
 def test_multiturn_rwr_dataset(
     value_function_type, model_name="meta-llama/Meta-Llama-3.1-8B-Instruct"
 ):
-
     conversations, rewards = [SAMPLE_CONVERSATION], [SAMPLE_REWARDS]
     tokenizer = get_llama_tokenizer()
     tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
@@ -68,7 +67,6 @@ def test_multiturn_rwr_dataset(
 
 
 def test_tokenizer():
-
     tokenizer = get_llama_tokenizer()
     tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
 

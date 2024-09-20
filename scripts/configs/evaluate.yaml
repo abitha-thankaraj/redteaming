@@ -16,10 +16,11 @@ attacker:
     max_n_tokens: 4096
     temperature: 0.7
     top_p: 1.0
+    decode_skip_special_tokens: true
 
 defender:
   model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_dir: "/data/group_data/rl/experiments/redteaming/multiturn_rwr_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-15-14-47-28-373/checkpoint-122"
+  model_dir: "/scratch/bcgv/models/redteaming/multiturn_rwr_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-20-09-55-14-661/checkpoint-80"
   model_type: rwr_trained_defender
   model_cache_dir: ${env.hf_home}
   device: "cuda:1"
@@ -27,6 +28,7 @@ defender:
     max_n_tokens: 4096
     temperature: 0.7
     top_p: 1.0
+    decode_skip_special_tokens: true
 
 judge:
   judge_type: "llama-guard"
@@ -34,15 +36,15 @@ judge:
 
 
 value_function_evaluate:  
-  do_eval: false
+  do_eval: true
   # Do you evaluate the value function for the attacker?
   attacker:
     evaluate: false
     value_function_type: null
   # Do you evaluate the value function for the defender?
   defender:
-    evaluate: false
-    value_function_type: null
+    evaluate: true
+    value_function_type: multilabel
 
 
 # Game

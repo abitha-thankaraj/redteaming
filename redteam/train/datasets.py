@@ -19,7 +19,6 @@ class MultiturnSFTDataset(Dataset):
         ignore_token_id: int,
         value_function_type=None,
     ):
-
         self.input_ids, self.labels, self.attention_mask, self.value_function_token_idxs = (
             [],
             [],
@@ -314,13 +313,13 @@ def relabel_conversation(
         if message["role"] == "assistant":
             if value_function_experiment == "prefix":
                 # prefix the special token or the natural language value function
-                message["content"] = (
-                    f"{value_function_reserved_strs[rews[j//2]]}{message['content']}"  # do //2 becuase of turn level rewards
-                )
+                message[
+                    "content"
+                ] = f"{value_function_reserved_strs[rews[j//2]]}{message['content']}"  # do //2 becuase of turn level rewards
             elif value_function_experiment == "overfit":
-                message["content"] = (
-                    f"{value_function_reserved_strs[rews[j//2]]} $$"  # Add $$ in the end to prevent stripping of the spaces
-                )
+                message[
+                    "content"
+                ] = f"{value_function_reserved_strs[rews[j//2]]} $$"  # Add $$ in the end to prevent stripping of the spaces
             else:
                 raise NotImplementedError(
                     f"Value function strategy {value_function_experiment} not implemented"
@@ -331,7 +330,6 @@ def relabel_conversation(
 def get_value_function_keywords(
     value_function_type, gamma=0.9, model_name="meta-llama/Meta-Llama-3.1-8B-Instruct"
 ):
-
     LLAMA_SPECIAL_TOKEN_MAP = {
         # Single turn - special tokens
         "binary": {0.0: "<|reserved_special_token_24|>", 1.0: "<|reserved_special_token_25|>"},

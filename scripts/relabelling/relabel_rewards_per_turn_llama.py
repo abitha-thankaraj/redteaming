@@ -6,7 +6,6 @@ from redteam.utils.slack_me import slack_notification
 
 
 def main(fname: str, device: str):
-
     save_fname = fname.replace(".json", "_llama_rewards.json")
     judge = LlamaGuardJudge(device=device)
     dataset = read_json(fname)

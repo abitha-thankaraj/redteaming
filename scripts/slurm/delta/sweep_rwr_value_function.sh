@@ -1,9 +1,12 @@
 #!/bin/bash
 
 # Array of learning rates
-learning_rates=(1e-6 5e-7)
+# learning_rates=(1e-6 5e-7)
+learning_rates=(1e-6)
+
 # Array of value function experiments
-value_function_experiments=("multilabel" "binary")
+# value_function_experiments=("multilabel" "binary")
+value_function_experiments=("multilabel")
 
 # Base master port
 base_master_port=29500
@@ -24,12 +27,12 @@ for i in "${!learning_rates[@]}"; do
             "meta-llama/Meta-Llama-3.1-8B-Instruct" \
             "defender" \
             "$master_port" \
-            "class_balanced" \
-            "prefix" \
+            "weighted" \
             "$value_fn" \
+            "overfit" \
             "$lr" \
             "1.0" \
             "Meta-Llama-3.1-8B-Instruct_length" \
-            "value_fn_rwr_sweep_${value_fn}_${lr}"
+            "overfit_value_fn_rwr_sweep_${value_fn}_${lr}_weighted"
     done
 done

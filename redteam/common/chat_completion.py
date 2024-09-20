@@ -67,7 +67,6 @@ class OAIChatCompletion(ChatCompletion):
     def multiturn_chat_completion(
         self, system_prompt=None, messages: list[str] = []
     ) -> list[str]:
-
         self._init_conversation()
 
         if system_prompt is not None:

@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 def load_model_and_tokenizer(model_name, model_dir, model_cache_dir, device):
-
     tokenizer = AutoTokenizer.from_pretrained(
         pretrained_model_name_or_path=model_dir, use_fast=False
     )
@@ -75,7 +74,6 @@ class LanguageModel:
 
 class HuggingFaceLM(LanguageModel):
     def __init__(self, model_name, model, tokenizer):
-
         self.model_name = model_name
         self.model = model
         self.tokenizer = tokenizer
@@ -163,6 +161,7 @@ class HuggingFaceLM(LanguageModel):
         max_n_tokens: int = None,
         temperature: float = 0.7,
         top_p: float = 1.0,
+        decode_skip_special_tokens: bool = True,
     ):
         # Apply chat template to each prompt?
         inputs = {}
@@ -190,13 +189,21 @@ class HuggingFaceLM(LanguageModel):
                 top_p=1,
                 temperature=1,  # To prevent warning messages
             )
-        outputs = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
-        # outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+        outputs = self.tokenizer.decode(
+            output_ids[0], skip_special_tokens=decode_skip_special_tokens
+        )
+
         if (
             "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name
             or "meta-llama/Meta-Llama-3-8B-Instruct" in self.model_name
         ):
-            outputs = outputs.split("assistant\n\n")[-1]
+            if decode_skip_special_tokens:
+                outputs = outputs.split("assistant\n\n")[-1]
+            else:
+                # We use this when we use reserved tokens for value function experiments.
+                outputs = outputs.split("<|start_header_id|>assistant<|end_header_id|>")[
+                    -1
+                ].split("<|eot_id|>")[0]
 
         if "mistralai/Mistral-7B-Instruct-v0.1" in self.model_name:
             outputs = outputs.split("[/INST]")[-1]
