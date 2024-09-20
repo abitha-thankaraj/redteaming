@@ -346,16 +346,28 @@ def get_value_function_keywords(
             1 + gamma + gamma**2: "<|reserved_special_token_31|>",
         },
         # Verbalize belief of the model
-        "natural_lang_binary": {0.0: "RED     ", 1.0: "BLUE     "},
+        # "natural_lang_binary": {0.0: "RED     ", 1.0: "BLUE     "},
+        # "natural_lang_multiclass": {
+        #     0.0: "RED     ",
+        #     1.0: "BLUE     ",
+        #     gamma: "GREEN     ",
+        #     gamma**2: "YELLOW     ",
+        #     gamma + gamma**2: "PURPLE     ",
+        #     1 + gamma: "ORANGE     ",
+        #     1 + gamma**2: "BROWN     ",
+        #     1 + gamma + gamma**2: "BLACK     ",
+        # },
+        "natural_lang_binary": {0.0: "<UNSAFE>", 1.0: "<SAFE>"},
+        # Anything <1 is moderate. 
         "natural_lang_multiclass": {
-            0.0: "RED     ",
-            1.0: "BLUE     ",
-            gamma: "GREEN     ",
-            gamma**2: "YELLOW     ",
-            gamma + gamma**2: "PURPLE     ",
-            1 + gamma: "ORANGE     ",
-            1 + gamma**2: "BROWN     ",
-            1 + gamma + gamma**2: "BLACK     ",
+            0.0: "<UNSAFE>",
+            1.0: "<SAFE>",
+            gamma: "<MODERATE>",
+            gamma**2: "<MODERATE>",
+            gamma + gamma**2: "<MODERATE>",
+            1 + gamma: "<SAFE>",
+            1 + gamma**2: "<SAFE>",
+            1 + gamma + gamma**2: "<SAFE>",
         },
     }
 
