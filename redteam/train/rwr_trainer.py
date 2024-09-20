@@ -14,20 +14,14 @@ class RWRTrainer(Trainer):
         Compute the RWR weight term for the given rewards.
         rewards: Tensor of shape (B, T) where B is the batch size and T is the sequence length.
         rwr_type: Type of RWR term to use.
-        per_token_weights: Weights for each token in the sequence; shape should be (B, T).
-        Used to upweight the value function tokens.
         """
+        
         if rwr_type == "exp":
             return torch.exp(rewards / self.rwr_args.rwr_temperature)
         elif rwr_type == "baseline_batch_mean":  # batch size is 1?
             return (
                 rewards - rewards.mean()
-            )  # if this diverges, then go to something online with importance clipping.
-        # elif rwr_type == "baseline_ema_batch_mean":
-        #     return rewards - self._ema_rewards.mean()
-        # elif rwr_type == "baseline_running_mean":
-        # elif rwr_type == "rloo":
-
+            )  
         else:
             raise NotImplementedError(f"RWR type {rwr_type} not implemented")
 

@@ -13,56 +13,12 @@ import numpy as np
 from redteam.train.datasets import get_reward_to_gos
 
 
-def get_conversations(data_dir: str, agent_type: str) -> List[Dict]:
-    data = RLHFDatasetHelperBase.read_files(data_dir)
-    # filter based on type of messages to be returned
-    return filter_messages(data, agent_type)
-
-
-def filter_messages(messages: List[Dict], agent_type: str) -> List[Dict]:
-    """
-    Filter messages based on the agent type
-    """
-    agent_config = {
-        "attacker": (is_good_attacker_message, RLHFDatasetHelperBase.create_attacker_message),
-        "defender": (is_good_defender_message, RLHFDatasetHelperBase.create_defender_message),
-        "llama_attacker": (
-            is_good_llama_attacker_message,
-            RLHFDatasetHelperBase.create_attacker_message,
-        ),
-    }
-    if agent_type not in agent_config:
-        raise ValueError(f"Invalid agent type: {agent_type}")
-    is_good_message, get_message = agent_config[agent_type]
-    return list(map(get_message, filter(is_good_message, messages)))
-
-
-def is_good_llama_attacker_message(message: Dict) -> bool:
-    return (
-        is_good_attacker_message(message)
-        and message["generation_model"] == "Meta-Llama-3.1-8B-Instruct"
-    )
-
-
-def is_good_attacker_message(message: Dict) -> bool:
-    """Attacker condition: is_unsafe == True [breaks the model] and is_goal_achieved == True [follows the goal instruction provided]"""
-    return (
-        message["goal_achieved"].lower().strip() == "yes"  # Follows the goal provided
-        and message["safety_label"].lower().strip() == "unsafe"  # Breaks the defender model
-    )
-
-
-def is_good_defender_message(message: Dict) -> bool:
-    """Defender condition: is_unsafe == False [does not break the model]; We do not care about the goal.
-    This will be the model (a) refusing to answer or (b) providing a safe answer."""
-    return message["safety_label"].lower().strip() == "safe"
-
-
 class RLHFDatasetHelperBase:
     def __init__(self, data_dir: str, length_key: str = "", max_length=-1) -> None:
-        self.raw_data = pd.DataFrame(RWRDatasetHelper.read_files(data_dir))
+        self.raw_data = pd.DataFrame(RLHFDatasetHelperBase.read_files(data_dir))
         # Convert from list to numpy array
         self.raw_data["rewards"] = self.raw_data["rewards"].apply(lambda x: np.array(x))
+        # Filter by length
         if length_key != "":
             assert max_length > 0, "Max length of tokens should be greater than 0"
             self.raw_data["length_filtered"] = self.raw_data[length_key].apply(
@@ -278,19 +234,6 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
 
         return sampling_indices
 
-        # model_indices = self.raw_data.groupby("generation_model").indices
-
-        # if self.dataset_type == "balance_by_model_llama":
-        #     llama_indices = model_indices["Meta-Llama-3.1-8B-Instruct"]
-        #     p_llama_indices = np.intersect1d(llama_indices, positive_indices)
-        #     n_llama_indices = np.intersect1d(llama_indices, negative_indices)
-
-    # def filter_by_model(self):
-    #     model_indices =
-    #     return model_indices
-    # goal_wise = self.raw_data.groupby("goal").indices
-
-
 class RWRDatasetValueFunctionHelper(RLHFDatasetHelperBase):
     def __init__(
         self,
@@ -442,3 +385,6 @@ class RWRDatasetValueFunctionHelper(RLHFDatasetHelperBase):
             ].to_list(),
             "reward_to_gos": self.raw_data["reward_to_gos"][subsampled_indices].to_list(),
         }
+
+
+

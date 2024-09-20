@@ -12,7 +12,7 @@ import math
 import pathlib
 import numpy as np
 from redteam.train.datasets import MultiturnSFTDataset
-from redteam.train.dataset_utils import get_conversations, SFTDatasetHelper
+from redteam.train.dataset_utils import SFTDatasetHelper
 from redteam.train.common import (
     get_tokenizer_separators,
     safe_save_model_for_hf_trainer,

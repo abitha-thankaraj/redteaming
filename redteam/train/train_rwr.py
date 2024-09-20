@@ -15,7 +15,6 @@ import math
 import pathlib
 import numpy as np
 from redteam.train.datasets import MultiturnSFTDataset, MultiturnRWRDataset
-from redteam.train.dataset_utils import get_conversations
 from redteam.train.common import (
     get_tokenizer_separators,
     safe_save_model_for_hf_trainer,
@@ -26,7 +25,7 @@ from torch.utils.data import Dataset
 from transformers.trainer_pt_utils import LabelSmoother
 
 from transformers import Trainer
-from redteam.train.rwr import RWRTrainer
+from redteam.train.rwr_trainer import RWRTrainer
 from redteam.train.dataset_utils import RWRDatasetHelper, RWRDatasetValueFunctionHelper
 import torch, time
 
