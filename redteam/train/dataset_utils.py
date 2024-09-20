@@ -362,30 +362,46 @@ class RWRDatasetValueFunctionHelper(RLHFDatasetHelperBase):
                 )
 
     def _get_indices(self, num_samples=None):
+
+        def is_close_to_one_decimal(a, b):
+            return np.isclose(
+                a, b, atol=0.05
+            )  # 0.05 is half the distance between two adjacent values in the first decimal place
+
+        if self.dataset_type == "class_balanced":
+            expected_weights = [1 / 3.0, 1 / 3.0, 1 / 3.0]
+            if not all(
+                is_close_to_one_decimal(a, b)
+                for a, b in zip(self.dataset_type_weights, expected_weights)
+            ):
+                print(
+                    f"Warning: Using custom weights {expected_weights} for class balanced sampling"
+                )
+                self.dataset_type_weights = expected_weights
+        elif self.dataset_type == "naive_balance":
+            expected_weights = [1 / 2.0, 1 / 4.0, 1 / 4.0]
+            if not all(
+                is_close_to_one_decimal(a, b)
+                for a, b in zip(self.dataset_type_weights, expected_weights)
+            ):
+                print(
+                    f"Warning: Using custom weights {expected_weights} for naive balance sampling"
+                )
+                self.dataset_type_weights = expected_weights
+        elif self.dataset_type == "weighted":
+            assert is_close_to_one_decimal(
+                sum(self.dataset_type_weights), 1.0
+            ), "Weights should sum to 1.0"
+        elif self.dataset_type == "all":
+            print("Warning: Ignoring dataset type weights for all dataset")
+        else:
+            raise ValueError(f"Invalid dataset type: {self.dataset_type}")
+
         num_good_samples = int(num_samples * self.dataset_type_weights[0])
         num_mid_samples = int(num_samples * self.dataset_type_weights[1])
         num_bad_samples = int(num_samples * self.dataset_type_weights[2])
 
-        sampling_indices = np.concatenate(
-            [
-                np.random.choice(self.indices["good"], num_good_samples),
-                np.random.choice(self.indices["mid"], num_mid_samples),
-                np.random.choice(self.indices["bad"], num_bad_samples),
-            ],
-            axis=0,
-        )
-        if self.dataset_type == "class_balanced":
-            assert self.dataset_type_weights == [
-                1 / 3.0,
-                1 / 3.0,
-                1 / 3.0,
-            ], "Weights are not supported for class balanced sampling"
-        elif self.dataset_type == "naive_balance":
-            assert self.dataset_type_weights == [
-                1 / 2.0,
-                1 / 4.0,
-                1 / 4.0,
-            ], "Weights are not supported for class balanced sampling"
+        if self.dataset_type == "naive_balance":
             sampling_indices = np.concatenate(
                 [
                     np.random.choice(self.indices["good"], num_good_samples),
@@ -396,10 +412,18 @@ class RWRDatasetValueFunctionHelper(RLHFDatasetHelperBase):
                 ],
                 axis=0,
             )
-        elif self.dataset_type == "weighted":  # custom proportion
-            assert sum(self.dataset_type_weights) == 1.0, "Weights should sum to 1.0"
+
         elif self.dataset_type == "all":
             sampling_indices = np.arange(len(self.raw_data))
+        else:
+            sampling_indices = np.concatenate(
+                [
+                    np.random.choice(self.indices["good"], num_good_samples),
+                    np.random.choice(self.indices["mid"], num_mid_samples),
+                    np.random.choice(self.indices["bad"], num_bad_samples),
+                ],
+                axis=0,
+            )
         return sampling_indices
 
     def get_conversations(self, num_samples):

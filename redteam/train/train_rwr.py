@@ -246,7 +246,8 @@ def train():
 
     # Load tokenizer
     tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_args.model_name_or_path,
+        # Chnaged to use the model name instead of the model path, because it will help in iterative training
+        data_args.model_name,
         config=config,
         trust_remote_code=True,
         cache_dir=training_args.cache_dir,
