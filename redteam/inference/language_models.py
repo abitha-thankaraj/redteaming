@@ -206,7 +206,7 @@ class HuggingFaceLM(LanguageModel):
                 ].split("<|eot_id|>")[0]
 
         if "mistralai/Mistral-7B-Instruct-v0.1" in self.model_name:
-            outputs = outputs.split("[/INST]")[-1]
+            outputs = outputs.split("[/INST] ")[-1]
 
         for key in inputs:
             inputs[key].to("cpu")

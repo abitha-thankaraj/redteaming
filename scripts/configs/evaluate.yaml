@@ -36,15 +36,15 @@ judge:
 
 
 value_function_evaluate:  
-  do_eval: true
+  do_eval: false
   # Do you evaluate the value function for the attacker?
   attacker:
     evaluate: false
     value_function_type: null
   # Do you evaluate the value function for the defender?
   defender:
-    evaluate: true
-    value_function_type: multilabel
+    evaluate: false
+    value_function_type: null
 
 
 # Game
