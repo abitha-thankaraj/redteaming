@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Array of learning rates
-learning_rates=(1e-5 5e-6 1e-6 5e-7 1e-7)
+learning_rates=(5e-7 1e-7)
 
 # Base master port
 base_master_port=29500
 
 # Path to your main SLURM script
-main_script="/scratch/bcgv/athankaraj/redteaming/scripts/slurm/delta/rwr.sh"
+main_script="/scratch/bcgv/athankaraj/redteaming/scripts/slurm/delta/mistral/rwr.sh"
 
 # Loop through learning rates
 for i in "${!learning_rates[@]}"; do
@@ -17,7 +17,7 @@ for i in "${!learning_rates[@]}"; do
     echo "Submitting job with learning rate: $lr and master port: $master_port"
     
     sbatch $main_script \
-        "meta-llama/Meta-Llama-3.1-8B-Instruct" \
+        "mistralai/Mistral-7B-Instruct-v0.1" \
         "defender" \
         "$master_port" \
         "naive_balance" \
@@ -25,6 +25,6 @@ for i in "${!learning_rates[@]}"; do
         "" \
         "$lr" \
         "1.0" \
-        "Meta-Llama-3.1-8B-Instruct_length" \
-        "rwr_sweep_naive_balance_${lr}"
+        "Mistral-7B-Instruct-v0.1_length" \
+        "mistral_rwr_sweep_naive_balance_${lr}"
 done

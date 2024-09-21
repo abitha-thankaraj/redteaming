@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=rwr_sweep
+#SBATCH --job-name=mistral_rwr_sweep
 #SBATCH --output=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.out
 #SBATCH --error=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.err
 #SBATCH --account=bcgv-delta-gpu
@@ -26,7 +26,7 @@ source /scratch/bcgv/athankaraj/redteaming/scripts/slurm/env_files/.delta_env
 
 
 # Command-line argument parsing
-MODEL_PATH=${1:-"meta-llama/Meta-Llama-3.1-8B-Instruct"}
+MODEL_PATH=${1:-"mistralai/Mistral-7B-Instruct-v0.1"}
 AGENT_TYPE=${2:-"defender"}
 MASTER_PORT=${3:-29500}
 DATASET_TYPE=${4:-"naive_balance"}
@@ -34,8 +34,8 @@ VALUE_FUNCTION_TYPE=${5:-""}
 VALUE_FUNCTION_EXPERIMENT=${6:-""}
 LEARNING_RATE=${7:-1e-5}
 RWR_TEMPERATURE=${8:-1.0}
-LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
-EXPERIMENT_DESC=${10:-"rwr_lr_sweep_naive_balance"}
+LENGTH_KEY=${9:-"Mistral-7B-Instruct-v0.1_length"}
+EXPERIMENT_DESC=${10:-"mistral_rwr_lr_sweep_naive_balance"}
 
 
 MAX_LENGTH=4096
@@ -98,17 +98,16 @@ RWR_DEFENDER_MODEL_NAME="rwr_trained_defender"
 # The checkpoint folder is where the model is loaded from
 RWR_DEFENDER_MODEL_PARENT_DIR=$LATEST_CHECKPOINT
 
-SFT_ATTACKER_MODEL_TYPE="sft_trained_attacker"
-SFT_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135
-RWR_ATTACKER_MODEL_TYPE="rwr_trained_attacker"
-RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183
-
+SFT_ATTACKER_MODEL_TYPE="mistral_sft_trained_attacker"
+SFT_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_mistralai/Mistral-7B-Instruct-v0.1_2024-08-10-16-11-32-379/checkpoint-135
+RWR_ATTACKER_MODEL_TYPE="mistral_rwr_trained_attacker"
+RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_mistralai/Mistral-7B-Instruct-v0.1_2024-08-19-17-16-11-631/checkpoint-366
 
 
 # Args: $DEFENDER_MODEL_PARENT_DIR $TEMPERATURE $DEFENDER_MODEL_NAME $ATTACKER_MODEL_DIR $ATTACKER_MODEL_NAME
 # for loop through temperatures
 for temperature in 0.0 0.7 1.0
 do
-    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $SFT_ATTACKER_MODEL_DIR $SFT_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
-    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
+    # sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $SFT_ATTACKER_MODEL_DIR $SFT_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC.$SFT_ATTACKER_MODEL_TYPE.$temperature
+    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/mistral/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC.$RWR_ATTACKER_MODEL_TYPE.$temperature
 done
