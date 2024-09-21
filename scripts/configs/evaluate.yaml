@@ -50,6 +50,10 @@ value_function_evaluate:
 # Game
 max_turns: 3
 
+# Goal
+chunk: -1
+max_chunk_size: 100
+
 # Result of simulating the game will be saved in this file
 experiment_desc: eval_fixed_naive_balance
 out_dir: ${env.data_dir}/redteaming_evals/${experiment_desc}/${now:%Y.%m.%d}/${now:%H-%M-%s}

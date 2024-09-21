@@ -60,6 +60,12 @@ def main(config: DictConfig):
 
     trajs = []
     errors = []
+    if config.chunk !=-1:
+        max_chunk_size = config.max_chunk_size
+        # split into n chunks of size max_chunk_size
+        chunks = [goals[i:i + max_chunk_size] for i in range(0, len(goals), max_chunk_size)]
+        assert config.chunk < len(chunks), f"Chunk {config.chunk} is out of bounds"
+        goals = chunks[config.chunk]
 
     for goal in tqdm(goals):
         try:

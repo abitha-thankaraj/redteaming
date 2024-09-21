@@ -23,6 +23,7 @@ def get_dataset(
         "harmbench": get_harmbench_dataset,
         "advbench": get_advbench_dataset,
         "jailbreakbench": get_jailbreakbench_dataset,
+        "ultrasafety": get_ultrasafety_dataset,
     }
 
     dataset_loading_kwargs = {
@@ -102,3 +103,18 @@ def get_jailbreakbench_dataset(dataset_path: str) -> ArrowDataset:
     return load_dataset(
         "JailbreakBench/JBB-Behaviors", "behaviors", split="harmful"
     ).rename_column("Goal", "prompt")
+
+def get_ultrasafety_dataset(dataset_path: str) -> ArrowDataset:
+    """
+    Loads the 3k harmful prompts from the UltraSafety dataset.
+    Paper: https://arxiv.org/abs/2402.19085
+    Data: https://huggingface.co/datasets/openbmb/UltraSafety
+
+    Example Usage:
+        dataset = get_ultrasafety_dataset(dataset_path)
+        for i in range(len(dataset)):
+            print(dataset[i]['prompt'])
+    """
+    return load_dataset(
+        "openbmb/UltraSafety", split="train"
+    ).rename_column("prompt", "old_prompt").rename_column("instruction", "prompt")

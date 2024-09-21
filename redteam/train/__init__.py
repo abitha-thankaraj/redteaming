@@ -77,7 +77,7 @@ class RWRArguments:
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
-    algo: str = field(metadata={"help": "Algorithm to use for training."})
+    algo: str = field(default="sft", metadata={"help": "Algorithm to use for training."})
     cache_dir: Optional[str] = field(
         default="/data/tir/projects/tir6/bisk/athankar/projects/.cache"
     )
