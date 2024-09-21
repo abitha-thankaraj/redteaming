@@ -103,14 +103,30 @@ class TrainingArguments(transformers.TrainingArguments):
 
 
 def get_dataset(training_args, tokenizer, tokenizer_separator):
-    if training_args.algo == "rwr":
-        return get_rwr_dataset(training_args.data_args, tokenizer, tokenizer_separator)
-    elif training_args.algo == "sft":
-        return get_sft_dataset(training_args.data_args, tokenizer, tokenizer_separator)
-    elif training_args.algo == "dpo":
-        return get_dpo_dataset(training_args.data_args, tokenizer, tokenizer_separator)
-    else:
-        raise ValueError(f"Unknown algorithm: {training_args.algo}")
+
+    fn = {
+        "rwr": get_rwr_dataset,
+        "sft": get_sft_dataset,
+        "dpo": get_dpo_dataset,
+    }
+    return fn[training_args.algo](training_args.data_args, tokenizer, tokenizer_separator)
+    
+
+def get_trainer(model, tokenizer, train_dataset, eval_dataset, training_args:TrainingArguments):
+    fn = {
+        "rwr": RWRTrainer,
+        "sft": Trainer,
+        "dpo": DPOTrainer,
+    }
+
+    return fn[training_args.algo](
+        model=model,
+        tokenizer=tokenizer,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+    )
+
 
 
 
@@ -214,34 +230,3 @@ def get_dpo_dataset(
     tokenizer_separator: TokenizerSeparators,
 ) -> Tuple[Dataset, Dataset]:
     return None, None
-
-def get_trainer(model, tokenizer, train_dataset, eval_dataset, training_args:TrainingArguments):
-    if training_args.algo == "rwr":
-        return RWRTrainer(
-                model=model,
-                tokenizer=tokenizer,
-                args=training_args,
-                train_dataset=train_dataset,
-                eval_dataset=eval_dataset,
-            )
-    elif training_args.algo == "sft":
-        return Trainer(
-                model=model,
-                tokenizer=tokenizer,
-                args=training_args,
-                train_dataset=train_dataset,
-                eval_dataset=eval_dataset,
-            )
-    elif training_args.algo == "dpo":
-        return DPOTrainer(
-                model=model,
-                tokenizer=tokenizer,
-                args=training_args,
-                train_dataset=train_dataset,
-                eval_dataset=eval_dataset,
-            )
-    else:
-        raise ValueError(f"Unknown algorithm: {training_args.algo}")
-
-
-
