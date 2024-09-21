@@ -273,7 +273,6 @@ def get_token_level_reward_to_gos(
         token_rewards.masked_fill_(turn_masks.eq(i), reward_to_gos[i])
     return token_rewards
 
-
 # relabelling strategies
 # 1. Binary. Prefix: Expected mode collapse? Prefix - semantically, conditional generation? Suffix? Model's belief of it's own response?
 # 2. Value function. -> Get rtgs; disctrete value function; <GOOD> <BAD> <NEUTRAL> ?

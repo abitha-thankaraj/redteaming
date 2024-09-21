@@ -3,9 +3,9 @@ from typing import Any, Dict, List, Tuple, Optional
 from dataclasses import dataclass, field
 from torch.utils.data import Dataset
 from transformers.trainer_pt_utils import LabelSmoother
-from transformers import Trainer
-from redteam.train.rwr_trainer import RWRTrainer
-from redteam.train.dpo_trainer import DPOTrainer
+# from transformers import Trainer
+# from redteam.train.rwr_trainer import RWRTrainer
+# from redteam.train.dpo_trainer import DPOTrainer
 from redteam.train.common import (
     set_seed_everywhere,
     safe_save_model_for_hf_trainer,
@@ -112,20 +112,20 @@ def get_dataset(training_args, tokenizer, tokenizer_separator):
     return fn[training_args.algo](training_args.data_args, tokenizer, tokenizer_separator)
     
 
-def get_trainer(model, tokenizer, train_dataset, eval_dataset, training_args:TrainingArguments):
-    fn = {
-        "rwr": RWRTrainer,
-        "sft": Trainer,
-        "dpo": DPOTrainer,
-    }
+# def get_trainer(model, tokenizer, train_dataset, eval_dataset, training_args:TrainingArguments):
+#     fn = {
+#         "rwr": RWRTrainer,
+#         "sft": Trainer,
+#         "dpo": DPOTrainer,
+#     }
 
-    return fn[training_args.algo](
-        model=model,
-        tokenizer=tokenizer,
-        args=training_args,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-    )
+#     return fn[training_args.algo](
+#         model=model,
+#         tokenizer=tokenizer,
+#         args=training_args,
+#         train_dataset=train_dataset,
+#         eval_dataset=eval_dataset,
+#     )
 
 
 

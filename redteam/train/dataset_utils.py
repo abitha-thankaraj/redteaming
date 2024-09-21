@@ -349,7 +349,7 @@ class RWRDatasetValueFunctionHelper(RLHFDatasetHelperBase):
                 [
                     np.random.choice(self.indices["good"], num_good_samples),
                     np.random.choice(
-                        self.indices["mid"] + self.indices["bad"],
+                        np.concatenate([self.indices["mid"], self.indices["bad"]]),
                         num_mid_samples + num_bad_samples,
                     ),
                 ],
