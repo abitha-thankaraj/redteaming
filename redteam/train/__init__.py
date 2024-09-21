@@ -1,7 +1,21 @@
 import transformers
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Tuple, Optional
 from dataclasses import dataclass, field
+from torch.utils.data import Dataset
+from transformers.trainer_pt_utils import LabelSmoother
+from transformers import Trainer
+from redteam.train.rwr_trainer import RWRTrainer
+from redteam.train.dpo_trainer import DPOTrainer
+from redteam.train.common import (
+    set_seed_everywhere,
+    safe_save_model_for_hf_trainer,
+    TokenizerSeparators,
+    get_tokenizer_separators,
+)
+from redteam.train.datasets import *
+from redteam.train.dataset_utils import *
 
+IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
 # Args/ Arg parsers
 @dataclass
@@ -63,6 +77,7 @@ class RWRArguments:
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
+    algo: str = field(metadata={"help": "Algorithm to use for training."})
     cache_dir: Optional[str] = field(
         default="/data/tir/projects/tir6/bisk/athankar/projects/.cache"
     )
@@ -80,23 +95,153 @@ class TrainingArguments(transformers.TrainingArguments):
         default=True, metadata={"help": "Save only the model and not the trainer."}
     )
     # Adding args for data, model and rwr
-    data_args: Any = field(default=None)
-    model_args: Any = field(default=None)
-    rwr_args: Any = field(default=None)
+    data_args: DataArguments = field(default=None)
+    model_args: ModelArguments = field(default=None)
+    rwr_args: RWRArguments = field(default=None)
     exp_desc: str = field(default="")
 
 
 
-def get_dataset():
-    pass
+def get_dataset(training_args, tokenizer, tokenizer_separator):
+    if training_args.algo == "rwr":
+        return get_rwr_dataset(training_args.data_args, tokenizer, tokenizer_separator)
+    elif training_args.algo == "sft":
+        return get_sft_dataset(training_args.data_args, tokenizer, tokenizer_separator)
+    elif training_args.algo == "dpo":
+        return get_dpo_dataset(training_args.data_args, tokenizer, tokenizer_separator)
+    else:
+        raise ValueError(f"Unknown algorithm: {training_args.algo}")
 
 
-def get_trainer():
-    pass
 
+def get_sft_dataset(
+    data_args: dataclass,
+    tokenizer: transformers.AutoTokenizer,
+    tokenizer_separator: TokenizerSeparators,
+) -> Tuple[Dataset, Dataset]:
+    """Get train test dataset for multiturn sft"""
+    dataset_helper = SFTDatasetHelper(
+        data_args.data_path,
+        data_args.agent_type,
+        dataset_type=None,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
+    )
 
+    conversation_reward_dict = dataset_helper.get_conversations()
 
+    train_dataset = MultiturnSFTDataset(
+        conversation_reward_dict["conversations"],
+        tokenizer,
+        tokenizer_separator,
+        ignore_token_id=IGNORE_TOKEN_ID,
+    )
 
+    eval_dataset_helper = SFTDatasetHelper(
+        data_args.eval_data_path,
+        data_args.agent_type,
+        dataset_type=None,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
+    )
+
+    eval_conversation_reward_dict = eval_dataset_helper.get_conversations()
+
+    eval_dataset = MultiturnSFTDataset(
+        eval_conversation_reward_dict["conversations"],
+        tokenizer,
+        tokenizer_separator,
+        ignore_token_id=IGNORE_TOKEN_ID,
+    )
+
+    return train_dataset, eval_dataset
+
+def get_rwr_dataset(
+    data_args: dataclass,
+    tokenizer: transformers.AutoTokenizer,
+    tokenizer_separator: TokenizerSeparators,
+) -> Tuple[Dataset, Dataset]:
+    dataset_helper = RWRDatasetValueFunctionHelper(
+        data_args.data_path,
+        data_args.agent_type,
+        dataset_type=data_args.dataset_type,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
+        dataset_type_weights=data_args.dataset_type_weights,
+    )
+
+    conversation_reward_dict = dataset_helper.get_conversations(
+        num_samples=data_args.num_samples
+    )
+
+    train_dataset = MultiturnRWRDataset(
+        conversation_reward_dict["conversations"],
+        tokenizer,
+        tokenizer_separator,
+        IGNORE_TOKEN_ID,
+        conversation_reward_dict["rewards"],
+        gamma=data_args.gamma,
+        value_function_type=data_args.value_function_type,
+        model_name=data_args.model_name,
+        value_function_experiment=data_args.value_function_experiment,
+    )
+    # You never use the eval dataset, so ignore this for now
+    eval_conversation_reward_dict = RWRDatasetValueFunctionHelper(
+        data_args.eval_data_path,
+        data_args.agent_type,
+        dataset_type=data_args.dataset_type,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
+        dataset_type_weights=data_args.dataset_type_weights,
+    ).get_conversations(num_samples=10)
+
+    eval_dataset = MultiturnRWRDataset(
+        eval_conversation_reward_dict["conversations"],
+        tokenizer,
+        tokenizer_separator,
+        IGNORE_TOKEN_ID,
+        eval_conversation_reward_dict["rewards"],
+        gamma=data_args.gamma,
+        value_function_type=data_args.value_function_type,
+        model_name=data_args.model_name,
+        value_function_experiment=data_args.value_function_experiment,
+    )
+    return train_dataset, eval_dataset
+
+def get_dpo_dataset(
+    data_args: dataclass,
+    tokenizer: transformers.AutoTokenizer,
+    tokenizer_separator: TokenizerSeparators,
+) -> Tuple[Dataset, Dataset]:
+    return None, None
+
+def get_trainer(model, tokenizer, train_dataset, eval_dataset, training_args:TrainingArguments):
+    if training_args.algo == "rwr":
+        return RWRTrainer(
+                model=model,
+                tokenizer=tokenizer,
+                args=training_args,
+                train_dataset=train_dataset,
+                eval_dataset=eval_dataset,
+            )
+    elif training_args.algo == "sft":
+        return Trainer(
+                model=model,
+                tokenizer=tokenizer,
+                args=training_args,
+                train_dataset=train_dataset,
+                eval_dataset=eval_dataset,
+            )
+    elif training_args.algo == "dpo":
+        return DPOTrainer(
+                model=model,
+                tokenizer=tokenizer,
+                args=training_args,
+                train_dataset=train_dataset,
+                eval_dataset=eval_dataset,
+            )
+    else:
+        raise ValueError(f"Unknown algorithm: {training_args.algo}")
 
 
 

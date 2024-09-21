@@ -5,10 +5,6 @@ from typing import Dict, Any, List
 from transformers import AutoTokenizer
 from redteam.train.common import TokenizerSeparators
 
-# def stripped_decode(tokenizer, masked_tokens):
-#     return tokenizer.decode(torch.where(masked_tokens == -100, tokenizer.unk_token_id, masked_tokens)).replace(tokenizer.unk_token, "")
-
-
 class MultiturnSFTDataset(Dataset):
     # TODO: Add docstring + key differences b/w single turn and multiturn
     def __init__(
@@ -85,9 +81,12 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
         # Ugly; but should work.
         if value_function_type != "":
             value_function_reserved_strs = get_value_function_keywords(
-                value_function_type=value_function_type, gamma=gamma, model_name=model_name
+                value_function_type=value_function_type, 
+                gamma=gamma, 
+                model_name=model_name
             )
             for i, conversation in enumerate(conversations):
+                # Add value function to the assistant responses
                 conversations[i] = relabel_conversation(
                     value_function_experiment,
                     value_function_type=value_function_type,
@@ -110,7 +109,6 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
         )
 
         self.rewards = []
-        # print(self.incorrect)
 
         for i, reward_per_turn in tqdm(enumerate(reward_per_turns), desc="Rewards - RWR"):
             self.rewards.append(
@@ -277,7 +275,7 @@ def get_token_level_reward_to_gos(
 
 
 # relabelling strategies
-# 1. Binary. Prefix: Expected mode collapse? Prefix - semantically, conditional generation? SUffix? Model's belief of it's own response?
+# 1. Binary. Prefix: Expected mode collapse? Prefix - semantically, conditional generation? Suffix? Model's belief of it's own response?
 # 2. Value function. -> Get rtgs; disctrete value function; <GOOD> <BAD> <NEUTRAL> ?
 
 
