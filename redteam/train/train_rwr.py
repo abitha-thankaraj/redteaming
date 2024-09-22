@@ -8,7 +8,7 @@ os.environ["WANDB_PROJECT"] = "redteaming"
 from typing import Any
 
 from dataclasses import dataclass, field, asdict
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict
 import transformers
 
 import math
@@ -31,6 +31,10 @@ import torch, time
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
+@dataclass
+class DatasetStats:
+    train_dataset_length: int
+    rtg_dict: Dict[float, int]
 
 # Args/ Arg parsers
 @dataclass
@@ -112,6 +116,7 @@ class TrainingArguments(transformers.TrainingArguments):
     rwr_args: Any = field(default=None)
     exp_desc: str = field(default="")
 
+    dataset_stats: DatasetStats = field(default=None)
 
 # Debugging utils
 local_rank = None
@@ -264,6 +269,15 @@ def train():
         tokenizer=tokenizer,
         tokenizer_separator=tokenizer_separator,
     )
+    # Save stats
+    torch.distributed.barrier()
+    if torch.distributed.get_rank() == 0:
+    #     print("Train dataset length: ", len(train_dataset))
+    #     np.array(train_dataset.reward_per_turns)
+        unique, counts = np.unique(train_dataset.reward_to_gos.flatten(), return_counts=True)
+        value_counts = dict(zip(unique, counts))
+        training_args.dataset_stats = DatasetStats(train_dataset_length= len(train_dataset), rtg_dict=value_counts)
+    
 
     trainer = RWRTrainer(
         model=model,

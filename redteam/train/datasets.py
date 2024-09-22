@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 from typing import Dict, Any, List
 from transformers import AutoTokenizer
 from redteam.train.common import TokenizerSeparators
+import numpy as np
 
 class MultiturnSFTDataset(Dataset):
     # TODO: Add docstring + key differences b/w single turn and multiturn
@@ -95,7 +96,7 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
                     gamma=gamma,
                     value_function_reserved_strs=value_function_reserved_strs,
                 )
-        if value_function_type not in ["", "multilabel", "binary"]:
+        if value_function_type not in ["", "multilabel", "binary", "natural_lang_binary", "natural_lang_multiclass"]:
             raise NotImplementedError(
                 f"Value function type {value_function_type} not implemented"
             )
@@ -107,6 +108,9 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
             ignore_token_id=ignore_token_id,
             value_function_type=value_function_type,
         )
+        self.reward_per_turns = reward_per_turns
+        self.reward_to_gos = np.array([np.array(get_reward_to_gos(reward_per_turn, gamma)) for reward_per_turn in reward_per_turns])
+
 
         self.rewards = []
 
@@ -162,9 +166,20 @@ def mask_non_assistant_tokens(
         for msg in conversation
         if msg["role"] == "assistant"
     ]
+    value_function_contents = []
 
     start_index = -1
     for content in assistant_contents:
+        # Get tokens for value_function
+        if value_function_type in ["natural_lang_binary", "natural_lang_multiclass"]:
+            # ALL LABELS ARE <>] 
+            # NOTE: This will mostly be correct. But you'll probably have off by 1 errors in a few, but not particularly bad for our algo.
+            value_function_label = content.split(tokenizer_separator.assistant_prefix)[1].split(">")[0]+">"
+            value_function_contents.append(value_function_label)
+            value_function_tokens = tokenizer.encode(value_function_label, add_special_tokens=False)
+        else:
+            value_function_tokens = None
+        
         content_tokens = tokenizer.encode(content, add_special_tokens=False)
         while True:
             try:  # Note: This will be slow, one time loading doesnt matter.
@@ -182,6 +197,11 @@ def mask_non_assistant_tokens(
                         + tokenizer_separator.prefix_offset : start_index
                         + len(content_tokens)
                     ]
+                    # print(tokens[start_index
+                    #     + len(assistant_prefix_ids)
+                    #     + tokenizer_separator.prefix_offset : start_index
+                    #     + len(content_tokens)
+                    # ])
                     if value_function_type in ["binary", "multilabel"]:
                         # single token
                         value_function_masked_tokens[
@@ -193,6 +213,32 @@ def mask_non_assistant_tokens(
                             + len(assistant_prefix_ids)
                             + tokenizer_separator.prefix_offset
                         ]
+                    elif value_function_type in ["natural_lang_binary", "natural_lang_multiclass"]:
+                        # print(value_function_type)
+                        # multiple tokens
+                        value_function_masked_tokens[
+                            start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset : start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset
+                            + len(value_function_tokens)
+                        ] = tokens[
+                            start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset : start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset
+                            + len(value_function_tokens)
+                        ]
+                        # print(value_function_masked_tokens[
+                        #     start_index
+                        #     + len(assistant_prefix_ids)
+                        #     + tokenizer_separator.prefix_offset : start_index
+                        #     + len(assistant_prefix_ids)
+                        #     + tokenizer_separator.prefix_offset
+                        #     + len(value_function_tokens)
+                        # ])
                     break
             except Exception as e:
                 break
@@ -355,17 +401,17 @@ def get_value_function_keywords(
         #     1 + gamma**2: "BROWN     ",
         #     1 + gamma + gamma**2: "BLACK     ",
         # },
-        "natural_lang_binary": {0.0: "<UNSAFE>", 1.0: "<SAFE>"},
+        "natural_lang_binary": {0.0: "<UNSAFE> ", 1.0: "<SAFE> "},
         # Anything <1 is moderate. 
         "natural_lang_multiclass": {
-            0.0: "<UNSAFE>",
-            1.0: "<SAFE>",
-            gamma: "<MODERATE>",
-            gamma**2: "<MODERATE>",
-            gamma + gamma**2: "<MODERATE>",
-            1 + gamma: "<SAFE>",
-            1 + gamma**2: "<SAFE>",
-            1 + gamma + gamma**2: "<SAFE>",
+            0.0: "<UNSAFE> ",
+            1.0: "<SAFE> ",
+            gamma: "<MODERATE> ",
+            gamma**2: "<MODERATE> ",
+            gamma + gamma**2: "<MODERATE> ",
+            1 + gamma: "<SAFE> ",
+            1 + gamma**2: "<SAFE> ",
+            1 + gamma + gamma**2: "<SAFE> ",
         },
     }
 
