@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Array of learning rates
-learning_rates=(5e-7 1e-7)
+learning_rates=(1e-6 5e-7 1e-7)
 # Base master port
 base_master_port=29520
 
