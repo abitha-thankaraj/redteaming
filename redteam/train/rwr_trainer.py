@@ -20,8 +20,10 @@ class RWRTrainer(Trainer):
             return torch.exp(rewards / self.rwr_args.rwr_temperature)
         elif rwr_type == "baseline_batch_mean":  # batch size is 1?
             return (
-                rewards - rewards.mean()
-            )  
+                rewards - rewards.mean() # This would be wrong; because indices.
+            )
+        elif rwr_type == "raw_rewards":
+            return rewards
         else:
             raise NotImplementedError(f"RWR type {rwr_type} not implemented")
 
