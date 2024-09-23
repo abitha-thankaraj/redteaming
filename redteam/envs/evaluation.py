@@ -49,7 +49,7 @@ class Game:
             self.simulate_one_turn()
         # traj = self.env_state.to_game_message()
         # Remove the goal. Pass in as openai format for judge
-        judge_score = self.judge.score(self.env_state.to_judge_input(strip_assistant_messages=True))
+        judge_score = self.judge.score(self.env_state.to_judge_input())
         return self.env_state, judge_score
 
 
