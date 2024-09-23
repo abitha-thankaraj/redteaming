@@ -34,7 +34,13 @@ class GameConversation:
         self.messages[-1][1] = message
 
     def _format_messages(
-        self, system_role, user_role, assistant_role, offset=0, strip_user_messages=True
+        self, 
+        system_role, 
+        user_role, 
+        assistant_role, 
+        offset=0, 
+        strip_user_messages=True,
+        strip_assistant_messages=False
     ):
         """Convert the conversation to OpenAI chat completion format."""
         if self.system_message == "":
@@ -49,10 +55,12 @@ class GameConversation:
                 ret.append({"role": user_role, "content": msg})
             else:
                 if msg is not None:
+                    if strip_assistant_messages:
+                        msg = split_message(self.value_function_keywords, msg)
                     ret.append({"role": assistant_role, "content": msg})
         return ret
 
-    def to_openai_api_messages(self, offset=0, strip_user_messages=True):
+    def to_openai_api_messages(self, offset=0, strip_user_messages=True, strip_assistant_messages=False):
         """Convert the conversation to OpenAI chat completion format."""
         return self._format_messages(
             "system",
@@ -60,6 +68,7 @@ class GameConversation:
             "assistant",
             offset=offset,
             strip_user_messages=strip_user_messages,
+            strip_assistant_messages=strip_assistant_messages,
         )
 
     def to_game_message(self):
@@ -74,6 +83,9 @@ class GameConversation:
 
     def to_defender_message(self):
         return self.to_openai_api_messages(offset=1, strip_user_messages=True)
+
+    def to_judge_input(self):
+        return self.to_openai_api_messages(offset=1, strip_user_messages=True, strip_assistant_messages=True)
 
     @classmethod
     def parse_messages(self, message_dict):
