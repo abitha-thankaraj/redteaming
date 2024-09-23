@@ -60,7 +60,7 @@ class DataArguments:
     model_name: str = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
     value_function_experiment: str = field(default=None)
     dataset_type_weights: List[float] = field(
-        default_factory=lambda: [0.5, 0.25, 0.25],
+        default_factory=lambda: [0.5, 0.3, 0.2],
         metadata={"help": "Weights for different dataset types"},
     )
     num_samples: int = field(

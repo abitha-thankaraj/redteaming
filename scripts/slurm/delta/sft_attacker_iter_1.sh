@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=sft_sweep
+#SBATCH --job-name=iter_1_sft_sweep
 #SBATCH --output=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.out
 #SBATCH --error=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.err
 #SBATCH --account=bcgv-delta-gpu
@@ -13,7 +13,7 @@
 #SBATCH --gpus-per-node=4
 #SBATCH --gpu-bind=closest 
 #SBATCH --no-requeue
-#SBATCH --time=12:00:00
+#SBATCH --time=8:00:00
 #SBATCH --exclude=gpub054
 
 
@@ -27,7 +27,7 @@ source /scratch/bcgv/athankaraj/redteaming/scripts/slurm/env_files/.delta_env
 
 # Command-line argument parsing
 MODEL_PATH=${1:-"meta-llama/Meta-Llama-3.1-8B-Instruct"}
-AGENT_TYPE=${2:-"defender"}
+AGENT_TYPE=${2:-"attacker"}
 MASTER_PORT=${3:-29500}
 DATASET_TYPE=${4:-""}
 VALUE_FUNCTION_TYPE=${5:-""}
@@ -48,7 +48,7 @@ LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
 deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/sft.py  \
         --model_name_or_path $MODEL_PATH \
         --seed 42   \
-        --data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/combined_train_data_llama_rewards_flat_length_added.json \
+        --data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/iter_1 \
         --eval_data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat_length_added.json \
         --agent_type $AGENT_TYPE \
         --length_key $LENGTH_KEY \
@@ -85,24 +85,24 @@ LATEST_CHECKPOINT=$(ls -td $LOGDIR/checkpoint-* | head -1)
 python $LATEST_CHECKPOINT/zero_to_fp32.py -d $LATEST_CHECKPOINT $LATEST_CHECKPOINT/pytorch_model.bin
 
 
-# Schedule the evals to run after the first job; 0, 0.7, 1.0 temperature
+# # Schedule the evals to run after the first job; 0, 0.7, 1.0 temperature
 
-SFT_DEFENDER_MODEL_NAME="sft_trained_defender_1"
-# Model parent dir is the parent directory for the checkpoint folder 
-# The checkpoint folder is where the model is loaded from
-SFT_DEFENDER_MODEL_DIR=$LATEST_CHECKPOINT
+# SFT_DEFENDER_MODEL_NAME="sft_trained_defender_1"
+# # Model parent dir is the parent directory for the checkpoint folder 
+# # The checkpoint folder is where the model is loaded from
+# SFT_DEFENDER_MODEL_DIR=$LATEST_CHECKPOINT
 
-SFT_ATTACKER_MODEL_TYPE="sft_trained_attacker_0"
-SFT_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135
-RWR_ATTACKER_MODEL_TYPE="rwr_trained_attacker_0"
-RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183
+# SFT_ATTACKER_MODEL_TYPE="sft_trained_attacker_0"
+# SFT_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135
+# RWR_ATTACKER_MODEL_TYPE="rwr_trained_attacker_0"
+# RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183
 
 
 
-# Args: $DEFENDER_MODEL_PARENT_DIR $TEMPERATURE $DEFENDER_MODEL_NAME $ATTACKER_MODEL_DIR $ATTACKER_MODEL_NAME
-# for loop through temperatures
-for temperature in 0.0 0.7 1.0
-do
-    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $SFT_DEFENDER_MODEL_DIR $SFT_DEFENDER_MODEL_NAME $SFT_ATTACKER_MODEL_DIR $SFT_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
-    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $SFT_DEFENDER_MODEL_DIR $SFT_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
-done
+# # Args: $DEFENDER_MODEL_PARENT_DIR $TEMPERATURE $DEFENDER_MODEL_NAME $ATTACKER_MODEL_DIR $ATTACKER_MODEL_NAME
+# # for loop through temperatures
+# for temperature in 0.0 0.7 1.0
+# do
+#     sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $SFT_DEFENDER_MODEL_DIR $SFT_DEFENDER_MODEL_NAME $SFT_ATTACKER_MODEL_DIR $SFT_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
+#     # sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $SFT_DEFENDER_MODEL_DIR $SFT_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
+# done

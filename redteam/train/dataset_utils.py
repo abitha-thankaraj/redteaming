@@ -135,8 +135,8 @@ class SFTDatasetHelper(RLHFDatasetHelperBase):
         else:
             raise ValueError(f"Invalid agent type: {agent_type}")
 
-    def get_conversations(self):
-        subsampled_indices = self._get_indices()
+    def get_conversations(self, num_samples=None):
+        subsampled_indices = self._get_indices(num_samples)
         return {
             "conversations": self.raw_data[f"{self.agent_type}_messages"][
                 subsampled_indices
@@ -144,8 +144,11 @@ class SFTDatasetHelper(RLHFDatasetHelperBase):
             "rewards": None,
         }
 
-    def _get_indices(self):
+    def _get_indices(self, num_samples=None):
+        
         positive_indices = np.where(self.raw_data.positives)[0]
+        if num_samples is not None:
+            positive_indices = np.random.choice(positive_indices, num_samples)
         sampling_indices = positive_indices
         if (
             "length_filtered" in self.raw_data.keys()

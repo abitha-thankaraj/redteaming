@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Array of learning rates
-learning_rates=(1e-5 5e-6 1e-6 5e-7 1e-7)
+learning_rates=(5e-6 1e-6 5e-7 1e-7)
 
 # Base master port
 base_master_port=29500
@@ -26,5 +26,6 @@ for i in "${!learning_rates[@]}"; do
         "$lr" \
         "1.0" \
         "Meta-Llama-3.1-8B-Instruct_length" \
-        "rwr_sweep_naive_balance_${lr}"
+        "raw_rewards_rwr_sweep_naive_balance_${lr}" \
+        "raw_rewards"
 done

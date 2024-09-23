@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=sft_sweep
+#SBATCH --job-name=iter_1_sft_sweep
 #SBATCH --output=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.out
 #SBATCH --error=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.err
 #SBATCH --account=bcgv-delta-gpu
@@ -48,7 +48,7 @@ LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
 deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/sft.py  \
         --model_name_or_path $MODEL_PATH \
         --seed 42   \
-        --data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/combined_train_data_llama_rewards_flat_length_added.json \
+        --data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/iter_1 \
         --eval_data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat_length_added.json \
         --agent_type $AGENT_TYPE \
         --length_key $LENGTH_KEY \
@@ -104,5 +104,5 @@ RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_meta-llama/Meta-
 for temperature in 0.0 0.7 1.0
 do
     sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $SFT_DEFENDER_MODEL_DIR $SFT_DEFENDER_MODEL_NAME $SFT_ATTACKER_MODEL_DIR $SFT_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
-    sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $SFT_DEFENDER_MODEL_DIR $SFT_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
+    # sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $SFT_DEFENDER_MODEL_DIR $SFT_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
 done

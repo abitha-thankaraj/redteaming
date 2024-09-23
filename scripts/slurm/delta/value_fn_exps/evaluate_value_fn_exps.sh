@@ -13,7 +13,7 @@
 #SBATCH --gpus-per-node=3
 #SBATCH --gpu-bind=closest 
 #SBATCH --no-requeue
-#SBATCH --time=06:00:00
+#SBATCH --time=04:00:00
 #SBATCH --exclude=gpub054
 
 
@@ -34,6 +34,18 @@ DEFENDER_MODEL_TYPE=$3
 ATTACKER_MODEL_DIR=$4
 ATTACKER_MODEL_TYPE=$5
 EXPERIMENT_DESC=$6
+VALUE_FUNCTION_TYPE=$7
+
+echo "TEMPERATURE: $TEMPERATURE"
+echo "LATEST_CHECKPOINT: $LATEST_CHECKPOINT"
+echo "DEFENDER_MODEL_TYPE: $DEFENDER_MODEL_TYPE"
+echo "ATTACKER_MODEL_DIR: $ATTACKER_MODEL_DIR"
+echo "ATTACKER_MODEL_TYPE: $ATTACKER_MODEL_TYPE"
+echo "EXPERIMENT_DESC: $EXPERIMENT_DESC"
+echo "VALUE_FUNCTION_TYPE: $VALUE_FUNCTION_TYPE"
+
+
+
 # Openai evals
 python $REPO_DIR/scripts/evaluate.py env=delta \
                 dataset_configs=openai \
@@ -43,7 +55,13 @@ python $REPO_DIR/scripts/evaluate.py env=delta \
                 defender.model_dir=$LATEST_CHECKPOINT \
                 defender.model_type=$DEFENDER_MODEL_TYPE \
                 defender.generation_kwargs.temperature=$TEMPERATURE \
-                experiment_desc=$EXPERIMENT_DESC
+                experiment_desc=$EXPERIMENT_DESC \
+                value_function_evaluate.do_eval=True \
+                value_function_evaluate.defender.evaluate=True \
+                value_function_evaluate.defender.value_function_type=$VALUE_FUNCTION_TYPE
+
+
+
 # Jailbreakbench evals
 python $REPO_DIR/scripts/evaluate.py env=delta \
                 dataset_configs=jailbreakbench \
@@ -52,4 +70,8 @@ python $REPO_DIR/scripts/evaluate.py env=delta \
                 defender.model_dir=$LATEST_CHECKPOINT \
                 defender.model_type=$DEFENDER_MODEL_TYPE \
                 defender.generation_kwargs.temperature=$TEMPERATURE \
-                experiment_desc=$EXPERIMENT_DESC
+                experiment_desc=$EXPERIMENT_DESC \
+                value_function_evaluate.do_eval=True \
+                value_function_evaluate.defender.evaluate=True \
+                value_function_evaluate.defender.value_function_type=$VALUE_FUNCTION_TYPE
+
