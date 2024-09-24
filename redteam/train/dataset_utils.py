@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import numpy as np
 from redteam.train.datasets import get_reward_to_gos
-
+import itertools
 
 class RLHFDatasetHelperBase:
     def __init__(self, data_dir: str, length_key: str = "", max_length=-1) -> None:
@@ -391,3 +391,72 @@ class RWRDatasetValueFunctionHelper(RLHFDatasetHelperBase):
 
 
 
+class DPODatasetHelper(RWRDatasetValueFunctionHelper):
+    def __init__(self, data_dir: str,
+        agent_type: str,
+        length_key="",
+        dataset_type=None,
+        max_length=-1,
+    ):
+        super().__init__(data_dir=data_dir, 
+                        agent_type=agent_type, 
+                        dataset_type=None, 
+                        length_key=length_key, 
+                        max_length=max_length, 
+                        dataset_type_weights=None)
+
+    def _get_indices(self, num_samples=None):
+        good_indices = self.indices["good"]
+        not_good_indices = np.concatenate([np.array(self.indices["mid"]), np.array(self.indices["bad"])])
+        # pair by goal
+        good_goals = set(self.raw_data.iloc[good_indices]["goal"])
+        not_good_goals = set(self.raw_data.iloc[not_good_indices]["goal"])
+
+
+        # get the intersection of the goals
+        common_goals = good_goals.intersection(not_good_goals)
+
+        goals = []
+        chosen_responses = []
+        rejected_responses = []
+        
+        for goal in common_goals:
+            good_chosen_idxs = np.intersect1d(self.raw_data[self.raw_data["goal"] == goal].index, good_indices)
+            rejected_idxs = np.intersect1d(self.raw_data[self.raw_data["goal"] == goal].index, not_good_indices)
+            
+            # Use itertools.product to find all combinations
+            for chosen, rejected in itertools.product(good_chosen_idxs, rejected_idxs):
+                goals.append(goal)
+                chosen_responses.append(chosen)
+                rejected_responses.append(rejected)
+                assert self.raw_data.iloc[chosen]["goal"] == goal
+
+        return goals, chosen_responses, rejected_responses
+    
+    def get_conversations(self, num_samples=None):
+        goals, chosen_responses, rejected_responses = self._get_indices(None)
+
+        return {
+            "chosen_conversations": self.raw_data[f"{self.agent_type}_messages"][
+                chosen_responses
+            ].to_list(),
+            "rejected_conversations": self.raw_data[f"{self.agent_type}_messages"][
+                rejected_responses
+            ].to_list(),
+            "chosen_rewards": self.raw_data["rewards"][chosen_responses].to_list(),
+            "rejected_rewards": self.raw_data["rewards"][rejected_responses].to_list(),
+            "chosen_reward_to_gos": self.raw_data["reward_to_gos"][chosen_responses].to_list(),
+            "rejected_reward_to_gos": self.raw_data["reward_to_gos"][rejected_responses].to_list(),
+            "goals": goals
+        }
+
+
+
+if __name__ == "__main__":
+    ds = DPODatasetHelper(data_dir="/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat_length_added.json", 
+                    agent_type="defender",
+                    length_key = "Meta-Llama-3.1-8B-Instruct_length", 
+                    max_length=1024)  
+
+    convs = ds.get_conversations(None)
+    from IPython import embed; embed()
