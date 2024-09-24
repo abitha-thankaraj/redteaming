@@ -9,9 +9,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 logger = logging.getLogger(__name__)
 
 
-def load_model_and_tokenizer(model_name, model_dir, model_cache_dir, device):
+def load_model_and_tokenizer(model_name, model_dir, model_cache_dir, device, model_max_length=4096):
     tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path=model_dir, use_fast=False
+        pretrained_model_name_or_path=model_dir, use_fast=False,
+        model_max_length=model_max_length
+        
     )
     tokenizer.padding_side = "left"
 
@@ -72,6 +74,7 @@ class HuggingFaceLM(LanguageModel):
             self.tokenizer.padding_side == "left"
         ), "Padding side must be left for generations for decoder only models"
 
+    @torch.no_grad()
     def generate(
         self,
         conv: List[Dict],
@@ -134,6 +137,88 @@ class HuggingFaceLM(LanguageModel):
         torch.cuda.empty_cache()
 
         return outputs
+    
+    @torch.no_grad()
+    def compute_log_probs(
+        self,
+        input_ids: torch.Tensor,
+        labels: torch.Tensor,
+        attention_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Given input_ids, labels and attention mask,
+        calculates the log probs (per token) from the auto-regressive generation process
+
+        Input:
+            input_ids (torch.Tensor):
+                input ids for the sequence
+
+                Shape: (batch size, sequence length)
+
+            labels (torch.Tensor):
+                Labels, typically a sequence of tokens that the
+                next token prediction in an auto-regressive generation process should
+                generate
+
+                Shape: (batch size, sequence length)
+
+            attention_mask (torch.Tensor):
+                Attention mask to be used
+
+                Shape: (batch size, sequence length)
+
+        Output:
+            log_probs (torch.Tensor):
+                Computed log probabilities (per token) for the given sequences
+
+                Shape: (batch size, sequence length - 1)
+
+                NOTE: the -1 comes because we have to shift by 1
+        """
+        with torch.no_grad():
+            inputs = {
+                "input_ids": input_ids,
+                "labels": labels,
+                "attention_mask": attention_mask,
+            }
+            inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
+
+            model_outputs = self.model(**inputs)
+
+            logits = (
+                model_outputs["logits"]
+                if isinstance(model_outputs, dict)
+                else model_outputs[0]
+            )
+
+            # shift by 1, since we only consider Causal models
+            logits = logits[:, :-1, :]
+            labels = labels[:, 1:].clone().to(self.model.device.index)
+
+            # calculate log probs
+            log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
+
+            # labels can contain ignore_token_id, typically -100.
+            # we clamp them to 0, to avoid indexing errors
+            # These tokens will be ignored later
+            labels_clamped = torch.clamp(labels, min=0)
+            log_probs = torch.gather(
+                log_probs,
+                dim=2,
+                index=labels_clamped.unsqueeze(2),
+            )
+
+        for key in inputs:
+            inputs[key].to("cpu")
+        logits.to("cpu")
+
+        log_probs = log_probs.to("cpu")
+
+        del inputs, logits
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        return log_probs
 
 
 class GPT(LanguageModel):

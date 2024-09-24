@@ -1,0 +1,27 @@
+
+defaults:
+  - _self_
+  - env: babel
+
+seed: 69
+
+model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+model_type: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+model_cache_dir: ${env.hf_home}
+device: "cuda:0"
+
+
+data_dir: "/data/group_data/rl/datasets/redteaming/combined"
+agent_type: "defender"
+length_key: "Meta-Llama-3.1-8B-Instruct_length"
+dataset_type: "hard_negatives"
+max_length: 4096
+
+subsample_size: 1000
+
+out_fname: ${env.data_dir}/precomputed_datasets/${model_name}_${agent_type}_${dataset_type}_precomputed_logits_${subsample_size}.pt
+
+hydra:
+    run:
+        dir: ${env.log_dir}/${now:%Y.%m.%d}/${now:%H-%M-%s}

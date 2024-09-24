@@ -303,9 +303,11 @@ class RWRDatasetValueFunctionHelper(RLHFDatasetHelperBase):
         if "length_filtered" in self.raw_data.keys():  # filter by length if available.
             length_filtered_indices = np.where(self.raw_data.length_filtered)[0]
             for key in self.indices.keys():
+                print(f"Before filtering: {key} {len(self.indices[key])}")
                 self.indices[key] = np.intersect1d(
                     np.array(self.indices[key]), length_filtered_indices
                 )
+                print(f"After filtering: {key} {len(self.indices[key])}")
 
     def _get_indices(self, num_samples=None):
 
@@ -395,7 +397,7 @@ class DPODatasetHelper(RWRDatasetValueFunctionHelper):
     def __init__(self, data_dir: str,
         agent_type: str,
         length_key="",
-        dataset_type=None,
+        dataset_type="naive",
         max_length=-1,
     ):
         super().__init__(data_dir=data_dir, 
@@ -404,10 +406,16 @@ class DPODatasetHelper(RWRDatasetValueFunctionHelper):
                         length_key=length_key, 
                         max_length=max_length, 
                         dataset_type_weights=None)
+        self.dataset_type = dataset_type
 
     def _get_indices(self, num_samples=None):
         good_indices = self.indices["good"]
-        not_good_indices = np.concatenate([np.array(self.indices["mid"]), np.array(self.indices["bad"])])
+        if self.dataset_type == "naive":
+            not_good_indices = np.concatenate([np.array(self.indices["mid"]), np.array(self.indices["bad"])])
+        elif self.dataset_type == "high_contrast":
+            not_good_indices = np.array(self.indices["bad"])
+        elif self.dataset_type == "hard_negatives":
+            not_good_indices = np.array(self.indices["mid"])
         # pair by goal
         good_goals = set(self.raw_data.iloc[good_indices]["goal"])
         not_good_goals = set(self.raw_data.iloc[not_good_indices]["goal"])
@@ -420,7 +428,7 @@ class DPODatasetHelper(RWRDatasetValueFunctionHelper):
         chosen_responses = []
         rejected_responses = []
         
-        for goal in common_goals:
+        for goal in tqdm(common_goals):
             good_chosen_idxs = np.intersect1d(self.raw_data[self.raw_data["goal"] == goal].index, good_indices)
             rejected_idxs = np.intersect1d(self.raw_data[self.raw_data["goal"] == goal].index, not_good_indices)
             
@@ -453,10 +461,12 @@ class DPODatasetHelper(RWRDatasetValueFunctionHelper):
 
 
 if __name__ == "__main__":
-    ds = DPODatasetHelper(data_dir="/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat_length_added.json", 
+    ds = DPODatasetHelper(
+                    data_dir="/data/group_data/rl/datasets/redteaming/combined", 
                     agent_type="defender",
                     length_key = "Meta-Llama-3.1-8B-Instruct_length", 
-                    max_length=1024)  
+                    dataset_type="hard_negatives",
+                    max_length=4096)  
 
     convs = ds.get_conversations(None)
     from IPython import embed; embed()
