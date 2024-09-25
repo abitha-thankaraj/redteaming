@@ -65,7 +65,7 @@ def set_seed_everywhere(seed:int)->None:
     random.seed(seed)
 
 
-def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: str)->None:
+def safe_save_model_for_hf_trainer(trainer, output_dir: str)->None:
     """Collects the state dict and dump to disk."""
     state_dict = trainer.model.state_dict()
     if trainer.args.should_save:

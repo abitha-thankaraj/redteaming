@@ -6,6 +6,8 @@ os.environ["WANDB_ENTITY"] = "mt_redteam"
 os.environ["WANDB_PROJECT"] = "redteaming"
 
 from redteam.train import *
+# get_dataset, get_trainer, ModelArguments, DataArguments, RWRArguments, TrainingArguments
+import transformers
 import math, torch, pathlib
 from redteam.train.common import (
     set_seed_everywhere,
@@ -89,12 +91,22 @@ def train():
     )
 
     train_dataset, eval_dataset = get_dataset(
-        training_args=training_args,
+        algo = training_args.algo,
+        data_args=data_args,
         tokenizer=tokenizer,
         tokenizer_separator=tokenizer_separator,
     )
 
     trainer = get_trainer(model, tokenizer, train_dataset, eval_dataset, training_args)
+    torch.distributed.barrier()
+    if torch.distributed.get_rank() == 0:
+        if hasattr(train_dataset, "reward_to_gos"):
+            unique, counts = np.unique(train_dataset.reward_to_gos.flatten(), return_counts=True)
+            value_counts = dict(zip(unique, counts))
+        else:
+            value_counts = None
+        training_args.dataset_stats = DatasetStats(train_dataset_length= len(train_dataset), rtg_dict=value_counts)
+
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)

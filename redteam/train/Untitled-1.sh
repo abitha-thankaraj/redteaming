@@ -1,17 +1,17 @@
-python /data/tir/projects/tir7/user_data/athankar/redteaming/redteam/train/train_rwr.py \
+python /data/tir/projects/tir7/user_data/athankar/redteaming/redteam/train/train.py \
+    --alg dpo \
     --model_name_or_path "meta-llama/Meta-Llama-3.1-8B-Instruct" \
-    --data_path "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_train_data_llama_rewards_flat_length_added.json" \
-    --eval_data_path "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat_length_added.json" \
+    --data_path "/data/group_data/rl/datasets/redteaming/precomputed_datasets/meta-llama/Meta-Llama-3.1-8B-Instruct_defender_hard_negatives_precomputed_logits_1000.pt" \
+    --eval_data_path "" \
     --agent_type defender \
-    --dataset_type "weighted" \
-    --value_function_experiment "prefix" \
-    --value_function_type "natural_lang_multiclass" \
-    --dataset_type_weights 0.5 0.3 0.2 \
-    --num_samples 7814 \
-    --length_key Meta-Llama-3.1-8B-Instruct_length \
+    --value_function_experiment "" \
+    --value_function_type "" \
     --max_length 4096 \
     --model_max_length 4096 \
-    --output_dir /home/athankar
+    --rwr_temperature 1.0 \
+    --output_dir /home/athankar \
+    --remove_unused_columns False \
+
 
 source /home/athankar/.bashrc
 source /home/athankar/miniconda3/etc/profile.d/conda.sh
@@ -96,3 +96,13 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train_rwr.py  \
         --model_max_length 4096 \
         --remove_unused_columns False \
 
+python /data/tir/projects/tir7/user_data/athankar/redteaming/redteam/train/train.py \
+    --alg dpo \
+    --model_name_or_path "meta-llama/Meta-Llama-3.1-8B-Instruct" \
+    --data_path "/data/group_data/rl/datasets/redteaming/precomputed_datasets/meta-llama/Meta-Llama-3.1-8B-Instruct_defender_hard_negatives_precomputed_logits_1000.pt" \
+    --eval_data_path "" \
+    --agent_type defender \
+    --max_length 4096 \
+    --model_max_length 4096 \
+    --output_dir /home/athankar \
+    --remove_unused_columns False

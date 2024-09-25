@@ -3,9 +3,9 @@ from typing import Any, Dict, List, Tuple, Optional
 from dataclasses import dataclass, field
 from torch.utils.data import Dataset
 from transformers.trainer_pt_utils import LabelSmoother
-# from transformers import Trainer
-# from redteam.train.rwr_trainer import RWRTrainer
-# from redteam.train.dpo_trainer import DPOTrainer
+from transformers import Trainer
+from redteam.train.rwr_trainer import RWRTrainer
+from redteam.train.dpo_trainer import DPOTrainer
 from redteam.train.common import (
     set_seed_everywhere,
     safe_save_model_for_hf_trainer,
@@ -16,6 +16,12 @@ from redteam.train.datasets import *
 from redteam.train.dataset_utils import *
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
+
+
+@dataclass
+class DatasetStats:
+    train_dataset_length: int
+    rtg_dict: Dict[float, int]
 
 # Args/ Arg parsers
 @dataclass
@@ -38,7 +44,7 @@ class DataArguments:
     
     dataset_type: str = field(default="naive_balance", metadata={"help": "How are the data points sampled?"})
     length_key: str = field(default="", metadata={"help": "Key to use for length of the tokenized sequence"})
-    max_length: int = field(default=-1, metadata="Maximum length of the tokenized sequence")
+    max_length: int = field(default=-1, metadata={"help": "Maximum length of the tokenized sequence"})
     model_name: str = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
 
     value_function_type: str = (field(default=""),)
@@ -58,9 +64,10 @@ class RWRArguments:
         default=1.0,
         metadata={"help": "RWR temperature (β) . Higher -> | Lower -> "},
     )
-    rwr_type: str = (
-        field(default="exp", metadata={"help": "RWR term type. Available options: exp"}),
-    )
+    rwr_type: str = field(
+        default="exp",             
+        metadata={"help": "RWR term type. Available options: exp, raw_rewards."})
+
     rwr_value_function_token_weight: float = field(
         default=1.0,
         metadata={"help": "Weight for the value function tokens in the RWR term."},
@@ -77,7 +84,7 @@ class RWRArguments:
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
-    algo: str = field(default="sft", metadata={"help": "Algorithm to use for training."})
+    algo: str = field(default="rwr")
     cache_dir: Optional[str] = field(
         default="/data/tir/projects/tir6/bisk/athankar/projects/.cache"
     )
@@ -95,39 +102,39 @@ class TrainingArguments(transformers.TrainingArguments):
         default=True, metadata={"help": "Save only the model and not the trainer."}
     )
     # Adding args for data, model and rwr
-    data_args: DataArguments = field(default=None)
-    model_args: ModelArguments = field(default=None)
-    rwr_args: RWRArguments = field(default=None)
+    data_args: Any = field(default=None)
+    model_args: Any = field(default=None)
+    rwr_args: Any = field(default=None)
     exp_desc: str = field(default="")
 
+    dataset_stats: DatasetStats = field(default=None)
 
 
-def get_dataset(training_args, tokenizer, tokenizer_separator):
+
+def get_dataset(algo, data_args, tokenizer, tokenizer_separator):
 
     fn = {
         "rwr": get_rwr_dataset,
         "sft": get_sft_dataset,
         "dpo": get_dpo_dataset,
     }
-    return fn[training_args.algo](training_args.data_args, tokenizer, tokenizer_separator)
+    return fn[algo](data_args, tokenizer, tokenizer_separator)
     
 
-# def get_trainer(model, tokenizer, train_dataset, eval_dataset, training_args:TrainingArguments):
-#     fn = {
-#         "rwr": RWRTrainer,
-#         "sft": Trainer,
-#         "dpo": DPOTrainer,
-#     }
+def get_trainer(model, tokenizer, train_dataset, eval_dataset, training_args:TrainingArguments):
+    fn = {
+        "rwr": RWRTrainer,
+        "sft": Trainer,
+        "dpo": DPOTrainer,
+    }
 
-#     return fn[training_args.algo](
-#         model=model,
-#         tokenizer=tokenizer,
-#         args=training_args,
-#         train_dataset=train_dataset,
-#         eval_dataset=eval_dataset,
-#     )
-
-
+    return fn[training_args.algo](
+        model=model,
+        tokenizer=tokenizer,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+    )
 
 
 def get_sft_dataset(
@@ -144,7 +151,7 @@ def get_sft_dataset(
         max_length=data_args.max_length,
     )
 
-    conversation_reward_dict = dataset_helper.get_conversations()
+    conversation_reward_dict = dataset_helper.get_conversations(num_samples=data_args.num_samples)
 
     train_dataset = MultiturnSFTDataset(
         conversation_reward_dict["conversations"],
@@ -161,7 +168,7 @@ def get_sft_dataset(
         max_length=data_args.max_length,
     )
 
-    eval_conversation_reward_dict = eval_dataset_helper.get_conversations()
+    eval_conversation_reward_dict = eval_dataset_helper.get_conversations(num_samples=data_args.num_samples)
 
     eval_dataset = MultiturnSFTDataset(
         eval_conversation_reward_dict["conversations"],
@@ -229,4 +236,6 @@ def get_dpo_dataset(
     tokenizer: transformers.AutoTokenizer,
     tokenizer_separator: TokenizerSeparators,
 ) -> Tuple[Dataset, Dataset]:
-    return None, None
+    train_dataset = MultiturnDPODatasetFromTensors(dataset_path=data_args.data_path)
+    eval_dataset = Dataset()
+    return train_dataset, eval_dataset
