@@ -106,6 +106,8 @@ def main(config: DictConfig):
     conversations = ds_helper.get_conversations()
     if config.subsample_size != -1:
         idxs = np.random.choice(len(conversations["chosen_conversations"]), config.subsample_size)
+    else:
+        idxs = np.arange(len(conversations["chosen_conversations"]))
 
     chosen_conversations = [conversations["chosen_conversations"][i] for i in idxs]
     rejected_conversations = [conversations["rejected_conversations"][i] for i in idxs]

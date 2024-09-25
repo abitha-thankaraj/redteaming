@@ -15,7 +15,7 @@ device: "cuda:0"
 data_dir: "/data/group_data/rl/datasets/redteaming/combined"
 agent_type: "defender"
 length_key: "Meta-Llama-3.1-8B-Instruct_length"
-dataset_type: "hard_negatives"
+dataset_type: "high_contrast"
 max_length: 4096
 
 subsample_size: 1000
