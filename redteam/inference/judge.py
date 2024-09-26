@@ -93,7 +93,7 @@ class LlamaGuardJudge:
         torch.cuda.empty_cache()
 
         return judgements
-
+        
     def process_output(self, raw_judge_output: List[str]):
         """Process the raw judge output into rewards and categories"""
         rewards = []

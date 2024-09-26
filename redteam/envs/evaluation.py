@@ -52,6 +52,45 @@ class Game:
         judge_score = self.judge.score(self.env_state.to_judge_input())
         return self.env_state, judge_score
 
+    def repair(self, goal, conversation, original_judge_rewards, n=5):
+        self.reset_model(goal=goal)
+        judge_score = None
+
+        for i, turn in enumerate(conversation):
+
+            if turn["role"] == "user":
+                self.env_state.messages.append(("attacker", turn["content"]))
+
+            if turn["role"] == "assistant":
+                judge_idx = i // 2
+                judge_reward = original_judge_rewards[judge_idx]
+                last_reward = None
+
+                if judge_reward == 1.0: #flipped for defender
+                    # Non jailbroken turn
+                    self.env_state.messages.append(("defender", turn["content"]))
+                else:
+                    # Jailbroken turn
+                    for _ in range(n):
+                        self.env_state.messages.append(("defender", 
+                            self.defender.act(self.env_state.to_defender_message())))
+                        judge_score = self.judge.score(self.env_state.to_judge_input())
+                        last_reward = judge_score["rewards"][-1]
+
+                        if last_reward == 0.0:
+                            break
+                        else:
+                            self.env_state.messages.pop(-1)
+
+                    if last_reward == 1.0:
+                        # break if no repair found
+                        return None, None
+
+        if judge_score is not None:
+            if sum(judge_score["rewards"]) != 0.0:
+                return None, None
+        return self.env_state, [0.0] * len(original_judge_rewards)
+
 
 def evaluate_value_function(conversation, value_function_type, rewards, policy_type):
     if policy_type == "defender":

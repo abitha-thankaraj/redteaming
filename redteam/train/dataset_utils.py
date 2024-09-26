@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 from redteam.train.datasets import get_reward_to_gos
 import itertools
+from redteam.utils.data_utils import write_json
 
 class RLHFDatasetHelperBase:
     def __init__(self, data_dir: str, length_key: str = "", max_length=-1) -> None:
@@ -455,18 +456,114 @@ class DPODatasetHelper(RWRDatasetValueFunctionHelper):
             "rejected_rewards": self.raw_data["rewards"][rejected_responses].to_list(),
             "chosen_reward_to_gos": self.raw_data["reward_to_gos"][chosen_responses].to_list(),
             "rejected_reward_to_gos": self.raw_data["reward_to_gos"][rejected_responses].to_list(),
+            "chosen_trajectory_quality": self.raw_data["trajectory_quality"][
+                chosen_responses
+            ].to_list(),
+            "rejected_trajectory_quality": self.raw_data["trajectory_quality"][
+                rejected_responses
+            ].to_list(),
             "goals": goals
         }
 
 
 
 if __name__ == "__main__":
+
+    split_type = "high_contrast"
+    # split_type = "hard_negatives"
+
     ds = DPODatasetHelper(
                     data_dir="/data/group_data/rl/datasets/redteaming/combined", 
                     agent_type="defender",
                     length_key = "Meta-Llama-3.1-8B-Instruct_length", 
-                    dataset_type="hard_negatives",
+                    dataset_type=split_type,
                     max_length=4096)  
 
     convs = ds.get_conversations(None)
+
+    np.random.seed(42)
+    chosen_idxs = np.random.choice(len(convs["chosen_conversations"]), 1000)
+
+    save_file = []
+    for i in chosen_idxs:
+        save_file.append({"goal": convs["goals"][i],
+                          "chosen_conversation": convs["chosen_conversations"][i],
+                          "rejected_conversation": convs["rejected_conversations"][i],
+                          "chosen_reward": convs["chosen_rewards"][i].tolist(),
+                          "rejected_reward": convs["rejected_rewards"][i].tolist(),
+                          "chosen_reward_to_gos": convs["chosen_reward_to_gos"][i].tolist(),
+                          "rejected_reward_to_gos": convs["rejected_reward_to_gos"][i].tolist(),
+                          "chosen_trajectory_quality": convs["chosen_trajectory_quality"][i],
+                          "rejected_trajectory_quality": convs["rejected_trajectory_quality"][i]
+                          })
+    write_json(save_file, f"/data/group_data/rl/datasets/redteaming/quality_filtered/{split_type}_1000.json")
+    # pd.DataFrame(save_file).to_json(f"/data/group_data/rl/datasets/redteaming/quality_filtered/{split_type}_1000.json")
+
+
+    # rejected_dict = {}
+    # for k, v in convs.items():
+    #     if k.startswith("rejected_"):
+    #         rejected_dict[k.split("rejected_")[-1]]= v
+    # rejected_dict["goals"]=convs["goals"]
+    # pd.DataFrame.from_dict(rejected_dict).to_json(f"/data/group_data/rl/datasets/redteaming/quality_filtered/rejected_bad_{split_type}.json")
+    # print("Saved rejected data")
+    
+    # selected_dict = {}
+    # for k, v in convs.items():
+    #     if k.startswith("chosen_"):
+    #         selected_dict[k.split("chosen_")[-1]]= v
+    # selected_dict["goals"]=convs["goals"]
+    # pd.DataFrame.from_dict(selected_dict).to_json(f"/data/group_data/rl/datasets/redteaming/quality_filtered/chosen_good_{split_type}.json")
+
+    # print("Saved chosen data")
+
+
+
+    # print("Saving subsampled data: {}".format(len(chosen_idxs)))
+    # selected_subsampled_dict = {}
+    # for k, v in selected_dict.items():
+    #     selected_subsampled_dict[k]= [v[i] for i in chosen_idxs]
+    # pd.DataFrame.from_dict(selected_subsampled_dict).to_json(f"/data/group_data/rl/datasets/redteaming/quality_filtered/chosen_good_{split_type}_subsampled.json")
+
+    # print("Saved selected subsampled data")
+
+    # rejected_subsampled_dict = {}
+    # for k, v in rejected_dict.items():
+    #     rejected_subsampled_dict[k]=[v[i] for i in chosen_idxs]
+    # pd.DataFrame.from_dict(rejected_subsampled_dict).to_json(f"/data/group_data/rl/datasets/redteaming/quality_filtered/rejected_bad_{split_type}_subsampled.json")
+
+    # print("Saved rejected subsampled data")
+
+
+
+
+
+
+
+
+    # # plot counts of chosen_reward_to_gos
+    # np.array(convs["chosen_reward_to_gos"]).sum(axis=1)
+    # rejected_scores = np.array(convs["rejected_reward_to_gos"]).sum(axis=1)
+    # unique_values, counts = np.unique(rejected_scores, return_counts=True)
+
+    # import matplotlib.pyplot as plt
+    # # Create the bar plot
+    # plt.figure(figsize=(10, 6))
+    # plt.bar(str(unique_values), counts)
+
+    # # Customize the plot
+    # plt.title('Bar Plot of Unique Values and Counts')
+    # plt.xlabel('rtg sums')
+    # plt.ylabel('Counts')
+
+    # # Add count labels on top of each bar
+    # for i, count in enumerate(counts):
+    #     plt.text(unique_values[i], count, str(count), ha='center', va='bottom')
+
+    # plt.savefig("/data/tir/projects/tir7/user_data/athankar/redteaming/data/rejected_score_counts/barplot.png")
+    # plt.close()
+
+
+
+    
     from IPython import embed; embed()

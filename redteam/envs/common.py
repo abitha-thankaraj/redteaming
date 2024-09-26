@@ -24,6 +24,9 @@ class GameConversation:
 
     def append_message(self, role: str, message: str):
         self.messages.append((role, message))
+    
+    def pop_last_message(self):
+        return self.messages.pop(-1)
 
     def update_last_message(self, message: str):
         """Update the last output.

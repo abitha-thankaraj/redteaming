@@ -1,7 +1,7 @@
 
 defaults:
   - _self_
-  - dataset_configs: openai
+  - dataset_configs: jailbreakbench
   - env: babel
 
 seed: 69
@@ -11,7 +11,7 @@ attacker:
   model_dir: "/data/group_data/rl/experiments/redteaming/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135/"
   model_type: sft_trained_attacker
   model_cache_dir: ${env.hf_home}
-  device: "cuda:1"
+  device: "cuda:2"
   generation_kwargs:
     max_n_tokens: 4096
     temperature: 0.7
@@ -20,13 +20,13 @@ attacker:
 
 defender:
   model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_dir: "/data/group_data/rl/experiments/redteaming/multiturn_dpo_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-25-10-17-31-011/checkpoint-15"
-  model_type: rwr_trained_defender
+  model_dir: "/data/group_data/rl/experiments/redteaming/multiturn_dpo_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-25-13-32-06-856/checkpoint-15"
+  model_type: dpo_high_contrast_defender_1000
   model_cache_dir: ${env.hf_home}
-  device: "cuda:2"
+  device: "cuda:3"
   generation_kwargs:
     max_n_tokens: 4096
-    temperature: 0.7
+    temperature: 0.
     top_p: 1.0
     decode_skip_special_tokens: true
 
@@ -56,7 +56,7 @@ chunk: -1
 max_chunk_size: 100
 
 # Result of simulating the game will be saved in this file
-experiment_desc: eval_dpo_test
+experiment_desc: eval_dpo_test_high_contrast_1000
 out_dir: ${env.data_dir}/redteaming_evals/${experiment_desc}/${now:%Y.%m.%d}/${now:%H-%M-%s}
 out_fname: ${dataset_configs.dataset_name}_${attacker.model_type}_${defender.model_type}_${experiment_desc}.json
 hydra:

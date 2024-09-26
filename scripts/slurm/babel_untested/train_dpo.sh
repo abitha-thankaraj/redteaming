@@ -13,13 +13,13 @@ source /data/user_data/athankar/redteaming/scripts/slurm/env_files/.babel_env
 MODEL_PATH=${1:-"meta-llama/Meta-Llama-3.1-8B-Instruct"}
 AGENT_TYPE=${2:-"defender"}
 MASTER_PORT=${3:-29500}
-DATASET_TYPE=${4:-"hard_negatives"}
+DATASET_TYPE=${4:-"high_contrast"}
 VALUE_FUNCTION_TYPE=${5:-""}
 VALUE_FUNCTION_EXPERIMENT=${6:-""}
 LEARNING_RATE=${7:-5e-7}
 RWR_TEMPERATURE=${8:-1.0}
 LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
-EXPERIMENT_DESC=${10:-"dpo_min_test"}
+EXPERIMENT_DESC=${10:-"dpo_min_test_high_contrast"}
 
 
 MAX_LENGTH=4096
@@ -32,7 +32,7 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --algo "dpo" \
         --model_name_or_path $MODEL_PATH \
         --seed 42   \
-        --data_path $DATA_DIR/precomputed_datasets/meta-llama/Meta-Llama-3.1-8B-Instruct_defender_hard_negatives_precomputed_logits_1000.pt \
+        --data_path $DATA_DIR/precomputed_datasets/meta-llama/Meta-Llama-3.1-8B-Instruct_defender_high_contrast_precomputed_logits_1000.pt \
         --eval_data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat_length_added.json \
         --agent_type $AGENT_TYPE \
         --dataset_type $DATASET_TYPE \
