@@ -9,18 +9,28 @@ model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
 model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
 model_type: "meta-llama/Meta-Llama-3.1-8B-Instruct"
 model_cache_dir: ${env.hf_home}
-device: "cuda:0"
+device: "cuda:1"
 
+# from_flat_file: true
+# data_flat_fname: /data/group_data/rl/datasets/redteaming/quality_filtered/high_contrast_1000.json
+
+# from_flat_file: true
+# data_flat_fname: /data/group_data/rl/datasets/redteaming/quality_filtered/hard_negatives_1000.json
+
+from_flat_file: false
+data_flat_fname: null
 
 data_dir: "/data/group_data/rl/datasets/redteaming/combined"
 agent_type: "defender"
 length_key: "Meta-Llama-3.1-8B-Instruct_length"
-dataset_type: "high_contrast"
+dataset_type: "hard_negatives"
 max_length: 4096
 
-subsample_size: 1000
+subsample_size: 5000
 
-out_fname: ${env.data_dir}/precomputed_datasets/${model_name}_${agent_type}_${dataset_type}_precomputed_logits_${subsample_size}.pt
+# out_fname: ${env.data_dir}/precomputed_datasets/${model_name}_${agent_type}_${dataset_type}_precomputed_logits_${subsample_size}.pt
+out_dir: ${env.data_dir}/precomputed_datasets/
+out_fname: ${out_dir}/${model_name}_${agent_type}_${dataset_type}_precomputed_logits_${subsample_size}.pt
 
 hydra:
     run:

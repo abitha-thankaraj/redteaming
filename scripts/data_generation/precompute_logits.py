@@ -14,6 +14,11 @@ from redteam.train.datasets import MultiturnDPODataset
 from tqdm import tqdm
 import hydra
 import numpy as np
+from redteam.utils.data_utils import read_json
+
+
+def from_flat_file(fname):
+    return read_json(fname) 
 
 @torch.no_grad() 
 def precompute_logits(
@@ -96,22 +101,34 @@ def main(config: DictConfig):
     tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
 
     print(config)
-    ds_helper = DPODatasetHelper(
-                    data_dir=config.data_dir, 
-                    agent_type=config.agent_type,
-                    dataset_type=config.dataset_type,
-                    length_key = config.length_key, 
-                    max_length=config.max_length)
+    if config.from_flat_file:
+        conversations = from_flat_file(config.data_flat_fname)
+        # f = config.data_flat_fname.split("/")[-1]
+        # config.out_fname = config.out_fname.replace(".pt", f"{f}_flat.pt")
+        
+        config.out_fname = config.out_fname.replace(".json", ".pt")
+        print(f"Loaded flat file: {config.data_flat_fname}")
+        chosen_conversations = [conversations[i]["chosen_conversation"] for i in range(len(conversations))]
+        rejected_conversations = [conversations[i]["rejected_conversation"] for i in range(len(conversations))]
 
-    conversations = ds_helper.get_conversations()
-    if config.subsample_size != -1:
-        idxs = np.random.choice(len(conversations["chosen_conversations"]), config.subsample_size)
+
     else:
-        idxs = np.arange(len(conversations["chosen_conversations"]))
+        ds_helper = DPODatasetHelper(
+                        data_dir=config.data_dir, 
+                        agent_type=config.agent_type,
+                        dataset_type=config.dataset_type,
+                        length_key = config.length_key, 
+                        max_length=config.max_length)
 
-    chosen_conversations = [conversations["chosen_conversations"][i] for i in idxs]
-    rejected_conversations = [conversations["rejected_conversations"][i] for i in idxs]
-    print(f"Chosen conversations: {len(chosen_conversations)}")
+        conversations = ds_helper.get_conversations()
+        if config.subsample_size != -1:
+            idxs = np.random.choice(len(conversations["chosen_conversations"]), config.subsample_size)
+        else:
+            idxs = np.arange(len(conversations["chosen_conversations"]))
+
+        chosen_conversations = [conversations["chosen_conversations"][i] for i in idxs]
+        rejected_conversations = [conversations["rejected_conversations"][i] for i in idxs]
+        print(f"Chosen conversations: {len(chosen_conversations)}")
 
     dataset = MultiturnDPODataset(
         chosen_conversations=chosen_conversations,
