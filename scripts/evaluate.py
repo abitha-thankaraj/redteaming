@@ -111,9 +111,11 @@ def main(config: DictConfig):
 
     # Save aggregated results
 
-    results = aggregate_results(trajs)
+    results = aggregate_results(trajs, config)
+    results["config"] = global_config
+
     write_json(results, os.path.join(config.out_dir, "_results.json"))
-    slack_notification(f"Redteaming game completed successfully: config: {global_config}")
+    slack_notification(f"Redteaming game completed successfully: \n\n results: {results} \n\nconfig: {global_config};")
 
 
 def aggregate_results(trajs):
@@ -121,13 +123,11 @@ def aggregate_results(trajs):
     for traj in trajs:
         rewards.append(traj["judge"]["rewards"])
     rewards = np.array(rewards)
-    # TODO: Value function metrics
-    return {
+    return  {
         "jailbreaks_per_turn": np.sum(rewards, axis=0).tolist(),
         "num_jailbreaks": int(np.sum(np.any(rewards == 1.0, axis=1))),
         "num_evals": len(trajs),
     }
-
 
 if __name__ == "__main__":
     try:

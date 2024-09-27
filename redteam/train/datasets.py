@@ -692,3 +692,73 @@ class MultiturnDPODatasetFromTensors(Dataset):
             "rejected_attention_mask": self.rejected_attention_mask[idx],
             "rejected_ref_log_probs": self.rejected_ref_log_probs[idx],
         }
+    
+class MultiturnSFTDatasetFromTensors(Dataset):
+    """
+    A variation of the DPO dataset, that uses precomputed tensors,
+    specially precomputed log_probs, saved in ".pt" format.
+
+    This is unlike MultiturnDPODataset, that uses conversations in
+    dict/str format.
+    """
+
+    def __init__(
+        self,
+        dataset_path: str,
+    ):
+        """
+        Input:
+            dataset_path (str):
+                The path to the dataset (in ".pt" format)
+                that contains the dataset
+        """
+        assert dataset_path.endswith(".pt")
+        data = torch.load(dataset_path)
+
+        self.input_ids = data["chosen_input_ids"]
+        self.labels = data["chosen_labels"]
+        self.attention_mask = data["chosen_attention_mask"]
+        
+    def __len__(self) -> int:
+        """
+        Returns the number of datapoints in the dataset.
+
+        Input:
+            None
+
+        Output:
+            length: Number of datapoints in the dataset
+        """
+        return self.input_ids.shape[0]
+
+    def __getitem__(self, idx) -> Dict[str, torch.Tensor]:
+        """
+        Returns the i-th datapoint in a particular format.
+
+        Input:
+            idx (int):
+                The index of the datapoint that needs to be returned.
+
+        Output:
+            datapoint_dict (Dict[str, torch.Tensor]):
+                The i-th datapoint in the following dictionary format:
+                    {
+                        "input_ids": chosen_input_id (tensor),
+                        "labels": chosen_label (tensor),
+                        "attention_mask": chosen_attention_mask (tensor),
+                        "ref_log_probs": chosen_ref_log_probs (tensor),
+                        "rejected_input_ids": rejected_input_id (tensor),
+                        "rejected_labels": rejected_label (tensor),
+                        "rejected_attention_mask": rejected_attention_mask (tensor),
+                        "rejected_ref_log_probs": rejected_ref_log_probs (tensor),
+                    }
+
+                    i.e., the input_ids, labels, attention_mask and precomputed ref log probs
+                    for the i-th chosen conversation, and the i-th rejected
+                    conversation
+        """
+        return {
+            "input_ids": self.input_ids[idx],
+            "labels": self.labels[idx],
+            "attention_mask": self.attention_mask[idx],
+        }

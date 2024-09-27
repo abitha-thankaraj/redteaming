@@ -54,14 +54,16 @@ class GameConversation:
         for i, (_, msg) in enumerate(self.messages[offset:]):
             if i % 2 == 0:
                 if strip_user_messages:
-                    msg = split_message(self.value_function_keywords, msg)
+                    msg = sanitize_msg(msg, self.value_function_keywords)
                 ret.append({"role": user_role, "content": msg})
             else:
                 if msg is not None:
                     if strip_assistant_messages:
-                        msg = split_message(self.value_function_keywords, msg)
+                        msg = sanitize_msg(msg, self.value_function_keywords)
                     ret.append({"role": assistant_role, "content": msg})
         return ret
+
+
 
     def to_openai_api_messages(self, offset=0, strip_user_messages=True, strip_assistant_messages=False):
         """Convert the conversation to OpenAI chat completion format."""
@@ -128,9 +130,16 @@ def get_all_value_function_keywords():
             value_function_keywords.add(v)
     return value_function_keywords
 
-
+# Used this in earlier iters of value fn eval
 def split_message(value_keywords, msg):
     for keyword in value_keywords:
         if msg.startswith(keyword):
             return msg[len(keyword) :].strip()
     return msg
+
+
+def sanitize_msg(msg, value_function_keywords):
+    msg = split_message(value_function_keywords, msg)
+    for keyword in  ["<SAFE>", "<UNSAFE>", "<MODERATE>", "<FIX>"]:
+        msg = msg.replace(keyword, "")
+    return msg.strip()

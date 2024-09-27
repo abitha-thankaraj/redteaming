@@ -1,0 +1,29 @@
+#!/bin/bash
+
+
+LATEST_CHECKPOINT=/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-01-48-46-440/checkpoint-44/
+DEFENDER_MODEL_TYPE=sft_value_labeled_defender
+EXPERIMENT_DESC=sft_eval_pre_dpo
+
+
+# LATEST_CHECKPOINT=/data/group_data/rl/experiments/redteaming/multiturn_dpo_on_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-10-02-06-039/checkpoint-45/
+# DEFENDER_MODEL_TYPE=dpo_sft_value_labeled_defender
+# EXPERIMENT_DESC=dpo_sft_eval
+
+
+# Array of temperatures
+TEMPERATURES=(0 0.7 1.0)
+
+# Loop through each temperature and submit a job
+for TEMPERATURE in "${TEMPERATURES[@]}"
+do
+    JOB_NAME="${EXPERIMENT_DESC}_temp${TEMPERATURE}"
+    
+    # Submit the job using sbatch
+    sbatch --job-name=$JOB_NAME \
+           /data/user_data/athankar/redteaming/scripts/slurm/babel_untested/eval.sh $TEMPERATURE $LATEST_CHECKPOINT $DEFENDER_MODEL_TYPE "${EXPERIMENT_DESC}_temp${TEMPERATURE}"
+    
+    echo "Submitted job for temperature $TEMPERATURE"
+done
+
+echo "All jobs submitted"

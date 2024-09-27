@@ -117,6 +117,7 @@ def get_dataset(algo, data_args, tokenizer, tokenizer_separator):
         "rwr": get_rwr_dataset,
         "sft": get_sft_dataset,
         "dpo": get_dpo_dataset,
+        "sft_precomputed": get_precomputed_sft_dataset,
     }
     return fn[algo](data_args, tokenizer, tokenizer_separator)
     
@@ -125,6 +126,7 @@ def get_trainer(model, tokenizer, train_dataset, eval_dataset, training_args:Tra
     fn = {
         "rwr": RWRTrainer,
         "sft": Trainer,
+        "sft_precomputed": Trainer,
         "dpo": DPOTrainer,
     }
 
@@ -158,6 +160,36 @@ def get_sft_dataset(
         tokenizer,
         tokenizer_separator,
         ignore_token_id=IGNORE_TOKEN_ID,
+    )
+
+    eval_dataset_helper = SFTDatasetHelper(
+        data_args.eval_data_path,
+        data_args.agent_type,
+        dataset_type=None,
+        length_key=data_args.length_key,
+        max_length=data_args.max_length,
+    )
+
+    eval_conversation_reward_dict = eval_dataset_helper.get_conversations(num_samples=data_args.num_samples)
+
+    eval_dataset = MultiturnSFTDataset(
+        eval_conversation_reward_dict["conversations"],
+        tokenizer,
+        tokenizer_separator,
+        ignore_token_id=IGNORE_TOKEN_ID,
+    )
+
+    return train_dataset, eval_dataset
+
+def get_precomputed_sft_dataset(
+    data_args: dataclass,
+    tokenizer: transformers.AutoTokenizer,
+    tokenizer_separator: TokenizerSeparators,
+) -> Tuple[Dataset, Dataset]:
+    """Get train test dataset for multiturn sft"""
+    
+    train_dataset = MultiturnSFTDatasetFromTensors(
+        dataset_path=data_args.data_path,
     )
 
     eval_dataset_helper = SFTDatasetHelper(

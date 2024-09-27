@@ -13,25 +13,24 @@ source /data/user_data/athankar/redteaming/scripts/slurm/env_files/.babel_env
 MODEL_PATH=${1:-"meta-llama/Meta-Llama-3.1-8B-Instruct"}
 AGENT_TYPE=${2:-"defender"}
 MASTER_PORT=${3:-29500}
-DATASET_TYPE=${4:-"high_contrast"}
+DATASET_TYPE=${4:-"value_labeled"}
 VALUE_FUNCTION_TYPE=${5:-""}
 VALUE_FUNCTION_EXPERIMENT=${6:-""}
-LEARNING_RATE=${7:-5e-7}
+LEARNING_RATE=${7:-1e-6}
 RWR_TEMPERATURE=${8:-1.0}
 LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
-EXPERIMENT_DESC=${10:-"value_fn_on_sft"}
-BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-01-48-46-440/checkpoint-44/"}
+EXPERIMENT_DESC=${10:-"value_labelled_sft"}
 
 
 MAX_LENGTH=4096
-RUN_NAME="multiturn_dpo_on_sft_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
+RUN_NAME="multiturn_sft_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
 LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
 
 
 # Run the first job
 deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
-        --algo "dpo" \
-        --model_name_or_path $BASE_MODEL_PATH \
+        --algo "sft_precomputed" \
+        --model_name_or_path $MODEL_PATH \
         --seed 42   \
         --data_path $DATA_DIR/best_of_n/value_labeled/combined_value_labeled.pt \
         --eval_data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat_length_added.json \
@@ -50,8 +49,8 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --exp_desc $EXPERIMENT_DESC \
         --deepspeed $REPO_DIR/scripts/configs/deepspeed/zero3.json \
         --bf16 True \
-        --num_train_epochs 1  \
-        --per_device_train_batch_size 1 \
+        --num_train_epochs 2  \
+        --per_device_train_batch_size 2 \
         --per_device_eval_batch_size 1   \
         --gradient_accumulation_steps 16 \
         --evaluation_strategy "steps" \

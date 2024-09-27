@@ -106,7 +106,7 @@ def main(config: DictConfig):
         # f = config.data_flat_fname.split("/")[-1]
         # config.out_fname = config.out_fname.replace(".pt", f"{f}_flat.pt")
         
-        config.out_fname = config.out_fname.replace(".json", ".pt")
+        config.out_fname = config.data_flat_fname.replace(".json", ".pt")
         print(f"Loaded flat file: {config.data_flat_fname}")
         chosen_conversations = [conversations[i]["chosen_conversation"] for i in range(len(conversations))]
         rejected_conversations = [conversations[i]["rejected_conversation"] for i in range(len(conversations))]

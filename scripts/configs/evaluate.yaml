@@ -11,7 +11,7 @@ attacker:
   model_dir: "/data/group_data/rl/experiments/redteaming/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135/"
   model_type: sft_trained_attacker
   model_cache_dir: ${env.hf_home}
-  device: "cuda:2"
+  device: "cuda:0"
   generation_kwargs:
     max_n_tokens: 4096
     temperature: 0.7
@@ -23,7 +23,7 @@ defender:
   model_dir: "/data/group_data/rl/experiments/redteaming/multiturn_dpo_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-25-13-32-06-856/checkpoint-15"
   model_type: dpo_high_contrast_defender_1000
   model_cache_dir: ${env.hf_home}
-  device: "cuda:3"
+  device: "cuda:1"
   generation_kwargs:
     max_n_tokens: 4096
     temperature: 0.
