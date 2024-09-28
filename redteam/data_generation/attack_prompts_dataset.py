@@ -24,6 +24,7 @@ def get_dataset(
         "advbench": get_advbench_dataset,
         "jailbreakbench": get_jailbreakbench_dataset,
         "ultrasafety": get_ultrasafety_dataset,
+        "simplesafetytests": get_simplesafetytests_dataset
     }
 
     dataset_loading_kwargs = {
@@ -118,3 +119,11 @@ def get_ultrasafety_dataset(dataset_path: str) -> ArrowDataset:
     return load_dataset(
         "openbmb/UltraSafety", split="train"
     ).rename_column("prompt", "old_prompt").rename_column("instruction", "prompt")
+
+def get_simplesafetytests_dataset(dataset_path: str) -> ArrowDataset:
+    """
+    Loads the 100 harmful prompts from the SimpleSafetyTests dataset.
+    """
+    return load_dataset(
+        "Bertievidgen/SimpleSafetyTests", split="test"
+    )

@@ -112,7 +112,7 @@ def main(config: DictConfig):
     # Save aggregated results
 
     results = aggregate_results(trajs)
-    results["config"] = global_config
+    results["config"] = config
 
     write_json(results, os.path.join(config.out_dir, "_results.json"))
     slack_notification(f"Redteaming game completed successfully: \n\n results: {results} \n\nconfig: {global_config};")
