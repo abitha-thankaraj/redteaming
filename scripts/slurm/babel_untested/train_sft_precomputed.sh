@@ -13,14 +13,13 @@ source /data/user_data/athankar/redteaming/scripts/slurm/env_files/.babel_env
 MODEL_PATH=${1:-"meta-llama/Meta-Llama-3.1-8B-Instruct"}
 AGENT_TYPE=${2:-"defender"}
 MASTER_PORT=${3:-29500}
-DATASET_TYPE=${4:-"value_labeled"}
+DATASET_TYPE=${4:-"paired_no_value"}
 VALUE_FUNCTION_TYPE=${5:-""}
 VALUE_FUNCTION_EXPERIMENT=${6:-""}
 LEARNING_RATE=${7:-1e-6}
 RWR_TEMPERATURE=${8:-1.0}
 LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
-EXPERIMENT_DESC=${10:-"value_labelled_sft"}
-
+EXPERIMENT_DESC=${10:-"vanilla_sft_all_labelled_data"}
 
 MAX_LENGTH=4096
 RUN_NAME="multiturn_sft_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
@@ -29,7 +28,7 @@ LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
 
 # Run the first job
 deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
-        --algo "sft_precomputed" \
+        --algo "sft_precomputed_all_data" \
         --model_name_or_path $MODEL_PATH \
         --seed 42   \
         --data_path $DATA_DIR/best_of_n/value_labeled/combined_value_labeled.pt \
@@ -49,7 +48,7 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --exp_desc $EXPERIMENT_DESC \
         --deepspeed $REPO_DIR/scripts/configs/deepspeed/zero3.json \
         --bf16 True \
-        --num_train_epochs 2  \
+        --num_train_epochs 1  \
         --per_device_train_batch_size 2 \
         --per_device_eval_batch_size 1   \
         --gradient_accumulation_steps 16 \
@@ -72,28 +71,9 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
 
 # Find the latest checkpoint directory inside the output path
 LATEST_CHECKPOINT=$(ls -td $LOGDIR/checkpoint-* | head -1)
-# Convert the latest checkpoint to fp32
-python $LATEST_CHECKPOINT/zero_to_fp32.py -d $LATEST_CHECKPOINT $LATEST_CHECKPOINT/pytorch_model.bin
 
 
-# # Schedule the evals to run after the first job; 0, 0.7, 1.0 temperature
-
-# RWR_DEFENDER_MODEL_NAME="rwr_trained_defender"
-# # Model parent dir is the parent directory for the checkpoint folder 
-# # The checkpoint folder is where the model is loaded from
-# RWR_DEFENDER_MODEL_PARENT_DIR=$LATEST_CHECKPOINT
-
-# SFT_ATTACKER_MODEL_TYPE="sft_trained_attacker"
-# SFT_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135
-# RWR_ATTACKER_MODEL_TYPE="rwr_trained_attacker"
-# RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183
-
-
-
-# # Args: $DEFENDER_MODEL_PARENT_DIR $TEMPERATURE $DEFENDER_MODEL_NAME $ATTACKER_MODEL_DIR $ATTACKER_MODEL_NAME
-# # for loop through temperatures
-# for temperature in 0.0 0.7 1.0
-# do
-#     sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $SFT_ATTACKER_MODEL_DIR $SFT_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
-#     sbatch --dependency=afterok:$SLURM_JOB_ID $REPO_DIR/scripts/slurm/delta/evaluate_iter_0.sh $temperature $RWR_DEFENDER_MODEL_PARENT_DIR $RWR_DEFENDER_MODEL_NAME $RWR_ATTACKER_MODEL_DIR $RWR_ATTACKER_MODEL_TYPE $EXPERIMENT_DESC
-# done
+for temperature in 0.0 0.7 1.0
+do
+    sbatch $REPO_DIR/scripts/slurm/babel_untested/eval.sh $temperature $LATEST_CHECKPOINT "${EXPERIMENT_DESC}_defender" "${EXPERIMENT_DESC}_temp_${temperature}" 
+done

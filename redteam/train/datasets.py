@@ -705,12 +705,16 @@ class MultiturnSFTDatasetFromTensors(Dataset):
     def __init__(
         self,
         dataset_path: str,
+        add_all_data: bool = False,
     ):
         """
         Input:
             dataset_path (str):
                 The path to the dataset (in ".pt" format)
                 that contains the dataset
+            add_all_data (bool):
+                Whether to include the rejected data in the dataset. 
+                Note: This is only done to try to get the DPO model to generate other special tokens/ keywords
         """
         assert dataset_path.endswith(".pt")
         data = torch.load(dataset_path)
@@ -718,6 +722,10 @@ class MultiturnSFTDatasetFromTensors(Dataset):
         self.input_ids = data["chosen_input_ids"]
         self.labels = data["chosen_labels"]
         self.attention_mask = data["chosen_attention_mask"]
+        if add_all_data:
+            self.input_ids = torch.concatenate([self.input_ids, data["rejected_input_ids"]], dim=0)
+            self.labels = torch.concatenate([self.labels, data["rejected_labels"]], dim=0)
+            self.attention_mask = torch.concatenate([self.attention_mask, data["rejected_attention_mask"]], dim=0)
         
     def __len__(self) -> int:
         """

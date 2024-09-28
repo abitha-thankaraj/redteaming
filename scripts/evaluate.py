@@ -111,7 +111,7 @@ def main(config: DictConfig):
 
     # Save aggregated results
 
-    results = aggregate_results(trajs, config)
+    results = aggregate_results(trajs)
     results["config"] = global_config
 
     write_json(results, os.path.join(config.out_dir, "_results.json"))
