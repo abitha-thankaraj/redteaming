@@ -33,6 +33,12 @@
 # DEFENDER_MODEL_TYPE=dpo_on_value_labeled_sft_all_defender
 # EXPERIMENT_DESC=dpo_on_value_labeled_sft_all_defender
 
+# Done
+LATEST_CHECKPOINT=/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-29-11-34-39-682/checkpoint-30
+DEFENDER_MODEL_TYPE=vanilla_sft_paired_by_goal_no_fixed_trajs_defender
+EXPERIMENT_DESC=vanilla_sft_paired_by_goal_no_fixed_trajs
+
+
 # Array of temperatures
 TEMPERATURES=(0 0.7 1.0)
 
@@ -49,3 +55,4 @@ do
 done
 
 echo "All jobs submitted"
+

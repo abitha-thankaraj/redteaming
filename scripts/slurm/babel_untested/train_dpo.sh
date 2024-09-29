@@ -19,7 +19,7 @@ VALUE_FUNCTION_EXPERIMENT=${6:-""}
 LEARNING_RATE=${7:-5e-7}
 RWR_TEMPERATURE=${8:-1.0}
 LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
-EXPERIMENT_DESC=${10:-"dpo_on_value_labeled_sft_all"}
+EXPERIMENT_DESC=${10:-"dpo_on_vanilla_sft_paired_by_goal_no_fixed_trajs_labelled"}
 
 # dpo on labelled sft paired
 # BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-01-48-46-440/checkpoint-44/"}
@@ -31,8 +31,14 @@ EXPERIMENT_DESC=${10:-"dpo_on_value_labeled_sft_all"}
 # BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-12-25-28-872/checkpoint-40/"}
 
 # dpo_on_unlabeled_sft_all
-BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-15-06-25-868/checkpoint-45/"}
+# BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-15-06-25-868/checkpoint-45/"}
 
+
+# dpo_on_sft_paired_no_fixed_trajs
+# BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-29-11-34-39-682/checkpoint-30"}
+
+# dpo_on_vanilla_sft_paired_by_goal_no_fixed_trajs_labelled
+BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-29-15-26-35-369/checkpoint-22"}
 MAX_LENGTH=4096
 RUN_NAME="multiturn_dpo_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
 LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
@@ -43,7 +49,7 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --algo "dpo" \
         --model_name_or_path $BASE_MODEL_PATH \
         --seed 42   \
-        --data_path $DATA_DIR/best_of_n/value_labeled/combined_value_labeled.pt \
+        --data_path $DATA_DIR/best_of_n/value_labeled/combined_no_fixed_conversations_value_labeled.pt \
         --eval_data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat_length_added.json \
         --agent_type $AGENT_TYPE \
         --dataset_type $DATASET_TYPE \

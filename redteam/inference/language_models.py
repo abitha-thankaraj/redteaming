@@ -82,12 +82,16 @@ class HuggingFaceLM(LanguageModel):
         temperature: float = 0.7,
         top_p: float = 1.0,
         decode_skip_special_tokens: bool = True,
+        prefill_text: str = None,
     ):
         # Apply chat template to each prompt?
         inputs = {}
         inputs["input_ids"] = self.tokenizer.apply_chat_template(
             conv, return_tensors="pt", padding=True, add_generation_prompt=True
         )
+        if prefill_text is not None:
+            prefill_input_ids = self.tokenizer.encode(prefill_text, add_special_tokens=False, return_tensors="pt")
+            inputs["input_ids"] = torch.cat([prefill_input_ids, inputs["input_ids"]], dim=-1)
 
         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}

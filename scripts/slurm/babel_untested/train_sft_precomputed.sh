@@ -19,19 +19,20 @@ VALUE_FUNCTION_EXPERIMENT=${6:-""}
 LEARNING_RATE=${7:-1e-6}
 RWR_TEMPERATURE=${8:-1.0}
 LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
-EXPERIMENT_DESC=${10:-"vanilla_sft_all_labelled_data"}
+EXPERIMENT_DESC=${10:-"vanilla_sft_paired_by_goal_no_fixed_trajs_labelled"}
 
 MAX_LENGTH=4096
 RUN_NAME="multiturn_sft_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
 LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
 
+# /data/group_data/rl/datasets/redteaming/precomputed_datasets/meta-llama/combined_precomputed_logits.pt
 
 # Run the first job
 deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
-        --algo "sft_precomputed_all_data" \
+        --algo "sft_precomputed" \
         --model_name_or_path $MODEL_PATH \
         --seed 42   \
-        --data_path $DATA_DIR/best_of_n/value_labeled/combined_value_labeled.pt \
+        --data_path $DATA_DIR/best_of_n/value_labeled/combined_no_fixed_conversations_value_labeled.pt \
         --eval_data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat_length_added.json \
         --agent_type $AGENT_TYPE \
         --dataset_type $DATASET_TYPE \
@@ -48,7 +49,7 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --exp_desc $EXPERIMENT_DESC \
         --deepspeed $REPO_DIR/scripts/configs/deepspeed/zero3.json \
         --bf16 True \
-        --num_train_epochs 1  \
+        --num_train_epochs 2  \
         --per_device_train_batch_size 2 \
         --per_device_eval_batch_size 1   \
         --gradient_accumulation_steps 16 \
