@@ -24,11 +24,11 @@ from redteam.envs.common import GameConversation
 # ]
 fnames = [
     # "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender.sft_trained_attacker/2024.09.17/08-34-1726580079/openai_sft_trained_attacker_untrained_defender_untrained_defender.sft_trained_attacker.json",
-    # "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender.sft_trained_attacker/2024.09.17/08-34-1726580078/openai_sft_trained_attacker_untrained_defender_untrained_defender.sft_trained_attacker.json"
-    # "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender.sft_trained_attacker/2024.09.17/08-51-1726581110/jailbreakbench_sft_trained_attacker_untrained_defender_untrained_defender.sft_trained_attacker.json",
-    # "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender.sft_trained_attacker/2024.09.17/08-50-1726581053/jailbreakbench_sft_trained_attacker_untrained_defender_untrained_defender.sft_trained_attacker.json",
+    "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender.sft_trained_attacker/2024.09.17/08-34-1726580078/openai_sft_trained_attacker_untrained_defender_untrained_defender.sft_trained_attacker.json",
+    "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender.sft_trained_attacker/2024.09.17/08-51-1726581110/jailbreakbench_sft_trained_attacker_untrained_defender_untrained_defender.sft_trained_attacker.json",
+    "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender.sft_trained_attacker/2024.09.17/08-50-1726581053/jailbreakbench_sft_trained_attacker_untrained_defender_untrained_defender.sft_trained_attacker.json",
     # "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender.sft_trained_attacker/2024.09.17/08-52-1726581147/jailbreakbench_sft_trained_attacker_untrained_defender_untrained_defender.sft_trained_attacker.json",
-    "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender_temp0/2024.09.28/18-08-1727561336/simplesafetytests_sft_trained_attacker_untrained_defender_untrained_defender_temp0.json",
+    # "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender_temp0/2024.09.28/18-08-1727561336/simplesafetytests_sft_trained_attacker_untrained_defender_untrained_defender_temp0.json",
     "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender_temp0.7/2024.09.28/18-11-1727561485/simplesafetytests_sft_trained_attacker_untrained_defender_untrained_defender_temp0.7.json",
     "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender_temp1.0/2024.09.28/20-12-1727568750/simplesafetytests_sft_trained_attacker_untrained_defender_untrained_defender_temp1.0.json",
 ]
@@ -42,9 +42,10 @@ def load_config(fname):
 def main(fname):
     records = read_json(fname)
     config = load_config(fname)
-    config.defender.device="cuda:0"
+    config.defender.device="cuda:2"
     if "/scratch/bcgv/datasets/redteaming/redteaming_evals/" in config.out_dir:
         config.out_dir = config.out_dir.replace("/scratch/bcgv/datasets/redteaming/redteaming_evals/", "/data/group_data/rl/datasets/redteaming/redteaming_evals/")
+    set_seed_everywhere(config.seed)
 
 
     config.defender.model_cache_dir = "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
@@ -65,14 +66,17 @@ def main(fname):
                 if conv[i]["role"] == "defender":
                     conv[i]["role"] = "assistant"
 
-            env_state, judge_rewards = redteaming_game.repair(goal, conv, record["judge"]["rewards"])
+            flipped_rewards = [1.0 - rew for rew in record["judge"]["rewards"]]
+
+            # env_state, judge_rewards = redteaming_game.repair(goal, conv, record["judge"]["rewards"])
+            env_state, judge_rewards = redteaming_game.repair(goal, conv, flipped_rewards)
 
             if judge_rewards is None:
                 errors.append((goal, conv))
             else:
                 trajs.append((env_state.to_game_message(), judge_rewards))
         
-    out_fname = os.path.join(config.out_dir, "best_of_n.json")
+    out_fname = os.path.join(config.out_dir, "flipped_best_of_n.json")
     out = {
         "num_fixed": len(trajs),
         "num_errors": len(errors),

@@ -87,6 +87,8 @@ def aggregate_results(results):
 def main(fname):
     questions = get_questions(fname)
     config = load_config(fname)
+    set_seed_everywhere(config.seed)
+
     config.defender.device="cuda:0"
     defender = get_policy(config.defender)
     judge = LlamaGuardJudge(device= config.defender.device)

@@ -91,7 +91,7 @@ class HuggingFaceLM(LanguageModel):
         )
         if prefill_text is not None:
             prefill_input_ids = self.tokenizer.encode(prefill_text, add_special_tokens=False, return_tensors="pt")
-            inputs["input_ids"] = torch.cat([prefill_input_ids, inputs["input_ids"]], dim=-1)
+            inputs["input_ids"] = torch.cat([inputs["input_ids"], prefill_input_ids], dim=-1)
 
         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
@@ -131,7 +131,6 @@ class HuggingFaceLM(LanguageModel):
 
         if "mistralai/Mistral-7B-Instruct-v0.1" in self.model_name:
             outputs = outputs.split("[/INST] ")[-1]
-
         for key in inputs:
             inputs[key].to("cpu")
         output_ids.to("cpu")

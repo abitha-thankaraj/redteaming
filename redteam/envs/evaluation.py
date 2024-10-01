@@ -91,6 +91,30 @@ class Game:
                 return None, None
         return self.env_state, [0.0] * len(original_judge_rewards)
 
+    def prefilled_response(self, goal, conversation, original_judge_rewards, prefill_text):
+        self.reset_model(goal=goal)
+        judge_score = None
+
+        for i, turn in enumerate(conversation):
+
+            if turn["role"] == "user":
+                self.env_state.messages.append(("attacker", turn["content"]))
+
+            if turn["role"] == "assistant":
+                judge_idx = i // 2
+                judge_reward = original_judge_rewards[judge_idx]
+                last_reward = None
+
+                if judge_reward == 1.0: #flipped for defender. you flip this in the script
+                    # Non jailbroken turn
+                    self.env_state.messages.append(("defender", turn["content"]))
+                else:
+                    # Jailbroken turn
+                    self.env_state.messages.append(("defender", 
+                        self.defender.act_prefilled(self.env_state.to_defender_message(), prefill_text)))
+                    judge_score = self.judge.score(self.env_state.to_judge_input())
+        
+        return self.env_state, judge_score
 
 def evaluate_value_function(conversation, value_function_type, rewards, policy_type):
     if policy_type == "defender":

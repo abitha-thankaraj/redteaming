@@ -106,6 +106,8 @@ def main(fname):
     safe_conversations = get_safe_conversation_strings(fname)
 
     config = load_config(fname)
+    set_seed_everywhere(config.seed)
+
     config.defender.device="cuda:0"
     defender = get_policy(config.defender)
     unsafe_beliefs = eval_self_belief(unsafe_conversations, defender)

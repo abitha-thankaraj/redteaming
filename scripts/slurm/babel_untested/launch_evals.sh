@@ -34,12 +34,21 @@
 # EXPERIMENT_DESC=dpo_on_value_labeled_sft_all_defender
 
 # Done
-LATEST_CHECKPOINT=/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-29-11-34-39-682/checkpoint-30
-DEFENDER_MODEL_TYPE=vanilla_sft_paired_by_goal_no_fixed_trajs_defender
-EXPERIMENT_DESC=vanilla_sft_paired_by_goal_no_fixed_trajs
+# LATEST_CHECKPOINT=/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-29-11-34-39-682/checkpoint-30
+# DEFENDER_MODEL_TYPE=vanilla_sft_paired_by_goal_no_fixed_trajs_defender
+# EXPERIMENT_DESC=vanilla_sft_paired_by_goal_no_fixed_trajs
 
-
+# # Done - sft positive data only+ value labelled
+# LATEST_CHECKPOINT=/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-01-48-46-440/checkpoint-44/
+# DEFENDER_MODEL_TYPE=sft_value_labeled_defender
+# EXPERIMENT_DESC=sft_eval_pre_dpo
 # Array of temperatures
+
+# LATEST_CHECKPOINT=/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-12-25-28-872/checkpoint-40/
+# DEFENDER_MODEL_TYPE=vanilla_sft_defender
+# EXPERIMENT_DESC=vanilla_sft_paired
+
+
 TEMPERATURES=(0 0.7 1.0)
 
 # Loop through each temperature and submit a job
