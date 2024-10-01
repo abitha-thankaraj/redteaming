@@ -84,11 +84,11 @@ def get_fix_me_messages(fname):
     return fix_me_messages
     
 
-def rephrased_evals(fix_me_messages, defender, judge):
+def rephrased_evals(fix_me_messages, defender, judge, fix_intermediate = False):
 
     results = []
     num_jailbreaks = 0
-
+    gpt = GPT("gpt-3.5-turbo-0125")
     for messages in tqdm(fix_me_messages):
         original_rephrased_conv = GameConversation(messages=messages).to_game_message()
         conv = GameConversation(messages=[("goal",messages[0][1])])
@@ -99,17 +99,20 @@ def rephrased_evals(fix_me_messages, defender, judge):
                 if messages[i][1] == "":
                     defender_response = defender.act(conv.to_defender_message())
                     conv.messages.append(("defender", defender_response))
+                    judge_score = judge.score(conv.to_judge_input())
+                    if judge_score["rewards"][-1] > 0.0:
+                        num_jailbreaks += 1
+                        break
+                    else:
+                        if fix_intermediate:
+                            conv.messages[-1] = ("defender", rephrase(defender_response, model = gpt).split("<REPHRASED>")[1])    
                 else:
                     conv.messages.append(("defender", messages[i][1].split("<REPHRASED>")[1]))
-        judge_score = judge.score(conv.to_judge_input())
-        print(judge_score)
         results.append({"original_rephrased_conv": original_rephrased_conv,
                         "game": conv.to_game_message(),
                         "judge": judge_score})
-        num_jailbreaks += sum(judge_score["rewards"])
-    return results, {"num_jailbreaks": num_jailbreaks, "original_num_jailbreaks": len(fix_me_messages)}
 
-    
+    return results, {"num_jailbreaks": num_jailbreaks, "original_num_jailbreaks": len(fix_me_messages)}
 
 def load_config(fname):
     parent_dir = os.path.dirname(fname)
@@ -122,7 +125,7 @@ def load_config(fname):
 
 def main(fname):
 
-    questions = get_fix_me_messages(fname)
+    fix_me_messages = get_fix_me_messages(fname)
     config = load_config(fname)
     set_seed_everywhere(config.seed)
     config.defender.model_cache_dir = "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
@@ -131,14 +134,20 @@ def main(fname):
     defender = get_policy(config.defender)
     judge = LlamaGuardJudge(device= config.defender.device)
     
-    results, aggregated_results = rephrased_evals(questions, defender, judge)
+    results, aggregated_results = rephrased_evals(fix_me_messages, defender, judge)
 
     if "/scratch/bcgv/datasets/redteaming/redteaming_evals/" in config.out_dir:
         config.out_dir = config.out_dir.replace("/scratch/bcgv/datasets/redteaming/redteaming_evals/", "/data/group_data/rl/datasets/redteaming/redteaming_evals/")
 
     write_json(results, os.path.join(config.out_dir, "rephrased_results.json"))
     write_json(aggregated_results, os.path.join(config.out_dir, "rephrased_aggregated_results.json"))
+
     slack_notification(f"Summarize results for {fname} complete. Aggregated results: {aggregated_results}")
+
+    intermediate_rephrased_results, aggregated_intermediate_rephrased_results = rephrased_evals(fix_me_messages, defender, judge, fix_intermediate=True)
+    write_json(intermediate_rephrased_results, os.path.join(config.out_dir, "intermediate_rephrased_results.json"))
+    write_json(aggregated_intermediate_rephrased_results, os.path.join(config.out_dir, "intermediate_rephrased_aggregated_results.json"))
+    slack_notification(f"Summarize results for {fname} complete. Aggregated results: {aggregated_intermediate_rephrased_results}")
 
 if __name__ == "__main__":
     # main(fname)
