@@ -28,7 +28,7 @@ def load_model_and_tokenizer(
     model.tie_weights()
     model.resize_token_embeddings(len(tokenizer))
 
-    return model, tokenizer
+    return model, tokenizer, tokenizer_separator
 
 
 class LanguageModel:
@@ -42,16 +42,18 @@ class LanguageModel:
         temperature: float,
         top_p: float = 1.0,
         decode_skip_special_tokens: bool = True,
+        prefill_text: str = None,
     ):
         """Generates a response for a prompt using a language model."""
         raise NotImplementedError
 
 
 class HuggingFaceLM(LanguageModel):
-    def __init__(self, model_name, model, tokenizer):
-        self.model_name = model_name
+    def __init__(self, model_name, model, tokenizer, tokenizer_separator=None):
+        super().__init__(model_name)
         self.model = model
         self.tokenizer = tokenizer
+        self.tokenizer_separator = tokenizer_separator
         # Decoder only models that have been verified
         assert model_name in [
             "meta-llama/Meta-Llama-3.1-8B-Instruct",
@@ -81,13 +83,24 @@ class HuggingFaceLM(LanguageModel):
         """
         Given a conversation and a model, generates a response. We use only ancestral sampling for generation.
         Note - This function is only for instruction tuned/ chat tuned models.
+
+        Args:
+            conv: List of dictionaries, OpenAI API format
+            max_n_tokens: int, max number of tokens to generate
+            temperature: float, temperature for sampling
+            top_p: float, top p for sampling
+            decode_skip_special_tokens: bool, whether to skip special tokens
+            prefill_text: str, prefix to start the generation with
         """
         # Apply chat template to each prompt.
         inputs = {}
         inputs["input_ids"] = self.tokenizer.apply_chat_template(
             conv, return_tensors="pt", padding=True, add_generation_prompt=True
         )
+        # Prefilling the response.
         if prefill_text is not None:
+            # The generation prompt is already added in the chat template.
+            # This allows the model to start generating with a prefix.
             prefill_input_ids = self.tokenizer.encode(
                 prefill_text, add_special_tokens=False, return_tensors="pt"
             )
@@ -95,7 +108,7 @@ class HuggingFaceLM(LanguageModel):
 
         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
-
+        # Greedy decoding
         if temperature > 0:
             output_ids = self.model.generate(
                 **inputs,
@@ -106,6 +119,7 @@ class HuggingFaceLM(LanguageModel):
                 num_return_sequences=1,  # https://github.com/huggingface/blog/blob/main/how-to-generate.md
             )
         else:
+            # Greedy decoding for temperature 0.
             output_ids = self.model.generate(
                 **inputs,
                 max_new_tokens=max_n_tokens,
@@ -116,7 +130,7 @@ class HuggingFaceLM(LanguageModel):
         outputs = self.tokenizer.decode(
             output_ids[0], skip_special_tokens=decode_skip_special_tokens
         )
-
+        #TODO: do this with tokenizer separators.
         if (
             "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name
             or "meta-llama/Meta-Llama-3-8B-Instruct" in self.model_name
@@ -138,7 +152,6 @@ class HuggingFaceLM(LanguageModel):
 
         gc.collect()
         torch.cuda.empty_cache()
-
         return outputs
 
     @torch.no_grad()
@@ -151,64 +164,42 @@ class HuggingFaceLM(LanguageModel):
         """
         Given input_ids, labels and attention mask,
         calculates the log probs (per token) from the auto-regressive generation process
-
-        Input:
-            input_ids (torch.Tensor):
-                input ids for the sequence
-
-                Shape: (batch size, sequence length)
-
-            labels (torch.Tensor):
-                Labels, typically a sequence of tokens that the
-                next token prediction in an auto-regressive generation process should
-                generate
-
-                Shape: (batch size, sequence length)
-
-            attention_mask (torch.Tensor):
-                Attention mask to be used
-
-                Shape: (batch size, sequence length)
-
-        Output:
-            log_probs (torch.Tensor):
-                Computed log probabilities (per token) for the given sequences
-
-                Shape: (batch size, sequence length - 1)
-
-                NOTE: the -1 comes because we have to shift by 1
+        Args:
+            input_ids: torch.Tensor, input_ids for the model
+            labels: torch.Tensor, labels for the model
+            attention_mask: torch.Tensor, causal attention_mask for the model
         """
-        with torch.no_grad():
-            inputs = {
-                "input_ids": input_ids,
-                "labels": labels,
-                "attention_mask": attention_mask,
-            }
-            inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
+        inputs = {
+            "input_ids": input_ids,
+            "labels": labels,
+            "attention_mask": attention_mask,
+        }
+        inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
 
-            model_outputs = self.model(**inputs)
+        model_outputs = self.model(**inputs)
+        
+        # run inference, get logits
+        logits = (
+            model_outputs["logits"]
+            if isinstance(model_outputs, dict)
+            else model_outputs[0]
+        )
 
-            logits = (
-                model_outputs["logits"]
-                if isinstance(model_outputs, dict)
-                else model_outputs[0]
-            )
+        # shift by 1, since we only consider causal models
+        logits = logits[:, :-1, :]
+        labels = labels[:, 1:].clone().to(self.model.device.index)
 
-            # shift by 1, since we only consider causal models
-            logits = logits[:, :-1, :]
-            labels = labels[:, 1:].clone().to(self.model.device.index)
-
-            # calculate log probs
-            log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
-            # labels can contain ignore_token_id, typically -100.
-            # we clamp them to 0, to avoid indexing errors
-            # These tokens will be ignored later
-            labels_clamped = torch.clamp(labels, min=0)
-            log_probs = torch.gather(
-                log_probs,
-                dim=2,
-                index=labels_clamped.unsqueeze(2),
-            )
+        # calculate log probs
+        log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
+        # labels can contain ignore_token_id, typically -100.
+        # we clamp them to 0, to avoid indexing errors
+        # These tokens will be ignored later
+        labels_clamped = torch.clamp(labels, min=0)
+        log_probs = torch.gather(
+            log_probs,
+            dim=2,
+            index=labels_clamped.unsqueeze(2),
+        )
 
         for key in inputs:
             inputs[key].to("cpu")

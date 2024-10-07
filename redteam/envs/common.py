@@ -121,7 +121,7 @@ class Policy(HuggingFaceLM):
 
 
 def get_policy(config):
-    model, tokeniser = load_model_and_tokenizer(
+    model, tokeniser, tokeniser_separator = load_model_and_tokenizer(
         config.model_name, config.model_dir, config.model_cache_dir, config.device
     )
     return Policy(config.model_name, model, tokeniser, config.generation_kwargs)

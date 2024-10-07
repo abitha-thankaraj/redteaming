@@ -93,15 +93,13 @@ global_config = None
 def main(config: DictConfig):
     global global_config
     set_seed_everywhere(config.seed)
-    model, tokenizer = load_model_and_tokenizer(
+    model, tokenizer, tokenizer_separator = load_model_and_tokenizer(
         model_name=config.model_name,
         model_dir=config.model_dir,
         model_cache_dir=config.model_cache_dir,
         device=config.device,
         model_max_length=config.max_length,
     )
-    tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
-
     print(config)
     if config.from_flat_file:
         conversations = from_flat_file(config.data_flat_fname)
