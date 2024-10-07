@@ -36,6 +36,7 @@ LEARNING_RATE=${7:-1e-5}
 RWR_TEMPERATURE=${8:-1.0}
 LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
 EXPERIMENT_DESC=${10:-"sft_lr_sweep"}
+NUM_SAMPLES=${11:-null}
 
 
 MAX_LENGTH=4096
@@ -86,14 +87,14 @@ python $LATEST_CHECKPOINT/zero_to_fp32.py -d $LATEST_CHECKPOINT $LATEST_CHECKPOI
 
 # Schedule the evals to run after the first job; 0, 0.7, 1.0 temperature
 
-SFT_DEFENDER_MODEL_NAME="sft_trained_defender"
+SFT_DEFENDER_MODEL_NAME="sft_trained_defender_1"
 # Model parent dir is the parent directory for the checkpoint folder 
 # The checkpoint folder is where the model is loaded from
 SFT_DEFENDER_MODEL_DIR=$LATEST_CHECKPOINT
 
-SFT_ATTACKER_MODEL_TYPE="sft_trained_attacker"
+SFT_ATTACKER_MODEL_TYPE="sft_trained_attacker_0"
 SFT_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-10-16-56-06-894/checkpoint-135
-RWR_ATTACKER_MODEL_TYPE="rwr_trained_attacker"
+RWR_ATTACKER_MODEL_TYPE="rwr_trained_attacker_0"
 RWR_ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturn_rwr_attacker_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-08-23-13-23-23-840/checkpoint-183
 
 

@@ -14,7 +14,6 @@ def main(fname):
     dss = []
 
     for goal in tqdm(goal_idxs.keys(), desc="Goals"):
-
         ds = {"goal": goal, "positives": [], "negatives": [], "category": None}
 
         for idx in tqdm(goal_idxs[goal], desc="Positive/Negative"):

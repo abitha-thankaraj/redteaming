@@ -8,7 +8,8 @@ from redteam.utils.slack_me import slack_notification
 from tqdm import tqdm
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
-CACHE_DIR = "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
+# CACHE_DIR = "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
+CACHE_DIR = "/scratch/bcgv/athankaraj/.cache"
 
 
 def get_tokenizer(model_name):
@@ -55,6 +56,9 @@ def stripped_decode(tokenizer, masked_tokens):
 
 
 if __name__ == "__main__":
+    from IPython import embed
+
+    embed()
     from redteam.train.sft import set_seed_everywhere
 
     set_seed_everywhere(42)
@@ -71,7 +75,6 @@ if __name__ == "__main__":
             "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_train_data_llama_rewards_flat.json",
             "/data/group_data/rl/datasets/redteaming/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat.json",
         ]:
-
             # sft_dataset = MultiturnSFTDataset(
             #     conversations,
             #     tokenizer,

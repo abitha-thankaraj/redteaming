@@ -44,7 +44,6 @@ class GPTJudge(JudgeBase):
 
 class LlamaGuardJudge:
     def __init__(self, device):
-
         self.max_new_tokens = 100  # Only need to add safe/unsafe + category
 
         self.device = device
@@ -94,7 +93,7 @@ class LlamaGuardJudge:
         torch.cuda.empty_cache()
 
         return judgements
-
+        
     def process_output(self, raw_judge_output: List[str]):
         """Process the raw judge output into rewards and categories"""
         rewards = []

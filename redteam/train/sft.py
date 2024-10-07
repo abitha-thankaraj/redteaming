@@ -12,7 +12,7 @@ import math
 import pathlib
 import numpy as np
 from redteam.train.datasets import MultiturnSFTDataset
-from redteam.train.dataset_utils import get_conversations, SFTDatasetHelper
+from redteam.train.dataset_utils import SFTDatasetHelper
 from redteam.train.common import (
     get_tokenizer_separators,
     safe_save_model_for_hf_trainer,
@@ -26,6 +26,7 @@ from transformers import Trainer
 import torch, time
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
+
 
 # Args/ Arg parsers
 @dataclass
@@ -45,7 +46,9 @@ class DataArguments:
     )
     length_key: str = field(default="")
     max_length: int = field(default=-1)
-    
+    num_samples: int = field(default=None)
+
+
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
     cache_dir: Optional[str] = field(
@@ -68,8 +71,7 @@ class TrainingArguments(transformers.TrainingArguments):
     # Adding args for data, model and rwr
     data_args: Any = field(default=None)
     model_args: Any = field(default=None)
-    exp_desc:str = field(default="")
-
+    exp_desc: str = field(default="")
 
 
 # Debugging utils
@@ -104,7 +106,7 @@ def get_dataset(
         max_length=data_args.max_length,
     )
 
-    conversation_reward_dict = dataset_helper.get_conversations()
+    conversation_reward_dict = dataset_helper.get_conversations(num_samples=data_args.num_samples)
 
     train_dataset = MultiturnSFTDataset(
         conversation_reward_dict["conversations"],
@@ -121,7 +123,7 @@ def get_dataset(
         max_length=data_args.max_length,
     )
 
-    eval_conversation_reward_dict = eval_dataset_helper.get_conversations()
+    eval_conversation_reward_dict = eval_dataset_helper.get_conversations(num_samples=data_args.num_samples)
 
     eval_dataset = MultiturnSFTDataset(
         eval_conversation_reward_dict["conversations"],
@@ -131,6 +133,7 @@ def get_dataset(
     )
 
     return train_dataset, eval_dataset
+
 
 def train():
     global local_rank

@@ -9,10 +9,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 logger = logging.getLogger(__name__)
 
 
-def load_model_and_tokenizer(model_name, model_dir, model_cache_dir, device):
-
+def load_model_and_tokenizer(model_name, model_dir, model_cache_dir, device, model_max_length=4096):
     tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path=model_dir, use_fast=False
+        pretrained_model_name_or_path=model_dir, use_fast=False,
+        model_max_length=model_max_length
+        
     )
     tokenizer.padding_side = "left"
 
@@ -44,30 +45,13 @@ class LanguageModel:
     def __init__(self, model_name):
         self.model_name = model_name
 
-    def batched_generate(
-        self,
-        convs: List[List[Dict]],
-        max_n_tokens: int,
-        temperature: float,
-        top_p: float = 1.0,
-    ):
-        """
-        Generates responses for a batch of prompts using a language model.
-        """
-        raise NotImplementedError
-
-    def _init_conversations(self, goals: List[str]):
-        """
-        Initializes conversations for the language model.
-        """
-        raise NotImplementedError
-
     def generate(
         self,
         conv: List[Dict],
         max_n_tokens: int,
         temperature: float,
         top_p: float = 1.0,
+        decode_skip_special_tokens: bool = True,
     ):
         """Generates a response for a prompt using a language model."""
         raise NotImplementedError
@@ -75,7 +59,6 @@ class LanguageModel:
 
 class HuggingFaceLM(LanguageModel):
     def __init__(self, model_name, model, tokenizer):
-
         self.model_name = model_name
         self.model = model
         self.tokenizer = tokenizer
@@ -91,84 +74,24 @@ class HuggingFaceLM(LanguageModel):
             self.tokenizer.padding_side == "left"
         ), "Padding side must be left for generations for decoder only models"
 
-    def batched_generate(
-        self,
-        convs: List[List[Dict]],
-        max_n_tokens: int,
-        temperature: float,
-        top_p: float = 1.0,
-        num_samples: int = 1,
-    ):
-        # Apply chat template to each prompt?
-        inputs = {}
-        # TODO: Figure out if we need to do max length padding. does not seem necessary.
-        inputs["input_ids"] = self.tokenizer.apply_chat_template(
-            convs, return_tensors="pt", padding=True, add_generation_prompt=True
-        )
-        inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
-        inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
-
-        max_n_tokens = min(max_n_tokens, self.model.config.max_length)
-
-        # TODO : Add caching for the model generation: https://huggingface.co/docs/transformers/kv_cache#iterative-generation-with-cache
-        # Batch generation
-        if temperature > 0:
-            output_ids = self.model.generate(
-                **inputs,
-                max_new_tokens=max_n_tokens,
-                do_sample=True,
-                temperature=temperature,
-                top_p=top_p,
-                num_return_sequences=num_samples,  # https://github.com/huggingface/blog/blob/main/how-to-generate.md
-            )
-        else:
-            if num_samples > 1:
-                logger.warning(
-                    "num_samples > 1 is not supported for greedy decoding. Setting num_samples to 1."
-                )
-                num_samples = 1
-            output_ids = self.model.generate(
-                **inputs,
-                max_new_tokens=max_n_tokens,
-                do_sample=False,
-                top_p=1,
-                temperature=1,  # To prevent warning messages
-            )
-        if not self.model.config.is_encoder_decoder:
-            output_ids = output_ids[:, inputs["input_ids"].shape[1] :]
-
-        outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=False)
-        if (
-            "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name
-            or "meta-llama/Meta-Llama-3-8B-Instruct" in self.model_name
-        ):
-            raise Exception("Not implemented")
-            # outputs_list = [output.replace("assistant\n\n", "") for output in outputs_list]
-        if "mistralai/Mistral-7B-Instruct-v0.1" in self.model_name:
-            raise Exception("Not implemented")
-            # outputs_list = [output.replace("[/INST]", "") for output in outputs_list]
-
-        for key in inputs:
-            inputs[key].to("cpu")
-        output_ids.to("cpu")
-        del inputs, output_ids
-        gc.collect()
-        torch.cuda.empty_cache()
-
-        return outputs_list
-
+    @torch.no_grad()
     def generate(
         self,
         conv: List[Dict],
         max_n_tokens: int = None,
         temperature: float = 0.7,
         top_p: float = 1.0,
+        decode_skip_special_tokens: bool = True,
+        prefill_text: str = None,
     ):
         # Apply chat template to each prompt?
         inputs = {}
         inputs["input_ids"] = self.tokenizer.apply_chat_template(
             conv, return_tensors="pt", padding=True, add_generation_prompt=True
         )
+        if prefill_text is not None:
+            prefill_input_ids = self.tokenizer.encode(prefill_text, add_special_tokens=False, return_tensors="pt")
+            inputs["input_ids"] = torch.cat([inputs["input_ids"], prefill_input_ids], dim=-1)
 
         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
@@ -190,17 +113,24 @@ class HuggingFaceLM(LanguageModel):
                 top_p=1,
                 temperature=1,  # To prevent warning messages
             )
-        outputs = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
-        # outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+        outputs = self.tokenizer.decode(
+            output_ids[0], skip_special_tokens=decode_skip_special_tokens
+        )
+
         if (
             "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name
             or "meta-llama/Meta-Llama-3-8B-Instruct" in self.model_name
         ):
-            outputs = outputs.split("assistant\n\n")[-1]
+            if decode_skip_special_tokens:
+                outputs = outputs.split("assistant\n\n")[-1]
+            else:
+                # We use this when we use reserved tokens for value function experiments.
+                outputs = outputs.split("<|start_header_id|>assistant<|end_header_id|>")[
+                    -1
+                ].split("<|eot_id|>")[0]
 
         if "mistralai/Mistral-7B-Instruct-v0.1" in self.model_name:
-            outputs = outputs.split("[/INST]")[-1]
-
+            outputs = outputs.split("[/INST] ")[-1]
         for key in inputs:
             inputs[key].to("cpu")
         output_ids.to("cpu")
@@ -210,6 +140,88 @@ class HuggingFaceLM(LanguageModel):
         torch.cuda.empty_cache()
 
         return outputs
+    
+    @torch.no_grad()
+    def compute_log_probs(
+        self,
+        input_ids: torch.Tensor,
+        labels: torch.Tensor,
+        attention_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Given input_ids, labels and attention mask,
+        calculates the log probs (per token) from the auto-regressive generation process
+
+        Input:
+            input_ids (torch.Tensor):
+                input ids for the sequence
+
+                Shape: (batch size, sequence length)
+
+            labels (torch.Tensor):
+                Labels, typically a sequence of tokens that the
+                next token prediction in an auto-regressive generation process should
+                generate
+
+                Shape: (batch size, sequence length)
+
+            attention_mask (torch.Tensor):
+                Attention mask to be used
+
+                Shape: (batch size, sequence length)
+
+        Output:
+            log_probs (torch.Tensor):
+                Computed log probabilities (per token) for the given sequences
+
+                Shape: (batch size, sequence length - 1)
+
+                NOTE: the -1 comes because we have to shift by 1
+        """
+        with torch.no_grad():
+            inputs = {
+                "input_ids": input_ids,
+                "labels": labels,
+                "attention_mask": attention_mask,
+            }
+            inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
+
+            model_outputs = self.model(**inputs)
+
+            logits = (
+                model_outputs["logits"]
+                if isinstance(model_outputs, dict)
+                else model_outputs[0]
+            )
+
+            # shift by 1, since we only consider Causal models
+            logits = logits[:, :-1, :]
+            labels = labels[:, 1:].clone().to(self.model.device.index)
+
+            # calculate log probs
+            log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
+
+            # labels can contain ignore_token_id, typically -100.
+            # we clamp them to 0, to avoid indexing errors
+            # These tokens will be ignored later
+            labels_clamped = torch.clamp(labels, min=0)
+            log_probs = torch.gather(
+                log_probs,
+                dim=2,
+                index=labels_clamped.unsqueeze(2),
+            )
+
+        for key in inputs:
+            inputs[key].to("cpu")
+        logits.to("cpu")
+
+        log_probs = log_probs.to("cpu")
+
+        del inputs, logits
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        return log_probs
 
 
 class GPT(LanguageModel):
@@ -233,64 +245,18 @@ class GPT(LanguageModel):
         output = self.API_ERROR_OUTPUT
         for _ in range(self.API_MAX_RETRY):
             try:
-                response = openai.ChatCompletion.create(
+                response = openai.chat.completions.create(
                     model=self.model_name,
                     messages=conv,
                     max_tokens=max_n_tokens,
                     temperature=temperature,
                     top_p=top_p,
-                    request_timeout=self.API_TIMEOUT,
                 )
-                output = response["choices"][0]["message"]["content"]
+                output = response.choices[0].message.content
                 break
-            except openai.error.OpenAIError as e:
+            except openai.OpenAIError as e:
                 print(type(e), e)
                 time.sleep(self.API_RETRY_SLEEP)
 
             time.sleep(self.API_QUERY_SLEEP)
         return output
-
-    def batched_generate(
-        self,
-        convs_list: List[List[Dict]],
-        max_n_tokens: int,
-        temperature: float,
-        top_p: float = 1.0,
-    ):
-        return [self.generate(conv, max_n_tokens, temperature, top_p) for conv in convs_list]
-
-
-# from vllm.entrypoints.llm import LLM
-
-# class VLLMLanguageModel(LanguageModel):
-#     def __init__(self, model_name, model, tokenizer):
-
-#         self.model_name = model_name
-#         self.model = model
-#         if tokenizer.padding_side != "left":
-#             logger.warning(
-#                 "Padding side is not left. We use decoder only model. Setting padding side to left for inference"
-#             )
-#             tokenizer.padding_side = "left"
-
-#         self.tokenizer = tokenizer
-#         self.llm = LLM(
-#             model=self.model,
-#             tokenizer=self.tokenizer,
-#             tokenizer_mode="slow",
-#             trust_remote_code=True,
-#             dtype=torch.bfloat16,  # We train in half precision. We should also do inference?
-#             seed=42,
-#             # TODO:
-#             max_seq_len_to_capture=tokenizer.max_model_length,
-#         )
-
-
-#     def batched_generate(self, convs: List[List[Dict]], generation_config: Dict):
-#         # Apply chat template to each prompt?
-#         inputs = {}
-#         inputs["input_ids"] = self.tokenizer.apply_chat_template(
-#             convs, return_tensors="pt", padding=True, add_generation_prompt=True
-#         )
-#         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
-#         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}

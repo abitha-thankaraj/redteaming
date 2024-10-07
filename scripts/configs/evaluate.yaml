@@ -16,21 +16,24 @@ attacker:
     max_n_tokens: 4096
     temperature: 0.7
     top_p: 1.0
+    decode_skip_special_tokens: true
 
 defender:
   model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_dir: "/data/group_data/rl/experiments/redteaming/multiturn_rwr_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-15-14-47-28-373/checkpoint-122"
-  model_type: rwr_trained_defender
+  model_dir: "/data/group_data/rl/experiments/redteaming/multiturn_dpo_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-25-13-32-06-856/checkpoint-15"
+  model_type: dpo_high_contrast_defender_1000
   model_cache_dir: ${env.hf_home}
   device: "cuda:1"
   generation_kwargs:
     max_n_tokens: 4096
-    temperature: 0.7
+    temperature: 0.
     top_p: 1.0
+    decode_skip_special_tokens: true
 
 judge:
   judge_type: "llama-guard"
-  device: "cuda:2"
+  device: ${attacker.device}
+  # "cuda:2"
 
 
 value_function_evaluate:  
@@ -48,8 +51,12 @@ value_function_evaluate:
 # Game
 max_turns: 3
 
+# Goal
+chunk: -1
+max_chunk_size: 100
+
 # Result of simulating the game will be saved in this file
-experiment_desc: eval_fixed_naive_balance
+experiment_desc: eval_dpo_test_high_contrast_1000
 out_dir: ${env.data_dir}/redteaming_evals/${experiment_desc}/${now:%Y.%m.%d}/${now:%H-%M-%s}
 out_fname: ${dataset_configs.dataset_name}_${attacker.model_type}_${defender.model_type}_${experiment_desc}.json
 hydra:

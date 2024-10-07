@@ -4,10 +4,7 @@ from torch.utils.data import Dataset
 from typing import Dict, Any, List
 from transformers import AutoTokenizer
 from redteam.train.common import TokenizerSeparators
-
-# def stripped_decode(tokenizer, masked_tokens):
-#     return tokenizer.decode(torch.where(masked_tokens == -100, tokenizer.unk_token_id, masked_tokens)).replace(tokenizer.unk_token, "")
-
+import numpy as np
 
 class MultiturnSFTDataset(Dataset):
     # TODO: Add docstring + key differences b/w single turn and multiturn
@@ -17,22 +14,33 @@ class MultiturnSFTDataset(Dataset):
         tokenizer: Any,
         tokenizer_separator: Any,
         ignore_token_id: int,
+        value_function_type=None,
     ):
-
-        self.input_ids, self.labels, self.attention_mask = [], [], []
+        self.input_ids, self.labels, self.attention_mask, self.value_function_token_idxs = (
+            [],
+            [],
+            [],
+            [],
+        )
         for i, conversation in tqdm(
             enumerate(conversations), desc="Masking Conversations - MT-SFT"
         ):
             data_dict = mask_non_assistant_tokens(
-                tokenizer, conversation, tokenizer_separator, ignore_token_id
+                tokenizer,
+                conversation,
+                tokenizer_separator,
+                ignore_token_id,
+                value_function_type,
             )
             self.input_ids.append(data_dict["input_ids"])
             self.labels.append(data_dict["labels"])
             self.attention_mask.append(data_dict["attention_mask"])
+            self.value_function_token_idxs.append(data_dict["value_function_token_idxs"])
 
         self.input_ids = torch.stack(self.input_ids, dim=0)
         self.labels = torch.stack(self.labels, dim=0)
         self.attention_mask = torch.stack(self.attention_mask, dim=0)
+        self.value_function_token_idxs = torch.stack(self.value_function_token_idxs, dim=0)
 
     def __len__(self):
         return self.input_ids.shape[0]
@@ -74,9 +82,12 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
         # Ugly; but should work.
         if value_function_type != "":
             value_function_reserved_strs = get_value_function_keywords(
-                value_function_type=value_function_type, gamma=gamma, model_name=model_name
+                value_function_type=value_function_type, 
+                gamma=gamma, 
+                model_name=model_name
             )
             for i, conversation in enumerate(conversations):
+                # Add value function to the assistant responses
                 conversations[i] = relabel_conversation(
                     value_function_experiment,
                     value_function_type=value_function_type,
@@ -85,16 +96,23 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
                     gamma=gamma,
                     value_function_reserved_strs=value_function_reserved_strs,
                 )
+        if value_function_type not in ["", "multilabel", "binary", "natural_lang_binary", "natural_lang_multiclass"]:
+            raise NotImplementedError(
+                f"Value function type {value_function_type} not implemented"
+            )
 
         super().__init__(
             conversations=conversations,
             tokenizer=tokenizer,
             tokenizer_separator=tokenizer_separator,
             ignore_token_id=ignore_token_id,
+            value_function_type=value_function_type,
         )
+        self.reward_per_turns = reward_per_turns
+        self.reward_to_gos = np.array([np.array(get_reward_to_gos(reward_per_turn, gamma)) for reward_per_turn in reward_per_turns])
+
 
         self.rewards = []
-        # print(self.incorrect)
 
         for i, reward_per_turn in tqdm(enumerate(reward_per_turns), desc="Rewards - RWR"):
             self.rewards.append(
@@ -117,6 +135,7 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
             "labels": self.labels[idx],
             "attention_mask": self.attention_mask[idx],
             "rewards": self.rewards[idx],
+            "value_function_token_idxs": self.value_function_token_idxs[idx],
         }
 
 
@@ -125,6 +144,7 @@ def mask_non_assistant_tokens(
     conversation: List[Dict[str, str]],
     tokenizer_separator: TokenizerSeparators,
     ignore_token_id: int,
+    value_function_type: str = None,
 ) -> Dict[str, torch.Tensor]:
     """Mask all tokens that are not part of the assistant's outputs.
     Note: We expect the end of assistant's output to be marked by the assistant_suffix token.
@@ -135,6 +155,7 @@ def mask_non_assistant_tokens(
     )
 
     masked_tokens = [ignore_token_id] * len(tokens)  # Start with all tokens masked
+    value_function_masked_tokens = [ignore_token_id] * len(tokens)
     assert tokenizer_separator.assistant_prefix_ids is not None, "Assistant prefix ids not set"
     assistant_prefix_ids = tokenizer_separator.assistant_prefix_ids
 
@@ -145,9 +166,20 @@ def mask_non_assistant_tokens(
         for msg in conversation
         if msg["role"] == "assistant"
     ]
+    value_function_contents = []
 
     start_index = -1
     for content in assistant_contents:
+        # Get tokens for value_function
+        if value_function_type in ["natural_lang_binary", "natural_lang_multiclass"]:
+            # ALL LABELS ARE <>] 
+            # NOTE: This will mostly be correct. But you'll probably have off by 1 errors in a few, but not particularly bad for our algo.
+            value_function_label = content.split(tokenizer_separator.assistant_prefix)[1].split(">")[0]+">"
+            value_function_contents.append(value_function_label)
+            value_function_tokens = tokenizer.encode(value_function_label, add_special_tokens=False)
+        else:
+            value_function_tokens = None
+        
         content_tokens = tokenizer.encode(content, add_special_tokens=False)
         while True:
             try:  # Note: This will be slow, one time loading doesnt matter.
@@ -165,16 +197,63 @@ def mask_non_assistant_tokens(
                         + tokenizer_separator.prefix_offset : start_index
                         + len(content_tokens)
                     ]
+                    # print(tokens[start_index
+                    #     + len(assistant_prefix_ids)
+                    #     + tokenizer_separator.prefix_offset : start_index
+                    #     + len(content_tokens)
+                    # ])
+                    if value_function_type in ["binary", "multilabel"]:
+                        # single token
+                        value_function_masked_tokens[
+                            start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset
+                        ] = tokens[
+                            start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset
+                        ]
+                    elif value_function_type in ["natural_lang_binary", "natural_lang_multiclass"]:
+                        # print(value_function_type)
+                        # multiple tokens
+                        value_function_masked_tokens[
+                            start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset : start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset
+                            + len(value_function_tokens)
+                        ] = tokens[
+                            start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset : start_index
+                            + len(assistant_prefix_ids)
+                            + tokenizer_separator.prefix_offset
+                            + len(value_function_tokens)
+                        ]
+                        # print(value_function_masked_tokens[
+                        #     start_index
+                        #     + len(assistant_prefix_ids)
+                        #     + tokenizer_separator.prefix_offset : start_index
+                        #     + len(assistant_prefix_ids)
+                        #     + tokenizer_separator.prefix_offset
+                        #     + len(value_function_tokens)
+                        # ])
                     break
             except Exception as e:
                 break
 
     input_ids = torch.tensor(tokens)
     labels = torch.tensor(masked_tokens)
+    # #TODO: Fix this.
+    # value_function_token_idxs = torch.tensor(value_function_masked_tokens)
     return dict(
         input_ids=input_ids,
         labels=labels,
         attention_mask=input_ids.ne(tokenizer.pad_token_id),
+        value_function_token_idxs=torch.tensor(value_function_masked_tokens).ne(
+            ignore_token_id
+        ),
     )
 
 
@@ -240,9 +319,8 @@ def get_token_level_reward_to_gos(
         token_rewards.masked_fill_(turn_masks.eq(i), reward_to_gos[i])
     return token_rewards
 
-
 # relabelling strategies
-# 1. Binary. Prefix: Expected mode collapse? Prefix - semantically, conditional generation? SUffix? Model's belief of it's own response?
+# 1. Binary. Prefix: Expected mode collapse? Prefix - semantically, conditional generation? Suffix? Model's belief of it's own response?
 # 2. Value function. -> Get rtgs; disctrete value function; <GOOD> <BAD> <NEUTRAL> ?
 
 
@@ -278,14 +356,14 @@ def relabel_conversation(
     for j, message in enumerate(conversation):
         if message["role"] == "assistant":
             if value_function_experiment == "prefix":
-                # prefic the special token or the natural language value function
-                message["content"] = (
-                    f"{value_function_reserved_strs[rews[j//2]]}{message['content']}"  # do //2 becuase of turn level rewards
-                )
+                # prefix the special token or the natural language value function
+                message[
+                    "content"
+                ] = f"{value_function_reserved_strs[rews[j//2]]}{message['content']}"  # do //2 becuase of turn level rewards
             elif value_function_experiment == "overfit":
-                message["content"] = (
-                    f"{value_function_reserved_strs[rews[j//2]]} $$"  # Add $$ in the end to prevent stripping of the spaces
-                )
+                message[
+                    "content"
+                ] = f"{value_function_reserved_strs[rews[j//2]]} $$"  # Add $$ in the end to prevent stripping of the spaces
             else:
                 raise NotImplementedError(
                     f"Value function strategy {value_function_experiment} not implemented"
@@ -296,33 +374,44 @@ def relabel_conversation(
 def get_value_function_keywords(
     value_function_type, gamma=0.9, model_name="meta-llama/Meta-Llama-3.1-8B-Instruct"
 ):
-
     LLAMA_SPECIAL_TOKEN_MAP = {
         # Single turn - special tokens
-        "binary": {0.0: "<|reserved_id_24|>", 1.0: "<|reserved_id_25|>"},
+        "binary": {0.0: "<|reserved_special_token_24|>", 1.0: "<|reserved_special_token_25|>"},
         # 3 turn based
         # Use discounted rewards for each turn
         "multilabel": {
-            0.0: "<|reserved_id_24|>",
-            1.0: "<|reserved_id_25|>",
-            gamma: "<|reserved_id_26|>",
-            gamma**2: "<|reserved_id_27|>",
-            gamma + gamma**2: "<|reserved_id_28|>",
-            1 + gamma: "<|reserved_id_29|>",
-            1 + gamma**2: "<|reserved_id_30|>",
-            1 + gamma + gamma**2: "<|reserved_id_31|>",
+            0.0: "<|reserved_special_token_24|>",
+            1.0: "<|reserved_special_token_25|>",
+            gamma: "<|reserved_special_token_26|>",
+            gamma**2: "<|reserved_special_token_27|>",
+            gamma + gamma**2: "<|reserved_special_token_28|>",
+            1 + gamma: "<|reserved_special_token_29|>",
+            1 + gamma**2: "<|reserved_special_token_30|>",
+            1 + gamma + gamma**2: "<|reserved_special_token_31|>",
         },
         # Verbalize belief of the model
-        "natural_lang_binary": {0.0: "RED     ", 1.0: "BLUE     "},
+        # "natural_lang_binary": {0.0: "RED     ", 1.0: "BLUE     "},
+        # "natural_lang_multiclass": {
+        #     0.0: "RED     ",
+        #     1.0: "BLUE     ",
+        #     gamma: "GREEN     ",
+        #     gamma**2: "YELLOW     ",
+        #     gamma + gamma**2: "PURPLE     ",
+        #     1 + gamma: "ORANGE     ",
+        #     1 + gamma**2: "BROWN     ",
+        #     1 + gamma + gamma**2: "BLACK     ",
+        # },
+        "natural_lang_binary": {0.0: "<UNSAFE> ", 1.0: "<SAFE> "},
+        # Anything <1 is moderate. 
         "natural_lang_multiclass": {
-            0.0: "RED     ",
-            1.0: "BLUE     ",
-            gamma: "GREEN     ",
-            gamma**2: "YELLOW     ",
-            gamma + gamma**2: "PURPLE     ",
-            1 + gamma: "ORANGE     ",
-            1 + gamma**2: "BROWN     ",
-            1 + gamma + gamma**2: "BLACK     ",
+            0.0: "<UNSAFE> ",
+            1.0: "<SAFE> ",
+            gamma: "<MODERATE> ",
+            gamma**2: "<MODERATE> ",
+            gamma + gamma**2: "<MODERATE> ",
+            1 + gamma: "<SAFE> ",
+            1 + gamma**2: "<SAFE> ",
+            1 + gamma + gamma**2: "<SAFE> ",
         },
     }
 
@@ -342,3 +431,342 @@ def get_value_function_keywords(
 #             reward_to_go = reward_to_go + (gamma**(k-j) * rewards[k])
 #         reward_to_gos[j] = reward_to_go
 #     return reward_to_gos
+
+
+class MultiturnDPODataset(Dataset):
+    """
+    Dataset class for DPO, in the multi-turn setting
+
+    Each datapoint contains two elements:
+        (chosen conversation, rejected_conversation)
+
+    NOTE: This variation of the DPO class works from conversation in
+    string/dict format
+    """
+
+    def __init__(
+        self,
+        chosen_conversations: List[List[Dict[str, str]]],
+        rejected_conversations: List[List[Dict[str, str]]],
+        tokenizer: AutoTokenizer,
+        tokenizer_separator: TokenizerSeparators,
+        ignore_token_id: int,
+    ):
+        """
+        Input:
+            chosen_conversations (List[List[Dict[str, str]]]):
+                chosen_conversations[i] = the i-th datapoint's chosen conversation
+
+                chosen_conversations looks like:
+                [
+                    [
+                        {
+                            "role": "user",
+                            "content": user_prompt,
+                        } ....
+                    ], # 1st conversation
+                    [
+                        {
+                            "role": "user",
+                            "content": user_prompt,
+                        } ....
+                    ], # 2nd conversation
+                    .... (More conversations like this)
+                ]
+
+            rejected_conversations (List[List[Dict[str, str]]]):
+                rejected_conversations[i] = the i-th datapoint's rejected conversation
+
+                Has the same format as chosen_conversations
+
+            tokenizer (Tokenizer):
+                tokenizer for the model to be trained.
+
+            tokenizer_separator (TokenizerSeparators):
+                The tokenizer separator for assistant/user special tokens.
+
+            ignore_token_id (int):
+                The token that should be ignored from loss calculations.
+        """
+        self.chosen_dataset = MultiturnSFTDataset(
+            conversations=chosen_conversations,
+            tokenizer=tokenizer,
+            tokenizer_separator=tokenizer_separator,
+            ignore_token_id=ignore_token_id,
+        )
+
+        self.rejected_dataset = MultiturnSFTDataset(
+            conversations=rejected_conversations,
+            tokenizer=tokenizer,
+            tokenizer_separator=tokenizer_separator,
+            ignore_token_id=ignore_token_id,
+        )
+
+        assert len(self.chosen_dataset) == len(self.rejected_dataset)
+        self.length = len(self.chosen_dataset)
+
+    def __len__(self) -> int:
+        """
+        Returns the number of datapoints in the dataset.
+
+        Input:
+            None
+
+        Output:
+            length: Number of datapoints in the dataset
+        """
+        return self.length
+
+    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+        """
+        Returns the i-th datapoint in a particular format.
+
+        Input:
+            idx (int):
+                The index of the datapoint that needs to be returned.
+
+        Output:
+            datapoint_dict (Dict[str, torch.Tensor]):
+                The i-th datapoint in the following dictionary format:
+                    {
+                        "chosen_input_ids": input_id (tensor),
+                        "chosen_labels": label (tensor),
+                        "chosen_attention_mask": attention_mask (tensor),
+                        "rejected_input_ids": input_id (tensor),
+                        "rejected_labels": label (tensor),
+                        "rejected_attention_mask": attention_mask (tensor),
+                    }
+
+                    i.e., the input_ids, labels and attention_mask for
+                    the i-th chosen conversation, and the i-th rejected
+                    conversation
+        """
+        chosen_datapoint = self.chosen_dataset[idx]
+        rejected_datapoint = self.rejected_dataset[idx]
+
+        return {
+            "chosen_input_ids": chosen_datapoint["input_ids"],
+            "chosen_labels": chosen_datapoint["labels"],
+            "chosen_attention_mask": chosen_datapoint["attention_mask"],
+            "rejected_input_ids": rejected_datapoint["input_ids"],
+            "rejected_labels": rejected_datapoint["labels"],
+            "rejected_attention_mask": rejected_datapoint["attention_mask"],
+        }
+
+
+class MultiturnDPODatasetFromTensors(Dataset):
+    """
+    A variation of the DPO dataset, that uses precomputed tensors,
+    specially precomputed log_probs, saved in ".pt" format.
+
+    This is unlike MultiturnDPODataset, that uses conversations in
+    dict/str format.
+    """
+
+    def __init__(
+        self,
+        dataset_path: str,
+    ):
+        """
+        Input:
+            dataset_path (str):
+                The path to the dataset (in ".pt" format)
+                that contains the dataset
+        """
+        assert dataset_path.endswith(".pt")
+        data = torch.load(dataset_path)
+
+        self.chosen_input_ids = data["chosen_input_ids"]
+        self.chosen_labels = data["chosen_labels"]
+        self.chosen_attention_mask = data["chosen_attention_mask"]
+        self.chosen_ref_log_probs = data["chosen_log_probs"]
+
+        self.rejected_input_ids = data["rejected_input_ids"]
+        self.rejected_labels = data["rejected_labels"]
+        self.rejected_attention_mask = data["rejected_attention_mask"]
+        self.rejected_ref_log_probs = data["rejected_log_probs"]
+
+        self._validate_tensor_shapes()
+        self._print_dataset_information()
+
+    def _validate_tensor_shapes(self) -> None:
+        """
+        Performs various checks on the loaded tensors,
+        to make sure they have the correct shapes.
+
+        Input:
+            None
+
+        Output:
+            None
+        """
+        num_data = self.chosen_input_ids.shape[0]
+        assert (
+            self.chosen_labels.shape[0] == num_data
+            and self.chosen_attention_mask.shape[0] == num_data
+            and self.chosen_ref_log_probs.shape[0] == num_data
+            and self.rejected_input_ids.shape[0] == num_data
+            and self.rejected_labels.shape[0] == num_data
+            and self.rejected_ref_log_probs.shape[0] == num_data
+        )
+
+        chosen_sequence_length = self.chosen_input_ids.shape[1]
+        assert (
+            self.chosen_attention_mask.shape[1] == chosen_sequence_length
+            and self.chosen_labels.shape[1] == chosen_sequence_length
+            and self.chosen_ref_log_probs.shape[1] == chosen_sequence_length - 1
+        )
+
+        rejected_sequence_length = self.rejected_input_ids.shape[1]
+        assert (
+            self.rejected_attention_mask.shape[1] == rejected_sequence_length
+            and self.rejected_labels.shape[1] == rejected_sequence_length
+            and self.rejected_ref_log_probs.shape[1] == rejected_sequence_length - 1
+        )
+
+    def _print_dataset_information(self) -> None:
+        """
+        Prints the number of datapoints, sequence length of chosen trajectories
+        and rejected trajectories.
+
+        Input:
+            None
+
+        Output:
+            None
+        """
+        num_data = self.chosen_input_ids.shape[0]
+        chosen_sequence_length = self.chosen_input_ids.shape[1]
+        rejected_sequence_length = self.rejected_input_ids.shape[1]
+
+        print("\n Dataset information:")
+        print("Num data: ", num_data)
+        print("Chosen sequence length: ", chosen_sequence_length)
+        print("Rejected sequence length: ", rejected_sequence_length, "\n")
+
+    def __len__(self) -> int:
+        """
+        Returns the number of datapoints in the dataset.
+
+        Input:
+            None
+
+        Output:
+            length: Number of datapoints in the dataset
+        """
+        return self.chosen_input_ids.shape[0]
+
+    def __getitem__(self, idx) -> Dict[str, torch.Tensor]:
+        """
+        Returns the i-th datapoint in a particular format.
+
+        Input:
+            idx (int):
+                The index of the datapoint that needs to be returned.
+
+        Output:
+            datapoint_dict (Dict[str, torch.Tensor]):
+                The i-th datapoint in the following dictionary format:
+                    {
+                        "input_ids": chosen_input_id (tensor),
+                        "labels": chosen_label (tensor),
+                        "attention_mask": chosen_attention_mask (tensor),
+                        "ref_log_probs": chosen_ref_log_probs (tensor),
+                        "rejected_input_ids": rejected_input_id (tensor),
+                        "rejected_labels": rejected_label (tensor),
+                        "rejected_attention_mask": rejected_attention_mask (tensor),
+                        "rejected_ref_log_probs": rejected_ref_log_probs (tensor),
+                    }
+
+                    i.e., the input_ids, labels, attention_mask and precomputed ref log probs
+                    for the i-th chosen conversation, and the i-th rejected
+                    conversation
+        """
+        return {
+            "input_ids": self.chosen_input_ids[idx],
+            "labels": self.chosen_labels[idx],
+            "attention_mask": self.chosen_attention_mask[idx],
+            "ref_log_probs": self.chosen_ref_log_probs[idx],
+            "rejected_input_ids": self.rejected_input_ids[idx],
+            "rejected_labels": self.rejected_labels[idx],
+            "rejected_attention_mask": self.rejected_attention_mask[idx],
+            "rejected_ref_log_probs": self.rejected_ref_log_probs[idx],
+        }
+    
+class MultiturnSFTDatasetFromTensors(Dataset):
+    """
+    A variation of the DPO dataset, that uses precomputed tensors,
+    specially precomputed log_probs, saved in ".pt" format.
+
+    This is unlike MultiturnDPODataset, that uses conversations in
+    dict/str format.
+    """
+
+    def __init__(
+        self,
+        dataset_path: str,
+        add_all_data: bool = False,
+    ):
+        """
+        Input:
+            dataset_path (str):
+                The path to the dataset (in ".pt" format)
+                that contains the dataset
+            add_all_data (bool):
+                Whether to include the rejected data in the dataset. 
+                Note: This is only done to try to get the DPO model to generate other special tokens/ keywords
+        """
+        assert dataset_path.endswith(".pt")
+        data = torch.load(dataset_path)
+
+        self.input_ids = data["chosen_input_ids"]
+        self.labels = data["chosen_labels"]
+        self.attention_mask = data["chosen_attention_mask"]
+        if add_all_data:
+            self.input_ids = torch.concatenate([self.input_ids, data["rejected_input_ids"]], dim=0)
+            self.labels = torch.concatenate([self.labels, data["rejected_labels"]], dim=0)
+            self.attention_mask = torch.concatenate([self.attention_mask, data["rejected_attention_mask"]], dim=0)
+        
+    def __len__(self) -> int:
+        """
+        Returns the number of datapoints in the dataset.
+
+        Input:
+            None
+
+        Output:
+            length: Number of datapoints in the dataset
+        """
+        return self.input_ids.shape[0]
+
+    def __getitem__(self, idx) -> Dict[str, torch.Tensor]:
+        """
+        Returns the i-th datapoint in a particular format.
+
+        Input:
+            idx (int):
+                The index of the datapoint that needs to be returned.
+
+        Output:
+            datapoint_dict (Dict[str, torch.Tensor]):
+                The i-th datapoint in the following dictionary format:
+                    {
+                        "input_ids": chosen_input_id (tensor),
+                        "labels": chosen_label (tensor),
+                        "attention_mask": chosen_attention_mask (tensor),
+                        "ref_log_probs": chosen_ref_log_probs (tensor),
+                        "rejected_input_ids": rejected_input_id (tensor),
+                        "rejected_labels": rejected_label (tensor),
+                        "rejected_attention_mask": rejected_attention_mask (tensor),
+                        "rejected_ref_log_probs": rejected_ref_log_probs (tensor),
+                    }
+
+                    i.e., the input_ids, labels, attention_mask and precomputed ref log probs
+                    for the i-th chosen conversation, and the i-th rejected
+                    conversation
+        """
+        return {
+            "input_ids": self.input_ids[idx],
+            "labels": self.labels[idx],
+            "attention_mask": self.attention_mask[idx],
+        }
