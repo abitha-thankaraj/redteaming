@@ -43,8 +43,6 @@ fnames = [
     "/data/group_data/rl/datasets/redteaming/redteaming_evals/dpo_on_value_labeled_sft_all_temp_0.7/2024.09.27/18-12-1727475129/jailbreakbench_sft_trained_attacker_dpo_on_value_labeled_sft_all_defender_dpo_on_value_labeled_sft_all_temp_0.7.json",
     "/data/group_data/rl/datasets/redteaming/redteaming_evals/dpo_on_value_labeled_sft_all_temp_1.0/2024.09.27/18-53-1727477639/openai_sft_trained_attacker_dpo_on_value_labeled_sft_all_defender_dpo_on_value_labeled_sft_all_temp_1.0.json",
     "/data/group_data/rl/datasets/redteaming/redteaming_evals/dpo_on_value_labeled_sft_all_temp_1.0/2024.09.27/19-08-1727478500/jailbreakbench_sft_trained_attacker_dpo_on_value_labeled_sft_all_defender_dpo_on_value_labeled_sft_all_temp_1.0.json",
-
-
 ]
 
 
@@ -57,10 +55,12 @@ def load_config(fname):
 def main(fname, prefill_text="<UNSAFE>"):
     records = read_json(fname)
     config = load_config(fname)
-    config.defender.device="cuda:2"
+    config.defender.device = "cuda:2"
     if "/scratch/bcgv/datasets/redteaming/redteaming_evals/" in config.out_dir:
-        config.out_dir = config.out_dir.replace("/scratch/bcgv/datasets/redteaming/redteaming_evals/", "/data/group_data/rl/datasets/redteaming/redteaming_evals/")
-
+        config.out_dir = config.out_dir.replace(
+            "/scratch/bcgv/datasets/redteaming/redteaming_evals/",
+            "/data/group_data/rl/datasets/redteaming/redteaming_evals/",
+        )
 
     config.defender.model_cache_dir = "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
     set_seed_everywhere(config.seed)
@@ -86,26 +86,27 @@ def main(fname, prefill_text="<UNSAFE>"):
 
             flipped_rewards = [1.0 - rew for rew in record["judge"]["rewards"]]
 
-            env_state, judge_score = redteaming_game.prefilled_response(goal, conv, flipped_rewards, prefill_text = prefill_text)
+            env_state, judge_score = redteaming_game.prefilled_response(
+                goal, conv, flipped_rewards, prefill_text=prefill_text
+            )
 
             trajs.append((env_state.to_game_message(), judge_score["rewards"]))
             if sum(judge_score["rewards"]) == 0.0:
                 corrected_response += 1
 
-    out_f = "prefill_full_fix.json" if prefill_text == "<UNSAFE> <FIX>  " else "prefill_full.json"
+    out_f = (
+        "prefill_full_fix.json" if prefill_text == "<UNSAFE> <FIX>  " else "prefill_full.json"
+    )
     out_fname = os.path.join(config.out_dir, out_f)
     out = {
         "trajs": trajs,
         "corrected_responses": corrected_response,
-        "total_incorrect": len(trajs)
-
+        "total_incorrect": len(trajs),
     }
     print(out)
     write_json(out, out_fname)
     print(f"Saved to {out_fname}")
 
-            
-        
 
 if __name__ == "__main__":
     for fname in fnames:
@@ -115,7 +116,3 @@ if __name__ == "__main__":
         main(fname, prefill_text=prefill_text)
         main(fname)
         slack_notification(f"Finished processing {fname}| {prefill_text}")
-
-
-
-

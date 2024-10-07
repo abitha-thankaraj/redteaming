@@ -31,10 +31,12 @@ import torch, time
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
+
 @dataclass
 class DatasetStats:
     train_dataset_length: int
     rtg_dict: Dict[float, int]
+
 
 # Args/ Arg parsers
 @dataclass
@@ -117,6 +119,7 @@ class TrainingArguments(transformers.TrainingArguments):
     exp_desc: str = field(default="")
 
     dataset_stats: DatasetStats = field(default=None)
+
 
 # Debugging utils
 local_rank = None
@@ -272,12 +275,13 @@ def train():
     # Save stats
     torch.distributed.barrier()
     if torch.distributed.get_rank() == 0:
-    #     print("Train dataset length: ", len(train_dataset))
-    #     np.array(train_dataset.reward_per_turns)
+        #     print("Train dataset length: ", len(train_dataset))
+        #     np.array(train_dataset.reward_per_turns)
         unique, counts = np.unique(train_dataset.reward_to_gos.flatten(), return_counts=True)
         value_counts = dict(zip(unique, counts))
-        training_args.dataset_stats = DatasetStats(train_dataset_length= len(train_dataset), rtg_dict=value_counts)
-    
+        training_args.dataset_stats = DatasetStats(
+            train_dataset_length=len(train_dataset), rtg_dict=value_counts
+        )
 
     trainer = RWRTrainer(
         model=model,

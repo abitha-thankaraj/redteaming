@@ -28,10 +28,9 @@ if __name__ == "__main__":
 
     fnames = [
         "/data/group_data/rl/datasets/redteaming/best_of_n/value_labeled/no_fixed_conversations_best_of_n_high_contrast_1000_value_labeled.pt",
-        "/data/group_data/rl/datasets/redteaming/best_of_n/value_labeled/no_fixed_conversations_best_of_n_hard_negatives_1000_value_labeled.pt"
+        "/data/group_data/rl/datasets/redteaming/best_of_n/value_labeled/no_fixed_conversations_best_of_n_hard_negatives_1000_value_labeled.pt",
     ]
-    
-    
+
     combined_fname = "/data/group_data/rl/datasets/redteaming/best_of_n/value_labeled/combined_no_fixed_conversations_value_labeled.pt"
     combined_data = {}
 
@@ -39,5 +38,5 @@ if __name__ == "__main__":
     data_2 = torch.load(fnames[1])
     for k, v in data.items():
         combined_data[k] = torch.concatenate((v, data_2[k]), dim=0)
-    
+
     torch.save(combined_data, combined_fname)

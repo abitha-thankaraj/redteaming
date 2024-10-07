@@ -98,9 +98,9 @@ def main(model_name="meta-llama/Meta-Llama-3.1-8B-Instruct"):
     corrupted_attention_mask = attention_mask.clone() * torch.randint(
         0, 2, attention_mask.shape
     ).to(attention_mask.device)
-    corrupted_attention_mask[
-        :, -5:
-    ] = 1  # Make the last 5 tokens visible - because this hints at generation if this is masked the model will not generate. Also, this is the reason why you pad on the left side for generations
+    corrupted_attention_mask[:, -5:] = (
+        1  # Make the last 5 tokens visible - because this hints at generation if this is masked the model will not generate. Also, this is the reason why you pad on the left side for generations
+    )
     op1 = model.generate(
         input_tokens, max_new_tokens=100, pad_token_id=tokenizer.pad_token_id, do_sample=False
     )

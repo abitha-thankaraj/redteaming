@@ -23,6 +23,7 @@ class DatasetStats:
     train_dataset_length: int
     rtg_dict: Dict[float, int]
 
+
 # Args/ Arg parsers
 @dataclass
 class ModelArguments:
@@ -39,12 +40,18 @@ class DataArguments:
         default="attacker",
         metadata={"help": "Type of agent to train on. Available options: attacker, defender"},
     )
-    
+
     gamma: float = field(default=0.9, metadata={"help": "Discount factor for the rewards."})
-    
-    dataset_type: str = field(default="naive_balance", metadata={"help": "How are the data points sampled?"})
-    length_key: str = field(default="", metadata={"help": "Key to use for length of the tokenized sequence"})
-    max_length: int = field(default=-1, metadata={"help": "Maximum length of the tokenized sequence"})
+
+    dataset_type: str = field(
+        default="naive_balance", metadata={"help": "How are the data points sampled?"}
+    )
+    length_key: str = field(
+        default="", metadata={"help": "Key to use for length of the tokenized sequence"}
+    )
+    max_length: int = field(
+        default=-1, metadata={"help": "Maximum length of the tokenized sequence"}
+    )
     model_name: str = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
 
     value_function_type: str = (field(default=""),)
@@ -65,8 +72,8 @@ class RWRArguments:
         metadata={"help": "RWR temperature (β) . Higher -> | Lower -> "},
     )
     rwr_type: str = field(
-        default="exp",             
-        metadata={"help": "RWR term type. Available options: exp, raw_rewards."})
+        default="exp", metadata={"help": "RWR term type. Available options: exp, raw_rewards."}
+    )
 
     rwr_value_function_token_weight: float = field(
         default=1.0,
@@ -110,7 +117,6 @@ class TrainingArguments(transformers.TrainingArguments):
     dataset_stats: DatasetStats = field(default=None)
 
 
-
 def get_dataset(algo, data_args, tokenizer, tokenizer_separator):
 
     fn = {
@@ -118,12 +124,14 @@ def get_dataset(algo, data_args, tokenizer, tokenizer_separator):
         "sft": get_sft_dataset,
         "dpo": get_dpo_dataset,
         "sft_precomputed": get_precomputed_sft_dataset,
-        "sft_precomputed_all_data": get_precomputed_all_sft_dataset, # This should just be a flag.
+        "sft_precomputed_all_data": get_precomputed_all_sft_dataset,  # This should just be a flag.
     }
     return fn[algo](data_args, tokenizer, tokenizer_separator)
-    
 
-def get_trainer(model, tokenizer, train_dataset, eval_dataset, training_args:TrainingArguments):
+
+def get_trainer(
+    model, tokenizer, train_dataset, eval_dataset, training_args: TrainingArguments
+):
     fn = {
         "rwr": RWRTrainer,
         "sft": Trainer,
@@ -155,7 +163,9 @@ def get_sft_dataset(
         max_length=data_args.max_length,
     )
 
-    conversation_reward_dict = dataset_helper.get_conversations(num_samples=data_args.num_samples)
+    conversation_reward_dict = dataset_helper.get_conversations(
+        num_samples=data_args.num_samples
+    )
 
     train_dataset = MultiturnSFTDataset(
         conversation_reward_dict["conversations"],
@@ -172,7 +182,9 @@ def get_sft_dataset(
         max_length=data_args.max_length,
     )
 
-    eval_conversation_reward_dict = eval_dataset_helper.get_conversations(num_samples=data_args.num_samples)
+    eval_conversation_reward_dict = eval_dataset_helper.get_conversations(
+        num_samples=data_args.num_samples
+    )
 
     eval_dataset = MultiturnSFTDataset(
         eval_conversation_reward_dict["conversations"],
@@ -183,13 +195,14 @@ def get_sft_dataset(
 
     return train_dataset, eval_dataset
 
+
 def get_precomputed_sft_dataset(
     data_args: dataclass,
     tokenizer: transformers.AutoTokenizer,
     tokenizer_separator: TokenizerSeparators,
 ) -> Tuple[Dataset, Dataset]:
     """Get train test dataset for multiturn sft"""
-    
+
     train_dataset = MultiturnSFTDatasetFromTensors(
         dataset_path=data_args.data_path,
     )
@@ -202,7 +215,9 @@ def get_precomputed_sft_dataset(
         max_length=data_args.max_length,
     )
 
-    eval_conversation_reward_dict = eval_dataset_helper.get_conversations(num_samples=data_args.num_samples)
+    eval_conversation_reward_dict = eval_dataset_helper.get_conversations(
+        num_samples=data_args.num_samples
+    )
 
     eval_dataset = MultiturnSFTDataset(
         eval_conversation_reward_dict["conversations"],
@@ -213,13 +228,14 @@ def get_precomputed_sft_dataset(
 
     return train_dataset, eval_dataset
 
+
 def get_precomputed_all_sft_dataset(
     data_args: dataclass,
     tokenizer: transformers.AutoTokenizer,
     tokenizer_separator: TokenizerSeparators,
 ) -> Tuple[Dataset, Dataset]:
     """Get train test dataset for multiturn sft"""
-    
+
     train_dataset = MultiturnSFTDatasetFromTensors(
         dataset_path=data_args.data_path,
         add_all_data=True,
@@ -233,7 +249,9 @@ def get_precomputed_all_sft_dataset(
         max_length=data_args.max_length,
     )
 
-    eval_conversation_reward_dict = eval_dataset_helper.get_conversations(num_samples=data_args.num_samples)
+    eval_conversation_reward_dict = eval_dataset_helper.get_conversations(
+        num_samples=data_args.num_samples
+    )
 
     eval_dataset = MultiturnSFTDataset(
         eval_conversation_reward_dict["conversations"],
@@ -296,6 +314,7 @@ def get_rwr_dataset(
         value_function_experiment=data_args.value_function_experiment,
     )
     return train_dataset, eval_dataset
+
 
 def get_dpo_dataset(
     data_args: dataclass,

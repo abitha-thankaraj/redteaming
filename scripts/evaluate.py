@@ -60,10 +60,10 @@ def main(config: DictConfig):
 
     trajs = []
     errors = []
-    if config.chunk !=-1:
+    if config.chunk != -1:
         max_chunk_size = config.max_chunk_size
         # split into n chunks of size max_chunk_size
-        chunks = [goals[i:i + max_chunk_size] for i in range(0, len(goals), max_chunk_size)]
+        chunks = [goals[i : i + max_chunk_size] for i in range(0, len(goals), max_chunk_size)]
         assert config.chunk < len(chunks), f"Chunk {config.chunk} is out of bounds"
         goals = chunks[config.chunk]
 
@@ -115,7 +115,9 @@ def main(config: DictConfig):
     results["config"] = global_config
 
     write_json(results, os.path.join(config.out_dir, "_results.json"))
-    slack_notification(f"Redteaming game completed successfully: \n\n results: {results} \n\nconfig: {global_config};")
+    slack_notification(
+        f"Redteaming game completed successfully: \n\n results: {results} \n\nconfig: {global_config};"
+    )
 
 
 def aggregate_results(trajs):
@@ -123,11 +125,12 @@ def aggregate_results(trajs):
     for traj in trajs:
         rewards.append(traj["judge"]["rewards"])
     rewards = np.array(rewards)
-    return  {
+    return {
         "jailbreaks_per_turn": np.sum(rewards, axis=0).tolist(),
         "num_jailbreaks": int(np.sum(np.any(rewards == 1.0, axis=1))),
         "num_evals": len(trajs),
     }
+
 
 if __name__ == "__main__":
     try:

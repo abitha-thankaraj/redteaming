@@ -34,7 +34,6 @@ fnames = [
 ]
 
 
-
 def get_questions(fname):
     data = read_json(fname)
     all_questions = []
@@ -54,7 +53,7 @@ def get_questions(fname):
 
 def eval_all_at_once(questions, defender, judge):
     results = []
-    for (goal, q) in tqdm(questions):
+    for goal, q in tqdm(questions):
         print(goal)
         conv = Conversation(messages=[("goal", goal)])
         conv.messages.append(("attacker", q))
@@ -62,10 +61,14 @@ def eval_all_at_once(questions, defender, judge):
         conv.messages.append(("defender", defender_response))
         judge_score = judge.score(conv.to_judge_input())
         print(judge_score)
-        results.append({"goal": goal,
-                        "question": q,
-                        "defender_response": defender_response,
-                        "judge": judge_score})
+        results.append(
+            {
+                "goal": goal,
+                "question": q,
+                "defender_response": defender_response,
+                "judge": judge_score,
+            }
+        )
     return results
 
 
@@ -75,36 +78,40 @@ def load_config(fname):
 
     return config
 
+
 def aggregate_results(results):
     rewards = []
     for result in results:
         rewards.append(result["judge"]["rewards"][0])
-    return {
-        "all_at_once_num_jailbreaks": sum(rewards),
-        "all_at_once_num_evals": len(results)
-    }
+    return {"all_at_once_num_jailbreaks": sum(rewards), "all_at_once_num_evals": len(results)}
+
 
 def main(fname):
     questions = get_questions(fname)
     config = load_config(fname)
     set_seed_everywhere(config.seed)
 
-    config.defender.device="cuda:0"
+    config.defender.device = "cuda:0"
     defender = get_policy(config.defender)
-    judge = LlamaGuardJudge(device= config.defender.device)
+    judge = LlamaGuardJudge(device=config.defender.device)
     results = eval_all_at_once(questions, defender, judge)
 
     if "/scratch/bcgv/datasets/redteaming/redteaming_evals/" in config.out_dir:
-        config.out_dir = config.out_dir.replace("/scratch/bcgv/datasets/redteaming/redteaming_evals/", "/data/group_data/rl/datasets/redteaming/redteaming_evals/")
+        config.out_dir = config.out_dir.replace(
+            "/scratch/bcgv/datasets/redteaming/redteaming_evals/",
+            "/data/group_data/rl/datasets/redteaming/redteaming_evals/",
+        )
 
     write_json(results, os.path.join(config.out_dir, "all_questions_at_once_results.json"))
     aggregated_results = aggregate_results(results)
 
-    write_json(aggregated_results, os.path.join(config.out_dir, "all_questions_at_once_aggregated_results.json"))
+    write_json(
+        aggregated_results,
+        os.path.join(config.out_dir, "all_questions_at_once_aggregated_results.json"),
+    )
+
 
 if __name__ == "__main__":
     # main(fname)
     for fname in fnames:
         main(fname)
-    
-

@@ -14,6 +14,7 @@ from redteam.train.datasets import get_reward_to_gos
 import itertools
 from redteam.utils.data_utils import write_json
 
+
 class RLHFDatasetHelperBase:
     def __init__(self, data_dir: str, length_key: str = "", max_length=-1) -> None:
         self.raw_data = pd.DataFrame(RLHFDatasetHelperBase.read_files(data_dir))
@@ -146,7 +147,7 @@ class SFTDatasetHelper(RLHFDatasetHelperBase):
         }
 
     def _get_indices(self, num_samples=None):
-        
+
         positive_indices = np.where(self.raw_data.positives)[0]
         if num_samples is not None:
             positive_indices = np.random.choice(positive_indices, num_samples)
@@ -237,6 +238,7 @@ class RWRDatasetHelper(RLHFDatasetHelperBase):
                 )
 
         return sampling_indices
+
 
 class RWRDatasetValueFunctionHelper(RLHFDatasetHelperBase):
     def __init__(
@@ -393,26 +395,31 @@ class RWRDatasetValueFunctionHelper(RLHFDatasetHelperBase):
         }
 
 
-
 class DPODatasetHelper(RWRDatasetValueFunctionHelper):
-    def __init__(self, data_dir: str,
+    def __init__(
+        self,
+        data_dir: str,
         agent_type: str,
         length_key="",
         dataset_type="naive",
         max_length=-1,
     ):
-        super().__init__(data_dir=data_dir, 
-                        agent_type=agent_type, 
-                        dataset_type=None, 
-                        length_key=length_key, 
-                        max_length=max_length, 
-                        dataset_type_weights=None)
+        super().__init__(
+            data_dir=data_dir,
+            agent_type=agent_type,
+            dataset_type=None,
+            length_key=length_key,
+            max_length=max_length,
+            dataset_type_weights=None,
+        )
         self.dataset_type = dataset_type
 
     def _get_indices(self, num_samples=None):
         good_indices = self.indices["good"]
         if self.dataset_type == "naive":
-            not_good_indices = np.concatenate([np.array(self.indices["mid"]), np.array(self.indices["bad"])])
+            not_good_indices = np.concatenate(
+                [np.array(self.indices["mid"]), np.array(self.indices["bad"])]
+            )
         elif self.dataset_type == "high_contrast":
             not_good_indices = np.array(self.indices["bad"])
         elif self.dataset_type == "hard_negatives":
@@ -421,18 +428,21 @@ class DPODatasetHelper(RWRDatasetValueFunctionHelper):
         good_goals = set(self.raw_data.iloc[good_indices]["goal"])
         not_good_goals = set(self.raw_data.iloc[not_good_indices]["goal"])
 
-
         # get the intersection of the goals
         common_goals = good_goals.intersection(not_good_goals)
 
         goals = []
         chosen_responses = []
         rejected_responses = []
-        
+
         for goal in tqdm(common_goals):
-            good_chosen_idxs = np.intersect1d(self.raw_data[self.raw_data["goal"] == goal].index, good_indices)
-            rejected_idxs = np.intersect1d(self.raw_data[self.raw_data["goal"] == goal].index, not_good_indices)
-            
+            good_chosen_idxs = np.intersect1d(
+                self.raw_data[self.raw_data["goal"] == goal].index, good_indices
+            )
+            rejected_idxs = np.intersect1d(
+                self.raw_data[self.raw_data["goal"] == goal].index, not_good_indices
+            )
+
             # Use itertools.product to find all combinations
             for chosen, rejected in itertools.product(good_chosen_idxs, rejected_idxs):
                 goals.append(goal)
@@ -441,7 +451,7 @@ class DPODatasetHelper(RWRDatasetValueFunctionHelper):
                 assert self.raw_data.iloc[chosen]["goal"] == goal
 
         return goals, chosen_responses, rejected_responses
-    
+
     def get_conversations(self, num_samples=None):
         goals, chosen_responses, rejected_responses = self._get_indices(None)
 
@@ -455,16 +465,17 @@ class DPODatasetHelper(RWRDatasetValueFunctionHelper):
             "chosen_rewards": self.raw_data["rewards"][chosen_responses].to_list(),
             "rejected_rewards": self.raw_data["rewards"][rejected_responses].to_list(),
             "chosen_reward_to_gos": self.raw_data["reward_to_gos"][chosen_responses].to_list(),
-            "rejected_reward_to_gos": self.raw_data["reward_to_gos"][rejected_responses].to_list(),
+            "rejected_reward_to_gos": self.raw_data["reward_to_gos"][
+                rejected_responses
+            ].to_list(),
             "chosen_trajectory_quality": self.raw_data["trajectory_quality"][
                 chosen_responses
             ].to_list(),
             "rejected_trajectory_quality": self.raw_data["trajectory_quality"][
                 rejected_responses
             ].to_list(),
-            "goals": goals
+            "goals": goals,
         }
-
 
 
 if __name__ == "__main__":
@@ -473,11 +484,12 @@ if __name__ == "__main__":
     # split_type = "hard_negatives"
 
     ds = DPODatasetHelper(
-                    data_dir="/data/group_data/rl/datasets/redteaming/combined", 
-                    agent_type="defender",
-                    length_key = "Meta-Llama-3.1-8B-Instruct_length", 
-                    dataset_type=split_type,
-                    max_length=4096)  
+        data_dir="/data/group_data/rl/datasets/redteaming/combined",
+        agent_type="defender",
+        length_key="Meta-Llama-3.1-8B-Instruct_length",
+        dataset_type=split_type,
+        max_length=4096,
+    )
 
     convs = ds.get_conversations(None)
 
@@ -486,19 +498,24 @@ if __name__ == "__main__":
 
     save_file = []
     for i in chosen_idxs:
-        save_file.append({"goal": convs["goals"][i],
-                          "chosen_conversation": convs["chosen_conversations"][i],
-                          "rejected_conversation": convs["rejected_conversations"][i],
-                          "chosen_reward": convs["chosen_rewards"][i].tolist(),
-                          "rejected_reward": convs["rejected_rewards"][i].tolist(),
-                          "chosen_reward_to_gos": convs["chosen_reward_to_gos"][i].tolist(),
-                          "rejected_reward_to_gos": convs["rejected_reward_to_gos"][i].tolist(),
-                          "chosen_trajectory_quality": convs["chosen_trajectory_quality"][i],
-                          "rejected_trajectory_quality": convs["rejected_trajectory_quality"][i]
-                          })
-    write_json(save_file, f"/data/group_data/rl/datasets/redteaming/quality_filtered/{split_type}_1000.json")
+        save_file.append(
+            {
+                "goal": convs["goals"][i],
+                "chosen_conversation": convs["chosen_conversations"][i],
+                "rejected_conversation": convs["rejected_conversations"][i],
+                "chosen_reward": convs["chosen_rewards"][i].tolist(),
+                "rejected_reward": convs["rejected_rewards"][i].tolist(),
+                "chosen_reward_to_gos": convs["chosen_reward_to_gos"][i].tolist(),
+                "rejected_reward_to_gos": convs["rejected_reward_to_gos"][i].tolist(),
+                "chosen_trajectory_quality": convs["chosen_trajectory_quality"][i],
+                "rejected_trajectory_quality": convs["rejected_trajectory_quality"][i],
+            }
+        )
+    write_json(
+        save_file,
+        f"/data/group_data/rl/datasets/redteaming/quality_filtered/{split_type}_1000.json",
+    )
     # pd.DataFrame(save_file).to_json(f"/data/group_data/rl/datasets/redteaming/quality_filtered/{split_type}_1000.json")
-
 
     # rejected_dict = {}
     # for k, v in convs.items():
@@ -507,7 +524,7 @@ if __name__ == "__main__":
     # rejected_dict["goals"]=convs["goals"]
     # pd.DataFrame.from_dict(rejected_dict).to_json(f"/data/group_data/rl/datasets/redteaming/quality_filtered/rejected_bad_{split_type}.json")
     # print("Saved rejected data")
-    
+
     # selected_dict = {}
     # for k, v in convs.items():
     #     if k.startswith("chosen_"):
@@ -516,8 +533,6 @@ if __name__ == "__main__":
     # pd.DataFrame.from_dict(selected_dict).to_json(f"/data/group_data/rl/datasets/redteaming/quality_filtered/chosen_good_{split_type}.json")
 
     # print("Saved chosen data")
-
-
 
     # print("Saving subsampled data: {}".format(len(chosen_idxs)))
     # selected_subsampled_dict = {}
@@ -533,13 +548,6 @@ if __name__ == "__main__":
     # pd.DataFrame.from_dict(rejected_subsampled_dict).to_json(f"/data/group_data/rl/datasets/redteaming/quality_filtered/rejected_bad_{split_type}_subsampled.json")
 
     # print("Saved rejected subsampled data")
-
-
-
-
-
-
-
 
     # # plot counts of chosen_reward_to_gos
     # np.array(convs["chosen_reward_to_gos"]).sum(axis=1)
@@ -563,7 +571,6 @@ if __name__ == "__main__":
     # plt.savefig("/data/tir/projects/tir7/user_data/athankar/redteaming/data/rejected_score_counts/barplot.png")
     # plt.close()
 
+    from IPython import embed
 
-
-    
-    from IPython import embed; embed()
+    embed()

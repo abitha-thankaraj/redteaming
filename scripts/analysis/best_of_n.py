@@ -33,6 +33,7 @@ fnames = [
     "/data/group_data/rl/datasets/redteaming/redteaming_evals/untrained_defender_temp1.0/2024.09.28/20-12-1727568750/simplesafetytests_sft_trained_attacker_untrained_defender_untrained_defender_temp1.0.json",
 ]
 
+
 def load_config(fname):
     parent_dir = os.path.dirname(fname)
     config = OmegaConf.load(os.path.join(parent_dir, "config.yaml"))
@@ -42,11 +43,13 @@ def load_config(fname):
 def main(fname):
     records = read_json(fname)
     config = load_config(fname)
-    config.defender.device="cuda:2"
+    config.defender.device = "cuda:2"
     if "/scratch/bcgv/datasets/redteaming/redteaming_evals/" in config.out_dir:
-        config.out_dir = config.out_dir.replace("/scratch/bcgv/datasets/redteaming/redteaming_evals/", "/data/group_data/rl/datasets/redteaming/redteaming_evals/")
+        config.out_dir = config.out_dir.replace(
+            "/scratch/bcgv/datasets/redteaming/redteaming_evals/",
+            "/data/group_data/rl/datasets/redteaming/redteaming_evals/",
+        )
     set_seed_everywhere(config.seed)
-
 
     config.defender.model_cache_dir = "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
 
@@ -75,27 +78,21 @@ def main(fname):
                 errors.append((goal, conv))
             else:
                 trajs.append((env_state.to_game_message(), judge_rewards))
-        
+
     out_fname = os.path.join(config.out_dir, "flipped_best_of_n.json")
     out = {
         "num_fixed": len(trajs),
         "num_errors": len(errors),
         "total": len(trajs) + len(errors),
         "trajs": trajs,
-        "errors": errors
+        "errors": errors,
     }
     print(out)
     write_json(out, out_fname)
     print(f"Saved to {out_fname}")
 
-            
-        
 
 if __name__ == "__main__":
     for fname in fnames:
         print(f"Processing {fname}")
         main(fname)
-
-
-
-

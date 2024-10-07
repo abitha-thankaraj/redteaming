@@ -6,6 +6,7 @@ from transformers import AutoTokenizer
 from redteam.train.common import TokenizerSeparators
 import numpy as np
 
+
 class MultiturnSFTDataset(Dataset):
     # TODO: Add docstring + key differences b/w single turn and multiturn
     def __init__(
@@ -82,9 +83,7 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
         # Ugly; but should work.
         if value_function_type != "":
             value_function_reserved_strs = get_value_function_keywords(
-                value_function_type=value_function_type, 
-                gamma=gamma, 
-                model_name=model_name
+                value_function_type=value_function_type, gamma=gamma, model_name=model_name
             )
             for i, conversation in enumerate(conversations):
                 # Add value function to the assistant responses
@@ -96,7 +95,13 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
                     gamma=gamma,
                     value_function_reserved_strs=value_function_reserved_strs,
                 )
-        if value_function_type not in ["", "multilabel", "binary", "natural_lang_binary", "natural_lang_multiclass"]:
+        if value_function_type not in [
+            "",
+            "multilabel",
+            "binary",
+            "natural_lang_binary",
+            "natural_lang_multiclass",
+        ]:
             raise NotImplementedError(
                 f"Value function type {value_function_type} not implemented"
             )
@@ -109,8 +114,12 @@ class MultiturnRWRDataset(MultiturnSFTDataset):
             value_function_type=value_function_type,
         )
         self.reward_per_turns = reward_per_turns
-        self.reward_to_gos = np.array([np.array(get_reward_to_gos(reward_per_turn, gamma)) for reward_per_turn in reward_per_turns])
-
+        self.reward_to_gos = np.array(
+            [
+                np.array(get_reward_to_gos(reward_per_turn, gamma))
+                for reward_per_turn in reward_per_turns
+            ]
+        )
 
         self.rewards = []
 
@@ -172,14 +181,18 @@ def mask_non_assistant_tokens(
     for content in assistant_contents:
         # Get tokens for value_function
         if value_function_type in ["natural_lang_binary", "natural_lang_multiclass"]:
-            # ALL LABELS ARE <>] 
+            # ALL LABELS ARE <>]
             # NOTE: This will mostly be correct. But you'll probably have off by 1 errors in a few, but not particularly bad for our algo.
-            value_function_label = content.split(tokenizer_separator.assistant_prefix)[1].split(">")[0]+">"
+            value_function_label = (
+                content.split(tokenizer_separator.assistant_prefix)[1].split(">")[0] + ">"
+            )
             value_function_contents.append(value_function_label)
-            value_function_tokens = tokenizer.encode(value_function_label, add_special_tokens=False)
+            value_function_tokens = tokenizer.encode(
+                value_function_label, add_special_tokens=False
+            )
         else:
             value_function_tokens = None
-        
+
         content_tokens = tokenizer.encode(content, add_special_tokens=False)
         while True:
             try:  # Note: This will be slow, one time loading doesnt matter.
@@ -213,7 +226,10 @@ def mask_non_assistant_tokens(
                             + len(assistant_prefix_ids)
                             + tokenizer_separator.prefix_offset
                         ]
-                    elif value_function_type in ["natural_lang_binary", "natural_lang_multiclass"]:
+                    elif value_function_type in [
+                        "natural_lang_binary",
+                        "natural_lang_multiclass",
+                    ]:
                         # print(value_function_type)
                         # multiple tokens
                         value_function_masked_tokens[
@@ -319,6 +335,7 @@ def get_token_level_reward_to_gos(
         token_rewards.masked_fill_(turn_masks.eq(i), reward_to_gos[i])
     return token_rewards
 
+
 # relabelling strategies
 # 1. Binary. Prefix: Expected mode collapse? Prefix - semantically, conditional generation? Suffix? Model's belief of it's own response?
 # 2. Value function. -> Get rtgs; disctrete value function; <GOOD> <BAD> <NEUTRAL> ?
@@ -357,13 +374,13 @@ def relabel_conversation(
         if message["role"] == "assistant":
             if value_function_experiment == "prefix":
                 # prefix the special token or the natural language value function
-                message[
-                    "content"
-                ] = f"{value_function_reserved_strs[rews[j//2]]}{message['content']}"  # do //2 becuase of turn level rewards
+                message["content"] = (
+                    f"{value_function_reserved_strs[rews[j//2]]}{message['content']}"  # do //2 becuase of turn level rewards
+                )
             elif value_function_experiment == "overfit":
-                message[
-                    "content"
-                ] = f"{value_function_reserved_strs[rews[j//2]]} $$"  # Add $$ in the end to prevent stripping of the spaces
+                message["content"] = (
+                    f"{value_function_reserved_strs[rews[j//2]]} $$"  # Add $$ in the end to prevent stripping of the spaces
+                )
             else:
                 raise NotImplementedError(
                     f"Value function strategy {value_function_experiment} not implemented"
@@ -402,7 +419,7 @@ def get_value_function_keywords(
         #     1 + gamma + gamma**2: "BLACK     ",
         # },
         "natural_lang_binary": {0.0: "<UNSAFE> ", 1.0: "<SAFE> "},
-        # Anything <1 is moderate. 
+        # Anything <1 is moderate.
         "natural_lang_multiclass": {
             0.0: "<UNSAFE> ",
             1.0: "<SAFE> ",
@@ -692,7 +709,8 @@ class MultiturnDPODatasetFromTensors(Dataset):
             "rejected_attention_mask": self.rejected_attention_mask[idx],
             "rejected_ref_log_probs": self.rejected_ref_log_probs[idx],
         }
-    
+
+
 class MultiturnSFTDatasetFromTensors(Dataset):
     def __init__(
         self,
@@ -705,7 +723,7 @@ class MultiturnSFTDatasetFromTensors(Dataset):
                 The path to the dataset (in ".pt" format)
                 that contains the dataset
             add_all_data (bool):
-                Whether to include the rejected data in the dataset. 
+                Whether to include the rejected data in the dataset.
                 Note: This is only done to try to get the DPO model to generate other special tokens/ keywords
         """
         assert dataset_path.endswith(".pt")
@@ -715,10 +733,14 @@ class MultiturnSFTDatasetFromTensors(Dataset):
         self.labels = data["chosen_labels"]
         self.attention_mask = data["chosen_attention_mask"]
         if add_all_data:
-            self.input_ids = torch.concatenate([self.input_ids, data["rejected_input_ids"]], dim=0)
+            self.input_ids = torch.concatenate(
+                [self.input_ids, data["rejected_input_ids"]], dim=0
+            )
             self.labels = torch.concatenate([self.labels, data["rejected_labels"]], dim=0)
-            self.attention_mask = torch.concatenate([self.attention_mask, data["rejected_attention_mask"]], dim=0)
-        
+            self.attention_mask = torch.concatenate(
+                [self.attention_mask, data["rejected_attention_mask"]], dim=0
+            )
+
     def __len__(self) -> int:
         return self.input_ids.shape[0]
 

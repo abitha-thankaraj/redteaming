@@ -64,7 +64,6 @@ def main_flat(filename, savefile):
         goal = record["game"][0]["content"]
         new_convs = deepcopy(record["game"][1:])
 
-
         for i in range(len(new_convs)):
             if new_convs[i]["role"] == "attacker":
                 new_convs[i]["role"] = "user"
@@ -77,16 +76,16 @@ def main_flat(filename, savefile):
             "conversation": new_convs,
             "rewards": record["judge"]["rewards"],
             "category": record["judge"]["categories"],
-            "generation_model": "Meta-Llama-3.1-8B-Instruct"
+            "generation_model": "Meta-Llama-3.1-8B-Instruct",
         }
         for model_name in tokenizers:
             tokenizer = tokenizers[model_name]
             tokenized = tokenizer.apply_chat_template(new_convs, tokenize=True)
             length = len(tokenized)
             new_record[model_name.split("/")[-1] + "_length"] = length
-        
+
         save_data.append(new_record)
-    
+
     write_json(save_data, savefile)
 
 
@@ -101,12 +100,17 @@ if __name__ == "__main__":
     # )
     DATA_DIR = "/scratch/bcgv/datasets/redteaming/gen_judge_multiturn_conversation_combined"
 
-    fnames = ["combined_rwr_trained_attacker.rwr_defender.iter1.json", "combined_sft_trained_attacker.sft_defender.iter1.json", "combined_rwr_trained_attacker.untrained_defender.iter0.json", "combined_untrained_defender.sft_trained_attacker.iter0.json"]
+    fnames = [
+        "combined_rwr_trained_attacker.rwr_defender.iter1.json",
+        "combined_sft_trained_attacker.sft_defender.iter1.json",
+        "combined_rwr_trained_attacker.untrained_defender.iter0.json",
+        "combined_untrained_defender.sft_trained_attacker.iter0.json",
+    ]
     for fname in fnames:
         print(f"Processing {fname}")
         main_flat(
             filename=f"{DATA_DIR}/iterative/{fname}",
-            savefile=f"{DATA_DIR}/iterative/combined/{fname.split('.')[0]}_llama_rewards_flat_length_added.json"
+            savefile=f"{DATA_DIR}/iterative/combined/{fname.split('.')[0]}_llama_rewards_flat_length_added.json",
         )
     # main_flat(
     #     filename=f"/scratch/bcgv/datasets/redteaming/gen_judge_multiturn_conversation_combined/iterative/combined_rwr_trained_attacker.rwr_defender.iter1.json",

@@ -1,32 +1,22 @@
 # https://github.com/patrickrchao/JailbreakingLLMs/blob/main/language_models.py
-import logging
 from typing import List, Dict
 import torch
 import gc, os, time
 import openai
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from redteam.train.common import get_tokenizer_separators
 
-logger = logging.getLogger(__name__)
 
-
-def load_model_and_tokenizer(model_name, model_dir, model_cache_dir, device, model_max_length=4096):
+def load_model_and_tokenizer(
+    model_name, model_dir, model_cache_dir, device, model_max_length=4096
+):
     tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path=model_dir, use_fast=False,
-        model_max_length=model_max_length
-        
+        pretrained_model_name_or_path=model_dir,
+        use_fast=False,
+        model_max_length=model_max_length,
     )
     tokenizer.padding_side = "left"
-
-    # Llama3 models don't have pad token
-    if tokenizer.pad_token_id is None and model_name in [
-        "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        "meta-llama/Meta-Llama-3-8B-Instruct",
-    ]:
-        tokenizer.pad_token_id = 128004
-    elif tokenizer.pad_token_id is None and model_name in [
-        "mistralai/Mistral-7B-Instruct-v0.1"
-    ]:
-        tokenizer.pad_token_id = tokenizer.unk_token_id
+    tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
 
     model = AutoModelForCausalLM.from_pretrained(
         pretrained_model_name_or_path=model_dir,
@@ -68,11 +58,15 @@ class HuggingFaceLM(LanguageModel):
             "mistralai/Mistral-7B-Instruct-v0.3",
             "mistralai/Mistral-7B-Instruct-v0.1",
             "meta-llama/Meta-Llama-3-8B-Instruct",
-        ], "Only Meta-Llama and Mistral models are supported"
+        ], "Only Meta-Llama and Mistral models have been tested."
         # TODO: Assert that padding side is left for generations.
-        assert (
-            self.tokenizer.padding_side == "left"
-        ), "Padding side must be left for generations for decoder only models"
+        if self.tokenizer.padding_side != "left":
+            print(
+                "Padding side is not left for the tokenizer. \
+                Padding side must be left for generations for decoder only models. \
+                Setting it to left."
+            )
+            self.tokenizer.padding_side = "left"
 
     @torch.no_grad()
     def generate(
@@ -85,8 +79,8 @@ class HuggingFaceLM(LanguageModel):
         prefill_text: str = None,
     ):
         """
-            Given a conversation and a model, generates a response. We use only ancestral sampling for generation.
-            Note - This function is only for instruction tuned/ chat tuned models.
+        Given a conversation and a model, generates a response. We use only ancestral sampling for generation.
+        Note - This function is only for instruction tuned/ chat tuned models.
         """
         # Apply chat template to each prompt.
         inputs = {}
@@ -94,7 +88,9 @@ class HuggingFaceLM(LanguageModel):
             conv, return_tensors="pt", padding=True, add_generation_prompt=True
         )
         if prefill_text is not None:
-            prefill_input_ids = self.tokenizer.encode(prefill_text, add_special_tokens=False, return_tensors="pt")
+            prefill_input_ids = self.tokenizer.encode(
+                prefill_text, add_special_tokens=False, return_tensors="pt"
+            )
             inputs["input_ids"] = torch.cat([inputs["input_ids"], prefill_input_ids], dim=-1)
 
         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
@@ -144,7 +140,7 @@ class HuggingFaceLM(LanguageModel):
         torch.cuda.empty_cache()
 
         return outputs
-    
+
     @torch.no_grad()
     def compute_log_probs(
         self,

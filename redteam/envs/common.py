@@ -24,7 +24,7 @@ class Conversation:
 
     def append_message(self, role: str, message: str):
         self.messages.append((role, message))
-    
+
     def pop_last_message(self):
         return self.messages.pop(-1)
 
@@ -37,13 +37,13 @@ class Conversation:
         self.messages[-1][1] = message
 
     def _format_messages(
-        self, 
-        system_role, 
-        user_role, 
-        assistant_role, 
-        offset=0, 
+        self,
+        system_role,
+        user_role,
+        assistant_role,
+        offset=0,
         strip_user_messages=True,
-        strip_assistant_messages=False
+        strip_assistant_messages=False,
     ):
         """Convert the conversation to OpenAI chat completion format."""
         if self.system_message == "":
@@ -63,9 +63,9 @@ class Conversation:
                     ret.append({"role": assistant_role, "content": msg})
         return ret
 
-
-
-    def to_openai_api_messages(self, offset=0, strip_user_messages=True, strip_assistant_messages=False):
+    def to_openai_api_messages(
+        self, offset=0, strip_user_messages=True, strip_assistant_messages=False
+    ):
         """Convert the conversation to OpenAI chat completion format."""
         return self._format_messages(
             "system",
@@ -90,7 +90,9 @@ class Conversation:
         return self.to_openai_api_messages(offset=1, strip_user_messages=True)
 
     def to_judge_input(self):
-        return self.to_openai_api_messages(offset=1, strip_user_messages=True, strip_assistant_messages=True)
+        return self.to_openai_api_messages(
+            offset=1, strip_user_messages=True, strip_assistant_messages=True
+        )
 
     @classmethod
     def parse_messages(self, message_dict):
@@ -107,7 +109,7 @@ class Policy(HuggingFaceLM):
 
     def act(self, obs):
         return self.generate(obs, **self.generation_kwargs)
-    
+
     def act_prefilled(self, obs, prefill_text):
         return self.generate(obs, prefill_text=prefill_text, **self.generation_kwargs)
 
@@ -133,6 +135,7 @@ def get_all_value_function_keywords():
             value_function_keywords.add(v)
     return value_function_keywords
 
+
 # Used this in earlier iters of value fn eval
 def split_message(value_keywords, msg):
     for keyword in value_keywords:
@@ -143,6 +146,6 @@ def split_message(value_keywords, msg):
 
 def sanitize_msg(msg, value_function_keywords):
     msg = split_message(value_function_keywords, msg)
-    for keyword in  ["<SAFE>", "<UNSAFE>", "<MODERATE>", "<FIX>"]:
+    for keyword in ["<SAFE>", "<UNSAFE>", "<MODERATE>", "<FIX>"]:
         msg = msg.replace(keyword, "")
     return msg.strip()

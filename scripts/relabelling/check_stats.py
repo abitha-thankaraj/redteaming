@@ -2,6 +2,7 @@ from redteam.utils.data_utils import write_json, read_json
 import glob
 import numpy as np
 
+
 def aggregate_results(trajs):
     rewards = []
     for traj in trajs:
@@ -25,6 +26,3 @@ if __name__ == "__main__":
         # write_json(results, f"{DATA_DIR}/results_{fname.split('/')[-1]}")
         print(f"Processed {fname}")
         print(results)
-
-
-    

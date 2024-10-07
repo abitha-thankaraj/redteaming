@@ -39,7 +39,6 @@ fnames = [
 ]
 
 
-
 def get_questions(fname):
     data = read_json(fname)
     jailbroken_questions = []
@@ -61,26 +60,30 @@ def get_questions(fname):
             # jailbroken_questions.append((goal, tuple(questions)))
     return jb_qs
 
-            
+
 def single_turns_evals(questions, defender, judge):
     results = []
     num_jailbreaks = 0
     for q in tqdm(questions):
-        conv = Conversation(messages=[("goal","")])
+        conv = Conversation(messages=[("goal", "")])
         conv.messages.append(("attacker", q))
         defender_response = defender.act(conv.to_defender_message())
         conv.messages.append(("defender", defender_response))
-        
+
         judge_score = judge.score(conv.to_judge_input())
         print(judge_score)
         assert len(judge_score["rewards"]) == 1, "Only one turn should be judged"
         num_jailbreaks += sum(judge_score["rewards"])
-        results.append({"questions": q,
-                        "game": conv.to_game_message(),
-                        "judge": judge_score,})
+        results.append(
+            {
+                "questions": q,
+                "game": conv.to_game_message(),
+                "judge": judge_score,
+            }
+        )
         aggregated_results = {
             "num_jailbreaks": num_jailbreaks,
-            "original_num_jailbreaks": len(questions)
+            "original_num_jailbreaks": len(questions),
         }
     return results, aggregated_results
 
@@ -92,36 +95,37 @@ def load_config(fname):
     return config
 
 
-
-
-
-
 def main(fname):
-
 
     questions = get_questions(fname)
     config = load_config(fname)
     gpt = GPT
     set_seed_everywhere(config.seed)
 
-
     config.defender.model_cache_dir = "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
 
-    config.defender.device="cuda:1"
+    config.defender.device = "cuda:1"
     defender = get_policy(config.defender)
-    judge = LlamaGuardJudge(device= config.defender.device)
+    judge = LlamaGuardJudge(device=config.defender.device)
 
     results, aggregated_results = single_turns_evals(questions, defender, judge)
 
     if "/scratch/bcgv/datasets/redteaming/redteaming_evals/" in config.out_dir:
-        config.out_dir = config.out_dir.replace("/scratch/bcgv/datasets/redteaming/redteaming_evals/", "/data/group_data/rl/datasets/redteaming/redteaming_evals/")
+        config.out_dir = config.out_dir.replace(
+            "/scratch/bcgv/datasets/redteaming/redteaming_evals/",
+            "/data/group_data/rl/datasets/redteaming/redteaming_evals/",
+        )
 
     write_json(results, os.path.join(config.out_dir, "single_turn_results.json"))
-    write_json(aggregated_results, os.path.join(config.out_dir, "single_turn_aggregated_results.json"))
-    slack_notification(f"Summarize results for {fname} complete. Aggregated results: {aggregated_results}")
+    write_json(
+        aggregated_results, os.path.join(config.out_dir, "single_turn_aggregated_results.json")
+    )
+    slack_notification(
+        f"Summarize results for {fname} complete. Aggregated results: {aggregated_results}"
+    )
+
+
 if __name__ == "__main__":
     # main(fname)
     for fname in fnames:
         main(fname)
-    
-

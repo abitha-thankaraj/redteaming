@@ -18,9 +18,10 @@ from redteam.utils.data_utils import read_json
 
 
 def from_flat_file(fname):
-    return read_json(fname) 
+    return read_json(fname)
 
-@torch.no_grad() 
+
+@torch.no_grad()
 def precompute_logits(
     dataset,
     inference_engine,
@@ -78,7 +79,6 @@ def precompute_logits(
     return output
 
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -93,11 +93,13 @@ global_config = None
 def main(config: DictConfig):
     global global_config
     set_seed_everywhere(config.seed)
-    model, tokenizer = load_model_and_tokenizer(model_name=config.model_name, 
-                                                model_dir=config.model_dir, 
-                                                model_cache_dir=config.model_cache_dir, 
-                                                device=config.device,
-                                                model_max_length=config.max_length)
+    model, tokenizer = load_model_and_tokenizer(
+        model_name=config.model_name,
+        model_dir=config.model_dir,
+        model_cache_dir=config.model_cache_dir,
+        device=config.device,
+        model_max_length=config.max_length,
+    )
     tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
 
     print(config)
@@ -105,24 +107,30 @@ def main(config: DictConfig):
         conversations = from_flat_file(config.data_flat_fname)
         # f = config.data_flat_fname.split("/")[-1]
         # config.out_fname = config.out_fname.replace(".pt", f"{f}_flat.pt")
-        
+
         config.out_fname = config.data_flat_fname.replace(".json", ".pt")
         print(f"Loaded flat file: {config.data_flat_fname}")
-        chosen_conversations = [conversations[i]["chosen_conversation"] for i in range(len(conversations))]
-        rejected_conversations = [conversations[i]["rejected_conversation"] for i in range(len(conversations))]
-
+        chosen_conversations = [
+            conversations[i]["chosen_conversation"] for i in range(len(conversations))
+        ]
+        rejected_conversations = [
+            conversations[i]["rejected_conversation"] for i in range(len(conversations))
+        ]
 
     else:
         ds_helper = DPODatasetHelper(
-                        data_dir=config.data_dir, 
-                        agent_type=config.agent_type,
-                        dataset_type=config.dataset_type,
-                        length_key = config.length_key, 
-                        max_length=config.max_length)
+            data_dir=config.data_dir,
+            agent_type=config.agent_type,
+            dataset_type=config.dataset_type,
+            length_key=config.length_key,
+            max_length=config.max_length,
+        )
 
         conversations = ds_helper.get_conversations()
         if config.subsample_size != -1:
-            idxs = np.random.choice(len(conversations["chosen_conversations"]), config.subsample_size)
+            idxs = np.random.choice(
+                len(conversations["chosen_conversations"]), config.subsample_size
+            )
         else:
             idxs = np.arange(len(conversations["chosen_conversations"]))
 
@@ -135,8 +143,8 @@ def main(config: DictConfig):
         rejected_conversations=rejected_conversations,
         tokenizer=tokenizer,
         tokenizer_separator=tokenizer_separator,
-        ignore_token_id=-100    
-        )
+        ignore_token_id=-100,
+    )
 
     print(f"Dataset length: {len(dataset)}")
 
@@ -144,7 +152,8 @@ def main(config: DictConfig):
     out = precompute_logits(dataset, inference_engine)
     torch.save(out, config.out_fname)
     print(f"Saved output to {config.out_fname}")
-      
+
+
 []
 if __name__ == "__main__":
     try:

@@ -106,7 +106,9 @@ def get_dataset(
         max_length=data_args.max_length,
     )
 
-    conversation_reward_dict = dataset_helper.get_conversations(num_samples=data_args.num_samples)
+    conversation_reward_dict = dataset_helper.get_conversations(
+        num_samples=data_args.num_samples
+    )
 
     train_dataset = MultiturnSFTDataset(
         conversation_reward_dict["conversations"],
@@ -123,7 +125,9 @@ def get_dataset(
         max_length=data_args.max_length,
     )
 
-    eval_conversation_reward_dict = eval_dataset_helper.get_conversations(num_samples=data_args.num_samples)
+    eval_conversation_reward_dict = eval_dataset_helper.get_conversations(
+        num_samples=data_args.num_samples
+    )
 
     eval_dataset = MultiturnSFTDataset(
         eval_conversation_reward_dict["conversations"],

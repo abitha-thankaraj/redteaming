@@ -66,14 +66,18 @@ class Game:
                 judge_reward = original_judge_rewards[judge_idx]
                 last_reward = None
 
-                if judge_reward == 1.0: #flipped for defender
+                if judge_reward == 1.0:  # flipped for defender
                     # Non jailbroken turn
                     self.env_state.messages.append(("defender", turn["content"]))
                 else:
                     # Jailbroken turn
                     for _ in range(n):
-                        self.env_state.messages.append(("defender", 
-                            self.defender.act(self.env_state.to_defender_message())))
+                        self.env_state.messages.append(
+                            (
+                                "defender",
+                                self.defender.act(self.env_state.to_defender_message()),
+                            )
+                        )
                         judge_score = self.judge.score(self.env_state.to_judge_input())
                         last_reward = judge_score["rewards"][-1]
 
@@ -105,16 +109,23 @@ class Game:
                 judge_reward = original_judge_rewards[judge_idx]
                 last_reward = None
 
-                if judge_reward == 1.0: #flipped for defender. you flip this in the script
+                if judge_reward == 1.0:  # flipped for defender. you flip this in the script
                     # Non jailbroken turn
                     self.env_state.messages.append(("defender", turn["content"]))
                 else:
                     # Jailbroken turn
-                    self.env_state.messages.append(("defender", 
-                        self.defender.act_prefilled(self.env_state.to_defender_message(), prefill_text)))
+                    self.env_state.messages.append(
+                        (
+                            "defender",
+                            self.defender.act_prefilled(
+                                self.env_state.to_defender_message(), prefill_text
+                            ),
+                        )
+                    )
                     judge_score = self.judge.score(self.env_state.to_judge_input())
-        
+
         return self.env_state, judge_score
+
 
 def evaluate_value_function(conversation, value_function_type, rewards, policy_type):
     if policy_type == "defender":

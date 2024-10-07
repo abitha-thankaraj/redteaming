@@ -2,6 +2,7 @@ import torch
 import transformers
 import numpy as np
 
+
 def fix_untrained_tokens(model, tokenizer, reserved_toks, eps=1e-16):
     """
     Fix untrained vectors in the Llama-3 base model.
@@ -14,10 +15,10 @@ def fix_untrained_tokens(model, tokenizer, reserved_toks, eps=1e-16):
     indicator_untrained = torch.amax(embedding_matrix, axis=1) <= eps
     where_untrained = torch.where(indicator_untrained)[0]
     n_untrained = where_untrained.shape[0]
-    
+
     print(f"Number of untrained tokens: {n_untrained}")
     print(f"Untrained tokens: {tokenizer.decode(where_untrained)}")
-    
+
     # Find intersection of untrained tokens and reserved tokens
     np_where_untrained = where_untrained.cpu().numpy()
     reserved_toks = np.asarray(reserved_toks)
@@ -38,10 +39,12 @@ def fix_untrained_tokens(model, tokenizer, reserved_toks, eps=1e-16):
 
     return mean_embedding, mean_lm_head
 
+
 def save_model_weights(model, output_path):
     """Save only the model weights to the specified file."""
     torch.save(model.state_dict(), output_path)
     print(f"Model weights saved to {output_path}")
+
 
 if __name__ == "__main__":
     model_name = "meta-llama/Meta-Llama-3.1-8B-Instruct"
@@ -49,17 +52,12 @@ if __name__ == "__main__":
     output_path = "/data/group_data/rl/experiments/redteaming/llama_fixed_reserved_token_weights/"  # Replace with your desired output path
 
     model = transformers.AutoModelForCausalLM.from_pretrained(
-        model_name,
-        trust_remote_code=True,
-        torch_dtype=torch.bfloat16,
-        cache_dir=cache_dir
+        model_name, trust_remote_code=True, torch_dtype=torch.bfloat16, cache_dir=cache_dir
     )
     model.tie_weights()
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_name,
-        trust_remote_code=True,
-        cache_dir=cache_dir
+        model_name, trust_remote_code=True, cache_dir=cache_dir
     )
 
     reserved_toks = torch.arange(128031, 128041, dtype=torch.int64).tolist()
@@ -67,4 +65,3 @@ if __name__ == "__main__":
     mean_embedding, mean_lm_head = fix_untrained_tokens(model, tokenizer, reserved_toks)
     print("Untrained tokens fixed")
     model.save_pretrained(output_path, from_pt=True)
-
