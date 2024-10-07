@@ -1,6 +1,6 @@
 from gym.utils import seeding
 from typing import Optional, Any
-from redteam.envs.common import GameConversation
+from redteam.envs.common import Conversation
 from redteam.train.datasets import get_value_function_keywords, get_reward_to_gos
 
 
@@ -23,7 +23,7 @@ class Game:
 
     def reset_model(self, goal):
         self._turn = 0
-        self.env_state = GameConversation(messages=[("goal", goal)])
+        self.env_state = Conversation(messages=[("goal", goal)])
 
     def reset(self, goal: Optional[str] = None):
         if goal is None:

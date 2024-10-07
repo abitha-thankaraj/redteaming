@@ -13,7 +13,7 @@ from redteam.utils.slack_me import slack_notification
 from hydra.core.hydra_config import HydraConfig
 from redteam.envs.evaluation import Game, evaluate_value_function
 from redteam.train.common import set_seed_everywhere
-from redteam.envs.common import GameConversation
+from redteam.envs.common import Conversation
 from redteam.inference.language_models import GPT
 
 # fnames = [
@@ -90,8 +90,8 @@ def rephrased_evals(fix_me_messages, defender, judge, fix_intermediate = False):
     num_jailbreaks = 0
     gpt = GPT("gpt-3.5-turbo-0125")
     for messages in tqdm(fix_me_messages):
-        original_rephrased_conv = GameConversation(messages=messages).to_game_message()
-        conv = GameConversation(messages=[("goal",messages[0][1])])
+        original_rephrased_conv = Conversation(messages=messages).to_game_message()
+        conv = Conversation(messages=[("goal",messages[0][1])])
         for i in range(len(messages)):
             if messages[i][0] == "attacker":
                 conv.messages.append((messages[i][0], messages[i][1]))

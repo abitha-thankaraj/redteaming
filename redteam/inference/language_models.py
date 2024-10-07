@@ -84,7 +84,11 @@ class HuggingFaceLM(LanguageModel):
         decode_skip_special_tokens: bool = True,
         prefill_text: str = None,
     ):
-        # Apply chat template to each prompt?
+        """
+            Given a conversation and a model, generates a response. We use only ancestral sampling for generation.
+            Note - This function is only for instruction tuned/ chat tuned models.
+        """
+        # Apply chat template to each prompt.
         inputs = {}
         inputs["input_ids"] = self.tokenizer.apply_chat_template(
             conv, return_tensors="pt", padding=True, add_generation_prompt=True
@@ -194,13 +198,12 @@ class HuggingFaceLM(LanguageModel):
                 else model_outputs[0]
             )
 
-            # shift by 1, since we only consider Causal models
+            # shift by 1, since we only consider causal models
             logits = logits[:, :-1, :]
             labels = labels[:, 1:].clone().to(self.model.device.index)
 
             # calculate log probs
             log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
-
             # labels can contain ignore_token_id, typically -100.
             # we clamp them to 0, to avoid indexing errors
             # These tokens will be ignored later

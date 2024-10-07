@@ -694,14 +694,6 @@ class MultiturnDPODatasetFromTensors(Dataset):
         }
     
 class MultiturnSFTDatasetFromTensors(Dataset):
-    """
-    A variation of the DPO dataset, that uses precomputed tensors,
-    specially precomputed log_probs, saved in ".pt" format.
-
-    This is unlike MultiturnDPODataset, that uses conversations in
-    dict/str format.
-    """
-
     def __init__(
         self,
         dataset_path: str,
@@ -728,15 +720,6 @@ class MultiturnSFTDatasetFromTensors(Dataset):
             self.attention_mask = torch.concatenate([self.attention_mask, data["rejected_attention_mask"]], dim=0)
         
     def __len__(self) -> int:
-        """
-        Returns the number of datapoints in the dataset.
-
-        Input:
-            None
-
-        Output:
-            length: Number of datapoints in the dataset
-        """
         return self.input_ids.shape[0]
 
     def __getitem__(self, idx) -> Dict[str, torch.Tensor]:

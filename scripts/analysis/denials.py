@@ -13,7 +13,7 @@ from redteam.utils.slack_me import slack_notification
 from hydra.core.hydra_config import HydraConfig
 from redteam.envs.evaluation import Game, evaluate_value_function
 from redteam.train.common import set_seed_everywhere
-from redteam.envs.common import GameConversation
+from redteam.envs.common import Conversation
 from redteam.inference.language_models import GPT
 
 

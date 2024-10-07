@@ -9,7 +9,7 @@ from redteam.inference.language_models import (
 from redteam.train.datasets import get_value_function_keywords
 
 
-class GameConversation:
+class Conversation:
     def __init__(self, system_message: str = "", messages=None, value_function_keywords=None):
         self.messages = messages if messages is not None else []
         self.system_message = system_message

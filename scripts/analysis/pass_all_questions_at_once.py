@@ -13,7 +13,7 @@ from redteam.utils.slack_me import slack_notification
 from hydra.core.hydra_config import HydraConfig
 from redteam.envs.evaluation import Game, evaluate_value_function
 from redteam.train.common import set_seed_everywhere
-from redteam.envs.common import GameConversation
+from redteam.envs.common import Conversation
 
 
 # fnames = [
@@ -56,7 +56,7 @@ def eval_all_at_once(questions, defender, judge):
     results = []
     for (goal, q) in tqdm(questions):
         print(goal)
-        conv = GameConversation(messages=[("goal", goal)])
+        conv = Conversation(messages=[("goal", goal)])
         conv.messages.append(("attacker", q))
         defender_response = defender.act(conv.to_defender_message())
         conv.messages.append(("defender", defender_response))

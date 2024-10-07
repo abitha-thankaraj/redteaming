@@ -13,7 +13,7 @@ from redteam.utils.slack_me import slack_notification
 from hydra.core.hydra_config import HydraConfig
 from redteam.envs.evaluation import Game, evaluate_value_function
 from redteam.train.common import set_seed_everywhere
-from redteam.envs.common import GameConversation
+from redteam.envs.common import Conversation
 
 # # fnames = [
 # #     "/scratch/bcgv/datasets/redteaming/redteaming_evals/untrained_defender.sft_trained_attacker/2024.09.17/08-51-1726581110/jailbreakbench_sft_trained_attacker_untrained_defender_untrained_defender.sft_trained_attacker.json",

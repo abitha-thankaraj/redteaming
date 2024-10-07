@@ -9,8 +9,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 def load_judge(args):
     if "gpt" in args.judge_model:
         return GPTJudge(args)
-    elif args.judge_model == "no-judge":
-        return NoJudge(args)
+    elif args.judge_model == "llama-guard":
+        return LlamaGuardJudge(args.device)
     else:
         raise NotImplementedError
 
@@ -24,19 +24,6 @@ class JudgeBase:
 
     def process_judge_output(self, raw_judge_output):
         raise NotImplementedError
-
-
-class NoJudge(JudgeBase):
-    def __init__(self, args):
-        super(NoJudge, self).__init__(args)
-        self.judge_model = None
-
-    def score(self, conversation):
-        raise NotImplementedError
-
-    def process_judge_output(self, raw_judge_output):
-        raise NotImplementedError
-
 
 class GPTJudge(JudgeBase):
     pass
