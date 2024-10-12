@@ -60,6 +60,7 @@ def main(config: DictConfig):
 
     trajs = []
     errors = []
+    # To speed up evals, we chunk the goals and evaluate only a subset
     if config.chunk != -1:
         max_chunk_size = config.max_chunk_size
         # split into n chunks of size max_chunk_size

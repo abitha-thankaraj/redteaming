@@ -72,7 +72,7 @@ def main(fname):
             flipped_rewards = [1.0 - rew for rew in record["judge"]["rewards"]]
 
             # env_state, judge_rewards = redteaming_game.repair(goal, conv, record["judge"]["rewards"])
-            env_state, judge_rewards = redteaming_game.repair(goal, conv, flipped_rewards)
+            env_state, judge_rewards = redteaming_game.rejection_sample_fix_conversation(goal, conv, flipped_rewards)
 
             if judge_rewards is None:
                 errors.append((goal, conv))

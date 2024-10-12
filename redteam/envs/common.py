@@ -8,16 +8,17 @@ from redteam.inference.language_models import (
 )
 from redteam.train.datasets import get_value_function_keywords
 
+VALUE_FUNCTION_IDENTIFIERS = [
+    "<SAFE>",
+    "<UNSAFE>",
+    "<MODERATE>",
+    "<FIX>"
+]
 
 class Conversation:
-    def __init__(self, system_message: str = "", messages=None, value_function_keywords=None):
+    def __init__(self, system_message: str = "", messages=None):
         self.messages = messages if messages is not None else []
         self.system_message = system_message
-        self.value_function_keywords = (
-            value_function_keywords
-            if value_function_keywords is not None
-            else get_all_value_function_keywords()
-        )
 
     def set_system_message(self, system_message: str):
         self.system_message = system_message
@@ -27,14 +28,6 @@ class Conversation:
 
     def pop_last_message(self):
         return self.messages.pop(-1)
-
-    def update_last_message(self, message: str):
-        """Update the last output.
-
-        The last message is typically set to be None when constructing the prompt,
-        so we need to update it in-place after getting the response from a model.
-        """
-        self.messages[-1][1] = message
 
     def _format_messages(
         self,
@@ -54,12 +47,12 @@ class Conversation:
         for i, (_, msg) in enumerate(self.messages[offset:]):
             if i % 2 == 0:
                 if strip_user_messages:
-                    msg = sanitize_msg(msg, self.value_function_keywords)
+                    msg = sanitize_msg(msg)
                 ret.append({"role": user_role, "content": msg})
             else:
                 if msg is not None:
                     if strip_assistant_messages:
-                        msg = sanitize_msg(msg, self.value_function_keywords)
+                        msg = sanitize_msg(msg)
                     ret.append({"role": assistant_role, "content": msg})
         return ret
 
@@ -101,7 +94,6 @@ class Conversation:
             messages.append((message["role"], message["content"]))
         return messages
 
-
 class Policy(HuggingFaceLM):
     def __init__(self, model_name, model, tokenizer, generation_kwargs):
         super().__init__(model_name, model, tokenizer)
@@ -136,16 +128,7 @@ def get_all_value_function_keywords():
     return value_function_keywords
 
 
-# Used this in earlier iters of value fn eval
-def split_message(value_keywords, msg):
-    for keyword in value_keywords:
-        if msg.startswith(keyword):
-            return msg[len(keyword) :].strip()
-    return msg
-
-
-def sanitize_msg(msg, value_function_keywords):
-    msg = split_message(value_function_keywords, msg)
-    for keyword in ["<SAFE>", "<UNSAFE>", "<MODERATE>", "<FIX>"]:
+def sanitize_msg(msg: str) -> str:
+    for keyword in VALUE_FUNCTION_IDENTIFIERS:
         msg = msg.replace(keyword, "")
     return msg.strip()

@@ -52,8 +52,8 @@ class Game:
         judge_score = self.judge.score(self.env_state.to_judge_input())
         return self.env_state, judge_score
 
-    def repair(self, goal, conversation, original_judge_rewards, n=5):
-        self.reset_model(goal=goal)
+    def rejection_sample_fix_conversation(self, goal, conversation, original_judge_rewards, n=5):
+        self.reset(goal=goal)
         judge_score = None
 
         for i, turn in enumerate(conversation):
@@ -96,7 +96,7 @@ class Game:
         return self.env_state, [0.0] * len(original_judge_rewards)
 
     def prefilled_response(self, goal, conversation, original_judge_rewards, prefill_text):
-        self.reset_model(goal=goal)
+        self.reset(goal=goal)
         judge_score = None
 
         for i, turn in enumerate(conversation):

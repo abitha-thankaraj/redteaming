@@ -99,7 +99,6 @@ def main(fname):
 
     questions = get_questions(fname)
     config = load_config(fname)
-    gpt = GPT
     set_seed_everywhere(config.seed)
 
     config.defender.model_cache_dir = "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
