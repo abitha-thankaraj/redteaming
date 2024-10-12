@@ -26,12 +26,19 @@ if __name__ == "__main__":
     # ]
     # combined_fname = "/data/group_data/rl/datasets/redteaming/best_of_n/paired/combined_no_fixed_conversations_unlabeled.pt"
 
+    # fnames = [
+    #     "/data/group_data/rl/datasets/redteaming/best_of_n/value_labeled/no_fixed_conversations_best_of_n_high_contrast_1000_value_labeled.pt",
+    #     "/data/group_data/rl/datasets/redteaming/best_of_n/value_labeled/no_fixed_conversations_best_of_n_hard_negatives_1000_value_labeled.pt",
+    # ]
+
+    # combined_fname = "/data/group_data/rl/datasets/redteaming/best_of_n/value_labeled/combined_no_fixed_conversations_value_labeled.pt"
+    
     fnames = [
-        "/data/group_data/rl/datasets/redteaming/best_of_n/value_labeled/no_fixed_conversations_best_of_n_high_contrast_1000_value_labeled.pt",
-        "/data/group_data/rl/datasets/redteaming/best_of_n/value_labeled/no_fixed_conversations_best_of_n_hard_negatives_1000_value_labeled.pt",
+        "/data/group_data/rl/datasets/redteaming/precomputed_datasets/mistralai/Mistral-7B-Instruct-v0.1_defender_precomputed_logits_hard_negatives_1000.pt",
+        "/data/group_data/rl/datasets/redteaming/precomputed_datasets/mistralai/Mistral-7B-Instruct-v0.1_defender_precomputed_logits_high_contrast_1000.pt",
     ]
 
-    combined_fname = "/data/group_data/rl/datasets/redteaming/best_of_n/value_labeled/combined_no_fixed_conversations_value_labeled.pt"
+    combined_fname = "/data/group_data/rl/datasets/redteaming/precomputed_datasets/mistralai/Mistral-7B-Instruct-v0.1_combined_precomputed_logits.pt"
     combined_data = {}
 
     data = torch.load(fnames[0])

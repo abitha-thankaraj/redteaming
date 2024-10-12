@@ -5,14 +5,19 @@ defaults:
 
 seed: 69
 
-dataset_fname: ${env.data_dir}/quality_filtered/hard_negatives_1000.json
+dataset_fname: ${env.data_dir}/quality_filtered/high_contrast_1000.json
 
 defender:
-  model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-  model_type: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+  # model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+  # model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+  # model_type: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+  
+  model_name: "mistralai/Mistral-7B-Instruct-v0.1"
+  model_dir: "mistralai/Mistral-7B-Instruct-v0.1"
+  model_type: "mistralai/Mistral-7B-Instruct-v0.1"
+
   model_cache_dir: ${env.hf_home}
-  device: "cuda:1"
+  device: "cuda"
   generation_kwargs:
     max_n_tokens: 4096
     temperature: 0.7
@@ -29,9 +34,9 @@ max_turns: 3
 chunk: -1
 max_chunk_size: 100
 
-start_idx: 665
+# start_idx: 0
 # Result of simulating the game will be saved in this file
-experiment_desc: hard_negatives_1000_continued
+experiment_desc: mistral_best_of_n/high_contrast_1000_chunk_${chunk}
 out_dir: ${env.data_dir}/${experiment_desc}/${now:%Y.%m.%d}/${now:%H-%M-%s}
 out_fname: best_of_n_repaired_conversations_${experiment_desc}.json
 hydra:

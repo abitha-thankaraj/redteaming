@@ -14,6 +14,7 @@ from redteam.train.datasets import MultiturnDPODataset
 from tqdm import tqdm
 import hydra
 import numpy as np
+import os
 from redteam.utils.data_utils import read_json
 
 
@@ -106,7 +107,11 @@ def main(config: DictConfig):
         # f = config.data_flat_fname.split("/")[-1]
         # config.out_fname = config.out_fname.replace(".pt", f"{f}_flat.pt")
 
-        config.out_fname = config.data_flat_fname.replace(".json", ".pt")
+        # config.out_fname = config.data_flat_fname.replace(".json", ".pt")
+
+        config.out_fname = config.out_fname.replace("XX", config.data_flat_fname.replace(".json", "").split("/")[-1])
+        os.makedirs(os.path.dirname(config.out_fname), exist_ok=True)
+
         print(f"Loaded flat file: {config.data_flat_fname}")
         chosen_conversations = [
             conversations[i]["chosen_conversation"] for i in range(len(conversations))

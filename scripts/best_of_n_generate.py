@@ -11,13 +11,12 @@ from redteam.utils.slack_me import slack_notification
 from hydra.core.hydra_config import HydraConfig
 from redteam.envs.evaluation import Game
 from redteam.train.common import set_seed_everywhere
-
+import numpy as np
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 global_config = None
-
 
 
 @hydra.main(
@@ -60,18 +59,24 @@ def main(config: DictConfig):
 
     trajs, errors = [], []
 
-    if config.start_idx !=0:
-        records = records[config.start_idx:]
-    from IPython import embed; embed()
+    # if config.start_idx !=0:
+    #     # continue from a certain index. This is a hacky fix for a timeout in slurm
+    #     records = records[config.start_idx:]
+    
+    if config.chunk != -1:
+        idxs = np.arange(len(records))
+        chunked_idxs = np.array_split(idxs, np.ceil(len(idxs) / config.max_chunk_size))
+        assert config.chunk < len(chunked_idxs), f"Chunk {config.chunk} is out of bounds"
+        chunked_records = [records[i] for i in chunked_idxs[config.chunk]]
 
-
-    for record in tqdm(records):
+    # from IPython import embed; embed()
+    for record in tqdm(chunked_records):
         goal = record["goal"]
         conversation = record["chosen_conversation"]
         reward = record["chosen_reward"]
-
         rejected_conversation = record["rejected_conversation"]
         rejected_reward = record["rejected_reward"]
+        os.makedirs(os.path.dirname(config.out_fname), exist_ok=True)
 
         try:
             env_state, judge_rewards = redteaming_game.rejection_sample_fix_conversation(goal, rejected_conversation, rejected_reward)
@@ -94,11 +99,8 @@ def main(config: DictConfig):
                     "repaired_reward": judge_rewards,
                 }
             )
-
             write_json(trajs, config.out_fname)
             
-
-
         except Exception as e:
             logger.error(f"Error in repairing traj for: {goal}")
             logger.error(e)
@@ -115,4 +117,4 @@ if __name__ == "__main__":
         slack_notification(f"Redteaming game completed successfully: config: {global_config}")
     except Exception as e:
         logger.error(e)
-        slack_notification(f"Error in running redteaming game: {e}, config: {global_config}")
+        slack_notification(f"Error in running B-o-N generation: {e}, config: {global_config}")
