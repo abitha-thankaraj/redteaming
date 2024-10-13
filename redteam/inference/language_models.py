@@ -11,7 +11,7 @@ def load_model_and_tokenizer(
     model_name, model_dir, model_cache_dir, device, model_max_length=4096
 ):
     tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path=model_dir,
+        pretrained_model_name_or_path=model_name,
         use_fast=False,
         model_max_length=model_max_length,
     )

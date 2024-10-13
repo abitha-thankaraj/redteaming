@@ -32,14 +32,17 @@ EXPERIMENT_DESC=$4
 # Trained attacker
 ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_mistralai/Mistral-7B-Instruct-v0.1_2024-08-10-16-11-32-379/checkpoint-135
 ATTACKER_MODEL_TYPE="sft_trained_attacker"
+MODEL_NAME="mistralai/Mistral-7B-Instruct-v0.1"
 
 
 
 # # Jailbreakbench evals
 python $REPO_DIR/scripts/evaluate.py env=babel \
                 dataset_configs=jailbreakbench \
+                attacker.model_name=$MODEL_NAME \
                 attacker.model_dir=$ATTACKER_MODEL_DIR \
                 attacker.model_type=$ATTACKER_MODEL_TYPE \
+                defender.model_name=$MODEL_NAME \
                 defender.model_dir=$LATEST_CHECKPOINT \
                 defender.model_type=$DEFENDER_MODEL_TYPE \
                 defender.generation_kwargs.temperature=$TEMPERATURE \
@@ -47,8 +50,10 @@ python $REPO_DIR/scripts/evaluate.py env=babel \
 
 python $REPO_DIR/scripts/evaluate.py env=babel \
                 dataset_configs=simplesafetytests \
+                attacker.model_name=$MODEL_NAME \
                 attacker.model_dir=$ATTACKER_MODEL_DIR \
                 attacker.model_type=$ATTACKER_MODEL_TYPE \
+                defender.model_name=$MODEL_NAME \
                 defender.model_dir=$LATEST_CHECKPOINT \
                 defender.model_type=$DEFENDER_MODEL_TYPE \
                 defender.generation_kwargs.temperature=$TEMPERATURE \
@@ -58,8 +63,10 @@ python $REPO_DIR/scripts/evaluate.py env=babel \
 python $REPO_DIR/scripts/evaluate.py env=babel \
                 dataset_configs=openai \
                 dataset_configs.dataset_path=$DATA_DIR/cfg_multiturn_generation_prompts/json_files/gpt4_redteaming_questions.json \
+                attacker.model_name=$MODEL_NAME \
                 attacker.model_dir=$ATTACKER_MODEL_DIR \
                 attacker.model_type=$ATTACKER_MODEL_TYPE \
+                defender.model_name=$MODEL_NAME \
                 defender.model_dir=$LATEST_CHECKPOINT \
                 defender.model_type=$DEFENDER_MODEL_TYPE \
                 defender.generation_kwargs.temperature=$TEMPERATURE \
