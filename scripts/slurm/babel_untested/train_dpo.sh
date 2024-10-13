@@ -13,13 +13,13 @@ source /data/user_data/athankar/redteaming/scripts/slurm/env_files/.babel_env
 MODEL_PATH=${1:-"meta-llama/Meta-Llama-3.1-8B-Instruct"}
 AGENT_TYPE=${2:-"defender"}
 MASTER_PORT=${3:-29500}
-DATASET_TYPE=${4:-"value_labeled_all"}
+DATASET_TYPE=${4:-"new_value_labeled_with_best_of_n"}
 VALUE_FUNCTION_TYPE=${5:-""}
 VALUE_FUNCTION_EXPERIMENT=${6:-""}
 LEARNING_RATE=${7:-5e-7}
 RWR_TEMPERATURE=${8:-1.0}
 LENGTH_KEY=${9:-"Meta-Llama-3.1-8B-Instruct_length"}
-EXPERIMENT_DESC=${10:-"dpo_on_vanilla_sft_paired_by_goal_no_fixed_trajs_labelled"}
+EXPERIMENT_DESC=${10:-"dpo_on_sft_star_new_value_labeled_with_best_of_n"}
 
 # dpo on labelled sft paired
 # BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-01-48-46-440/checkpoint-44/"}
@@ -38,19 +38,24 @@ EXPERIMENT_DESC=${10:-"dpo_on_vanilla_sft_paired_by_goal_no_fixed_trajs_labelled
 # BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-29-11-34-39-682/checkpoint-30"}
 
 # dpo_on_vanilla_sft_paired_by_goal_no_fixed_trajs_labelled
-BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-29-15-26-35-369/checkpoint-22"}
+# BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-29-15-26-35-369/checkpoint-22"}
+# MAX_LENGTH=4096
+# RUN_NAME="multiturn_dpo_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
+# LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
+
+# new_value_labeled_with_best_of_n
+BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-10-13-09-47-13-478/checkpoint-98"}
 MAX_LENGTH=4096
 RUN_NAME="multiturn_dpo_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
 LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
-
 
 # Run the first job
 deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --algo "dpo" \
         --model_name_or_path $BASE_MODEL_PATH \
         --seed 42   \
-        --data_path $DATA_DIR/best_of_n/value_labeled/combined_no_fixed_conversations_value_labeled.pt \
-        --eval_data_path $DATA_DIR/gen_judge_multiturn_conversation_combined/combined_eval_data_llama_rewards_flat_length_added.json \
+        --data_path $DATA_DIR/precomputed_datasets/meta-llama/Meta-Llama-3.1-8B-Instruct_defender_precomputed_logits_combined_llama_best_of_n_new_value_labeled_deduplicated.pt \
+        --eval_data_path "" \
         --agent_type $AGENT_TYPE \
         --dataset_type $DATASET_TYPE \
         --length_key $LENGTH_KEY \
@@ -58,8 +63,6 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --value_function_type "$VALUE_FUNCTION_TYPE" \
         --model_name $MODEL_PATH \
         --value_function_experiment "$VALUE_FUNCTION_EXPERIMENT" \
-        --rwr_temperature $RWR_TEMPERATURE \
-        --rwr_type "" \
         --output_dir $LOGDIR  \
         --cache_dir $HF_HOME \
         --run_name $RUN_NAME \

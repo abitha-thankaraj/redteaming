@@ -7,7 +7,6 @@ os.environ["WANDB_PROJECT"] = "redteaming"
 
 from redteam.train import *
 
-# get_dataset, get_trainer, ModelArguments, DataArguments, RWRArguments, TrainingArguments
 import transformers
 import math, torch, pathlib
 from redteam.train.common import (
@@ -66,17 +65,13 @@ def train():
     global local_rank
     # Parse args; All configs sent to the model
     parser = transformers.HfArgumentParser(
-        (ModelArguments, DataArguments, RWRArguments, TrainingArguments)
+        (ModelArguments, DataArguments, TrainingArguments)
     )
-    model_args, data_args, rwr_args, training_args = parser.parse_args_into_dataclasses()
 
-    # Set rwr args
-    rwr_args.r_max = data_args.gamma**2 + data_args.gamma + 1
-    rwr_args.r_min = 0.0
+    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     training_args.data_args = data_args
     training_args.model_args = model_args
-    training_args.rwr_args = rwr_args
 
     assert (
         training_args.model_max_length >= data_args.max_length
@@ -100,18 +95,18 @@ def train():
     )
 
     trainer = get_trainer(model, tokenizer, train_dataset, eval_dataset, training_args)
-    torch.distributed.barrier()
-    if torch.distributed.get_rank() == 0:
-        if hasattr(train_dataset, "reward_to_gos"):
-            unique, counts = np.unique(
-                train_dataset.reward_to_gos.flatten(), return_counts=True
-            )
-            value_counts = dict(zip(unique, counts))
-        else:
-            value_counts = None
-        training_args.dataset_stats = DatasetStats(
-            train_dataset_length=len(train_dataset), rtg_dict=value_counts
-        )
+    # torch.distributed.barrier()
+    # if torch.distributed.get_rank() == 0:
+    #     if hasattr(train_dataset, "reward_to_gos"):
+    #         unique, counts = np.unique(
+    #             train_dataset.reward_to_gos.flatten(), return_counts=True
+    #         )
+    #         value_counts = dict(zip(unique, counts))
+    #     else:
+    #         value_counts = None
+    #     training_args.dataset_stats = DatasetStats(
+    #         train_dataset_length=len(train_dataset), rtg_dict=value_counts
+    #     )
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)

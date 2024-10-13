@@ -5,18 +5,18 @@ defaults:
 
 seed: 69
 
-# model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-# model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-# model_type: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+model_type: "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
-model_name: "mistralai/Mistral-7B-Instruct-v0.1"
-model_dir: "mistralai/Mistral-7B-Instruct-v0.1"
-model_type: "mistralai/Mistral-7B-Instruct-v0.1"
+# model_name: "mistralai/Mistral-7B-Instruct-v0.1"
+# model_dir: "mistralai/Mistral-7B-Instruct-v0.1"
+# model_type: "mistralai/Mistral-7B-Instruct-v0.1"
 
 
 
 model_cache_dir: ${env.hf_home}
-device: "cuda:2"
+device: "cuda:0"
 
 # from_flat_file: true
 # data_flat_fname: /data/group_data/rl/datasets/redteaming/quality_filtered/high_contrast_1000.json

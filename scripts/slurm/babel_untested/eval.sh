@@ -12,7 +12,7 @@
 #SBATCH --gpu-bind=closest 
 #SBATCH --no-requeue
 #SBATCH --partition=general
-#SBATCH --time=04:00:00
+#SBATCH --time=06:00:00
 
 
 source /home/athankar/.bashrc
