@@ -12,7 +12,12 @@ VALUE_FUNCTION_IDENTIFIERS = [
     "<SAFE>",
     "<UNSAFE>",
     "<MODERATE>",
-    "<FIX>"
+    "<FIX>",
+    # New value labels
+    "[SAFE]", 
+    "[HARMFUL]",
+    "[MODERATE]",
+    "[FIX]",
 ]
 
 class Conversation:

@@ -157,7 +157,6 @@ def main(config: DictConfig):
     print(f"Saved output to {config.out_fname}")
 
 
-[]
 if __name__ == "__main__":
     try:
         main()

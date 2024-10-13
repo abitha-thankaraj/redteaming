@@ -41,7 +41,9 @@ def deduplicate_json_list(file_path):
 
 # Usage
 if __name__ == "__main__":
-    FOLDER = "/data/group_data/rl/datasets/redteaming/best_of_n/mistral/combined"
+    # FOLDER = "/data/group_data/rl/datasets/redteaming/best_of_n/mistral/combined"
+    FOLDER = "/data/group_data/rl/datasets/redteaming/best_of_n/llama/combined"
+
     for fname in os.listdir(FOLDER):
         if fname.endswith('.json'):
             print(fname)
