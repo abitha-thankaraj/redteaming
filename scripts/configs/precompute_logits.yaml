@@ -5,13 +5,13 @@ defaults:
 
 seed: 69
 
-model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-model_type: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+# model_name: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+# model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+# model_type: "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
-# model_name: "mistralai/Mistral-7B-Instruct-v0.1"
-# model_dir: "mistralai/Mistral-7B-Instruct-v0.1"
-# model_type: "mistralai/Mistral-7B-Instruct-v0.1"
+model_name: "mistralai/Mistral-7B-Instruct-v0.1"
+model_dir: "mistralai/Mistral-7B-Instruct-v0.1"
+model_type: "mistralai/Mistral-7B-Instruct-v0.1"
 
 
 
@@ -22,7 +22,7 @@ device: "cuda:0"
 # data_flat_fname: /data/group_data/rl/datasets/redteaming/quality_filtered/high_contrast_1000.json
 
 from_flat_file: true
-data_flat_fname: /data/group_data/rl/datasets/redteaming/quality_filtered/hard_negatives_1000.json
+data_flat_fname: /data/group_data/rl/datasets/redteaming/best_of_n/mistral/deduplicated/combined_mistral_best_of_n_value_labeled_deduplicated.json
 
 # from_flat_file: true
 # data_flat_fname: "/data/group_data/rl/datasets/redteaming/best_of_n/paired/best_of_n_repaired_conversations_hard_negatives_1000_unlabeled.json"

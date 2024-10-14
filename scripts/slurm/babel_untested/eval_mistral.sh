@@ -35,8 +35,7 @@ ATTACKER_MODEL_TYPE="sft_trained_attacker"
 MODEL_NAME="mistralai/Mistral-7B-Instruct-v0.1"
 
 
-
-# # Jailbreakbench evals
+# Jailbreakbench evals
 python $REPO_DIR/scripts/evaluate.py env=babel \
                 dataset_configs=jailbreakbench \
                 attacker.model_name=$MODEL_NAME \
