@@ -79,6 +79,7 @@ class HuggingFaceLM(LanguageModel):
         top_p: float = 1.0,
         decode_skip_special_tokens: bool = True,
         prefill_text: str = None,
+        return_log_probs: bool = False,
     ):
         """
         Given a conversation and a model, generates a response. We use only ancestral sampling for generation.
@@ -110,26 +111,36 @@ class HuggingFaceLM(LanguageModel):
         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
         # Greedy decoding
         if temperature > 0:
-            output_ids = self.model.generate(
+            model_output = self.model.generate(
                 **inputs,
                 max_new_tokens=max_n_tokens,
                 do_sample=True,
                 temperature=temperature,
                 top_p=top_p,
                 num_return_sequences=1,  # https://github.com/huggingface/blog/blob/main/how-to-generate.md
+                return_dict_in_generate=True,
+                output_scores=return_log_probs,
             )
         else:
             # Greedy decoding for temperature 0.
-            output_ids = self.model.generate(
+            model_output = self.model.generate(
                 **inputs,
                 max_new_tokens=max_n_tokens,
                 do_sample=False,
                 top_p=1,
-                temperature=1,  # To prevent warning messages
+                temperature=1,  # To prevent warning messages,
+                return_dict_in_generate=True,
+                output_scores=return_log_probs,
             )
+        output_ids = model_output["sequences"]
         outputs = self.tokenizer.decode(
             output_ids[0], skip_special_tokens=decode_skip_special_tokens
         )
+
+        if return_log_probs:
+            log_probs = torch.nn.functional.log_softmax(model_output["scores"], dim=-1)
+            log_probs.to("cpu")        
+        
         #TODO: do this with tokenizer separators.
         if (
             "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name
@@ -142,16 +153,21 @@ class HuggingFaceLM(LanguageModel):
                 outputs = outputs.split("<|start_header_id|>assistant<|end_header_id|>")[
                     -1
                 ].split("<|eot_id|>")[0]
-
         if "mistralai/Mistral-7B-Instruct-v0.1" in self.model_name:
             outputs = outputs.split("[/INST] ")[-1]
         for key in inputs:
             inputs[key].to("cpu")
+        for key in model_output:
+            model_output[key].to("cpu")
         output_ids.to("cpu")
-        del inputs, output_ids
+        del inputs, output_ids, model_output
 
         gc.collect()
         torch.cuda.empty_cache()
+
+        if return_log_probs:
+            return outputs, log_probs
+
         return outputs
 
     @torch.no_grad()
