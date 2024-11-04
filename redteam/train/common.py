@@ -34,20 +34,25 @@ def get_tokenizer_separators(
             assistant_suffix="<|eot_id|>",
             prefix_offset=0,
         )
-        tokenizer_separator.set_assistant_prefix_ids(tokenizer)
-        return tokenizer, tokenizer_separator
-    elif tokenizer.name_or_path in [
-        "mistralai/Mistral-7B-Instruct-v0.1",
-        "mistralai/Mistral-7B-Instruct-v0.3",
-    ]:
+
+    elif tokenizer.name_or_path == "mistralai/Mistral-7B-Instruct-v0.1":
         tokenizer.pad_token_id = tokenizer.unk_token_id
         tokenizer_separator = TokenizerSeparators(
             assistant_prefix=" [/INST] ", assistant_suffix="</s>", prefix_offset=-1
         )
-        tokenizer_separator.set_assistant_prefix_ids(tokenizer)
-        return tokenizer, tokenizer_separator
+
+    elif tokenizer.name_or_path == "google/gemma-2-2b-it":
+        tokenizer_separator = TokenizerSeparators(
+            assistant_prefix="<start_of_turn>model\n",
+            assistant_suffix="<end_of_turn>\n",
+            prefix_offset=0
+        )
+        
     else:
         raise ValueError(f"Tokenizer {tokenizer.name_or_path} not supported")
+    
+    tokenizer_separator.set_assistant_prefix_ids(tokenizer)
+    return tokenizer, tokenizer_separator
 
 
 def set_seed_everywhere(seed: int) -> None:

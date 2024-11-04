@@ -109,7 +109,7 @@ class Policy(HuggingFaceLM):
 
     def act_prefilled(self, obs, prefill_text):
         return self.generate(obs, prefill_text=prefill_text, **self.generation_kwargs)
-
+            
     def act_batch(self, obses):
         raise NotImplementedError
 

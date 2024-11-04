@@ -10,6 +10,7 @@ from redteam.train.common import get_tokenizer_separators
 def load_model_and_tokenizer(
     model_name, model_dir, model_cache_dir, device, model_max_length=4096
 ):
+    print("Loading lokenizer ")
     tokenizer = AutoTokenizer.from_pretrained(
         pretrained_model_name_or_path=model_name,
         use_fast=False,
@@ -17,18 +18,30 @@ def load_model_and_tokenizer(
     )
     tokenizer.padding_side = "left"
     tokenizer, tokenizer_separator = get_tokenizer_separators(tokenizer)
-
+    print("Loading lokenizer ")
     model = AutoModelForCausalLM.from_pretrained(
         pretrained_model_name_or_path=model_dir,
         trust_remote_code=True,
         torch_dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2",
+        attn_implementation="flash_attention_2" if "gemma" not in model_name else "eager", # Something about the attention implementation
         cache_dir=model_cache_dir,
     ).to(device)
     model.tie_weights()
     model.resize_token_embeddings(len(tokenizer))
 
     return model, tokenizer, tokenizer_separator
+
+
+def _move_to_cpu(item):
+    """Recursively moves a nested structure to CPU. Saves memory during inference."""
+    if isinstance(item, torch.Tensor):
+        return item.to("cpu")
+    elif isinstance(item, (list, tuple)):
+        return [_move_to_cpu(i) for i in item]
+    elif isinstance(item, dict):
+        return {k: _move_to_cpu(v) for k, v in item.items()}
+    else:
+        return item
 
 
 class LanguageModel:
@@ -43,6 +56,7 @@ class LanguageModel:
         top_p: float = 1.0,
         decode_skip_special_tokens: bool = True,
         prefill_text: str = None,
+        return_log_probs: bool = False,
     ):
         """Generates a response for a prompt using a language model."""
         raise NotImplementedError
@@ -60,6 +74,7 @@ class HuggingFaceLM(LanguageModel):
             "mistralai/Mistral-7B-Instruct-v0.3",
             "mistralai/Mistral-7B-Instruct-v0.1",
             "meta-llama/Meta-Llama-3-8B-Instruct",
+            "google/gemma-2-2b-it"
         ], "Only Meta-Llama and Mistral models have been tested."
         # TODO: Assert that padding side is left for generations.
         if self.tokenizer.padding_side != "left":
@@ -92,6 +107,7 @@ class HuggingFaceLM(LanguageModel):
             top_p: float, top p for sampling
             decode_skip_special_tokens: bool, whether to skip special tokens
             prefill_text: str, prefix to start the generation with
+            return_log_probs: bool, whether to return log probs per token for outputs
         """
         # Apply chat template to each prompt.
         inputs = {}
@@ -109,6 +125,7 @@ class HuggingFaceLM(LanguageModel):
 
         inputs["attention_mask"] = inputs["input_ids"].ne(self.tokenizer.pad_token_id).long()
         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
+        
         # Greedy decoding
         if temperature > 0:
             model_output = self.model.generate(
@@ -117,7 +134,9 @@ class HuggingFaceLM(LanguageModel):
                 do_sample=True,
                 temperature=temperature,
                 top_p=top_p,
-                num_return_sequences=1,  # https://github.com/huggingface/blog/blob/main/how-to-generate.md
+                num_return_sequences=1,  
+                # https://github.com/huggingface/blog/blob/main/how-to-generate.md
+                # https://github.com/huggingface/transformers/blob/main/src/transformers/generation/utils.py#L1161
                 return_dict_in_generate=True,
                 output_scores=return_log_probs,
             )
@@ -133,40 +152,29 @@ class HuggingFaceLM(LanguageModel):
                 output_scores=return_log_probs,
             )
         output_ids = model_output["sequences"]
-        outputs = self.tokenizer.decode(
-            output_ids[0], skip_special_tokens=decode_skip_special_tokens
-        )
-
-        if return_log_probs:
-            log_probs = torch.nn.functional.log_softmax(model_output["scores"], dim=-1)
-            log_probs.to("cpu")        
         
-        #TODO: do this with tokenizer separators.
-        if (
-            "meta-llama/Meta-Llama-3.1-8B-Instruct" in self.model_name
-            or "meta-llama/Meta-Llama-3-8B-Instruct" in self.model_name
-        ):
-            if decode_skip_special_tokens:
-                outputs = outputs.split("assistant\n\n")[-1]
-            else:
-                # We use this when we use reserved tokens for value function experiments.
-                outputs = outputs.split("<|start_header_id|>assistant<|end_header_id|>")[
-                    -1
-                ].split("<|eot_id|>")[0]
-        if "mistralai/Mistral-7B-Instruct-v0.1" in self.model_name:
-            outputs = outputs.split("[/INST] ")[-1]
-        for key in inputs:
-            inputs[key].to("cpu")
-        for key in model_output:
-            model_output[key].to("cpu")
-        output_ids.to("cpu")
+        # returns only the output from the last turn;
+        outputs = self.tokenizer.decode(
+            output_ids[0][len(inputs["input_ids"][0]):], skip_special_tokens=decode_skip_special_tokens
+        )
+        if return_log_probs:
+            # Returns log probs per output token.
+            log_probs_per_output_token = self.model.compute_transition_scores(
+            model_output.sequences, model_output.scores, normalize_logits=True
+            )
+        
+        _move_to_cpu(inputs)
+        _move_to_cpu(model_output)
+        _move_to_cpu(output_ids)
+
         del inputs, output_ids, model_output
 
         gc.collect()
         torch.cuda.empty_cache()
 
         if return_log_probs:
-            return outputs, log_probs
+            _move_to_cpu(log_probs_per_output_token)
+            return outputs, log_probs_per_output_token
 
         return outputs
 
@@ -217,11 +225,9 @@ class HuggingFaceLM(LanguageModel):
             index=labels_clamped.unsqueeze(2),
         )
 
-        for key in inputs:
-            inputs[key].to("cpu")
-        logits.to("cpu")
-
-        log_probs = log_probs.to("cpu")
+        _move_to_cpu(inputs)
+        _move_to_cpu(logits)
+        _move_to_cpu(log_probs)
 
         del inputs, logits
         gc.collect()

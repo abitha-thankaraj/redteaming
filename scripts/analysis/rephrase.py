@@ -8,10 +8,8 @@ from tqdm import tqdm
 from redteam.envs.common import get_policy
 from redteam.inference.judge import LlamaGuardJudge
 from redteam.utils.data_utils import read_json, write_json
-from redteam.data_generation.attack_prompts_dataset import get_dataset
 from redteam.utils.slack_me import slack_notification
 from hydra.core.hydra_config import HydraConfig
-from redteam.envs.evaluation import Game, evaluate_value_function
 from redteam.train.common import set_seed_everywhere
 from redteam.envs.common import Conversation
 from redteam.inference.language_models import GPT
@@ -99,8 +97,9 @@ def rephrased_evals(fix_me_messages, defender, judge, fix_intermediate=False):
                 conv.messages.append((messages[i][0], messages[i][1]))
             elif messages[i][0] == "defender":
                 if messages[i][1] == "":
-                    defender_response = defender.act(conv.to_defender_message())
+                    defender_response, log_probs = defender.act(conv.to_defender_message())
                     conv.messages.append(("defender", defender_response))
+
                     judge_score = judge.score(conv.to_judge_input())
                     if judge_score["rewards"][-1] > 0.0:
                         num_jailbreaks += 1
@@ -142,6 +141,8 @@ def main(fname):
     config.defender.model_cache_dir = "/data/tir/projects/tir6/bisk/athankar/projects/.cache"
 
     config.defender.device = "cuda:1"
+
+    # config.defender.generation_kwargs["return_log_probs"] = True
     defender = get_policy(config.defender)
     judge = LlamaGuardJudge(device=config.defender.device)
 

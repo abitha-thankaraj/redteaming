@@ -36,7 +36,8 @@ def get_model_and_tokenizer(model_args, data_args, training_args):
         config=config,
         trust_remote_code=True,
         cache_dir=training_args.cache_dir,
-        attn_implementation="flash_attention_2",
+        # attn_implementation="flash_attention_2",
+        attn_implementation="flash_attention_2" if "gemma" not in model_args.model_name_or_path else "eager",
         torch_dtype=torch.bfloat16,
     )
     # Tie the weights - Commonly used for memory efficient training?
