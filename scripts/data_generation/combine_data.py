@@ -64,9 +64,14 @@ if __name__ == "__main__":
 
 
 
-    folder_pattern = "/scratch/bcgv/datasets/redteaming/gemma_best_of_n/**/**/**/**/high_contrast**.json"
-    combine_json_files(folder_pattern, out_file_pattern="high_contrast")
+    # folder_pattern = "/scratch/bcgv/datasets/redteaming/gemma_best_of_n/**/**/**/**/high_contrast**.json"
+    # combine_json_files(folder_pattern, out_file_pattern="high_contrast")
 
 # /data/group_data/rl/datasets/redteaming/mistral_best_of_n/hard_negatives_1000_chunk_0/2024.10.12/14-03-1728756225/best_of_n_repaired_conversations_mistral_best_of_n/hard_negatives_1000_chunk_0.json
 
 
+    folder_pattern = "/scratch/bcgv/datasets/redteaming/qwen_best_of_n/**/**/**/**/high_contrast**.json"
+    combine_json_files(folder_pattern, out_file_pattern="high_contrast")
+
+    folder_pattern = "/scratch/bcgv/datasets/redteaming/qwen_best_of_n/**/**/**/**/hard_negatives**.json"
+    combine_json_files(folder_pattern, out_file_pattern="hard_negatives")

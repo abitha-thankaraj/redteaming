@@ -60,21 +60,36 @@ from redteam.utils.data_utils import read_json, write_json
 # }
 
 
+# fnames ={
+#     "combined_gemma_no_best_of_n_unlabelled.json":["/scratch/bcgv/datasets/redteaming/quality_filtered/high_contrast_1000.json", 
+#                                                  "/scratch/bcgv/datasets/redteaming/quality_filtered/hard_negatives_1000.json"],
+#     "combined_gemma_no_best_of_n_value_labeled.json":["/scratch/bcgv/datasets/redteaming/quality_filtered/high_contrast_1000_value_labeled.json", 
+#                                                     "/scratch/bcgv/datasets/redteaming/quality_filtered/hard_negatives_1000_value_labeled.json"],
+#     "combined_gemma_best_of_n_unlabelled.json":["/scratch/bcgv/datasets/redteaming/gemma_best_of_n/hard_negatives_gemma_best_of_n.json", 
+#                                                 "/scratch/bcgv/datasets/redteaming/gemma_best_of_n/high_contrast_gemma_best_of_n.json",
+#                                                 "/scratch/bcgv/datasets/redteaming/quality_filtered/hard_negatives_1000.json",
+#                                                 "/scratch/bcgv/datasets/redteaming/quality_filtered/high_contrast_1000.json"],
+#     "combined_gemma_best_of_n_value_labeled.json":["/scratch/bcgv/datasets/redteaming/gemma_best_of_n/hard_negatives_gemma_best_of_n_value_labeled.json",
+#                                                     "/scratch/bcgv/datasets/redteaming/gemma_best_of_n/high_contrast_gemma_best_of_n_value_labeled.json",
+#                                                     "/scratch/bcgv/datasets/redteaming/quality_filtered/hard_negatives_1000_value_labeled.json",
+#                                                     "/scratch/bcgv/datasets/redteaming/quality_filtered/high_contrast_1000_value_labeled.json"]
+# }
+# combined_fname = "/data/group_data/rl/datasets/redteaming/best_of_n/mistral/combined_mistral_best_of_n_new_value_labeled.json"
+
 fnames ={
-    "combined_gemma_no_best_of_n_unlabelled.json":["/scratch/bcgv/datasets/redteaming/quality_filtered/high_contrast_1000.json", 
+    "combined_qwen_no_best_of_n_unlabelled.json":["/scratch/bcgv/datasets/redteaming/quality_filtered/high_contrast_1000.json", 
                                                  "/scratch/bcgv/datasets/redteaming/quality_filtered/hard_negatives_1000.json"],
-    "combined_gemma_no_best_of_n_value_labeled.json":["/scratch/bcgv/datasets/redteaming/quality_filtered/high_contrast_1000_value_labeled.json", 
+    "combined_qwen_no_best_of_n_value_labeled.json":["/scratch/bcgv/datasets/redteaming/quality_filtered/high_contrast_1000_value_labeled.json", 
                                                     "/scratch/bcgv/datasets/redteaming/quality_filtered/hard_negatives_1000_value_labeled.json"],
-    "combined_gemma_best_of_n_unlabelled.json":["/scratch/bcgv/datasets/redteaming/gemma_best_of_n/hard_negatives_gemma_best_of_n.json", 
-                                                "/scratch/bcgv/datasets/redteaming/gemma_best_of_n/high_contrast_gemma_best_of_n.json",
+    "combined_qwen_best_of_n_unlabelled.json":["/scratch/bcgv/datasets/redteaming/qwen_best_of_n/hard_negatives_qwen_best_of_n.json", 
+                                                "/scratch/bcgv/datasets/redteaming/qwen_best_of_n/high_contrast_qwen_best_of_n.json",
                                                 "/scratch/bcgv/datasets/redteaming/quality_filtered/hard_negatives_1000.json",
                                                 "/scratch/bcgv/datasets/redteaming/quality_filtered/high_contrast_1000.json"],
-    "combined_gemma_best_of_n_value_labeled.json":["/scratch/bcgv/datasets/redteaming/gemma_best_of_n/hard_negatives_gemma_best_of_n_value_labeled.json",
-                                                    "/scratch/bcgv/datasets/redteaming/gemma_best_of_n/high_contrast_gemma_best_of_n_value_labeled.json",
+    "combined_qwen_best_of_n_value_labeled.json":["/scratch/bcgv/datasets/redteaming/qwen_best_of_n/hard_negatives_qwen_best_of_n_value_labeled.json",
+                                                    "/scratch/bcgv/datasets/redteaming/qwen_best_of_n/high_contrast_qwen_best_of_n_value_labeled.json",
                                                     "/scratch/bcgv/datasets/redteaming/quality_filtered/hard_negatives_1000_value_labeled.json",
                                                     "/scratch/bcgv/datasets/redteaming/quality_filtered/high_contrast_1000_value_labeled.json"]
 }
-# combined_fname = "/data/group_data/rl/datasets/redteaming/best_of_n/mistral/combined_mistral_best_of_n_new_value_labeled.json"
 
 def get_sft_plus_pairs(data):
     sft_pairs = []
@@ -98,7 +113,9 @@ def dedup(data):
 if __name__ == "__main__":
     # FOLDER = "/data/group_data/rl/datasets/redteaming/best_of_n/mistral/combined"
     # FOLDER = "/data/group_data/rl/datasets/redteaming/best_of_n/llama/combined"
-    FOLDER = "/scratch/bcgv/datasets/redteaming/best_of_n/gemma/combined"
+    # FOLDER = "/scratch/bcgv/datasets/redteaming/best_of_n/gemma/combined"
+    FOLDER = "/scratch/bcgv/datasets/redteaming/best_of_n/qwen/combined"
+
     os.path.exists(FOLDER) or os.makedirs(FOLDER)
 
     for k, v in fnames.items():
