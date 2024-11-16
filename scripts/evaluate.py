@@ -1,6 +1,7 @@
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import hydra
 import numpy as np
-import os
 from omegaconf import OmegaConf, DictConfig
 from redteam.constants import PARENT_DIR, SCRIPTS_CONFIG_DIR
 import logging
@@ -31,6 +32,7 @@ def main(config: DictConfig):
     # config.repo_dir = PARENT_DIR
 
     OmegaConf.resolve(config)
+    logger.debug(OmegaConf.to_yaml(config))
     set_seed_everywhere(config.seed)
     config.out_fname = os.path.join(config.out_dir, config.out_fname)
     os.makedirs(config.out_dir, exist_ok=True)
@@ -51,11 +53,13 @@ def main(config: DictConfig):
 
     logger.debug("Loading dataset")
     goals = get_dataset(**config.dataset_configs)["prompt"]
+    logger.debug(f"Loaded {len(goals)} goals")
 
     save_config = OmegaConf.to_yaml(config)
     with open(os.path.join(config.out_dir, "config.yaml"), "w") as f:
         f.write(save_config)
-
+    logger.debug(f"Saved config to {config.out_dir}")
+    logger.debug(f"Starting redteaming game")
     redteaming_game = Game(config.seed, attacker, defender, judge, goals, config.max_turns)
 
     trajs = []

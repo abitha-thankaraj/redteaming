@@ -23,7 +23,7 @@ def load_model_and_tokenizer(
         pretrained_model_name_or_path=model_dir,
         trust_remote_code=True,
         torch_dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2" if "gemma" not in model_name else "eager", # Something about the attention implementation
+        attn_implementation="flash_attention_2" if "gemma" not in model_name else "eager", # When we ran these experiments, huggingface's flash_attention_2 was unstable for gemma.
         cache_dir=model_cache_dir,
     ).to(device)
     model.tie_weights()
