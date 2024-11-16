@@ -1,7 +1,7 @@
 
 defaults:
   - _self_
-  - env: babel
+  - env: delta
 
 seed: 69
 
@@ -9,11 +9,13 @@ seed: 69
 # model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
 # model_type: "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
-model_name: "mistralai/Mistral-7B-Instruct-v0.1"
-model_dir: "mistralai/Mistral-7B-Instruct-v0.1"
-model_type: "mistralai/Mistral-7B-Instruct-v0.1"
+# model_name: "mistralai/Mistral-7B-Instruct-v0.1"
+# model_dir: "mistralai/Mistral-7B-Instruct-v0.1"
+# model_type: "mistralai/Mistral-7B-Instruct-v0.1"
 
-
+model_name: "google/gemma-2-2b-it"
+model_dir: "google/gemma-2-2b-it"
+model_type: "google/gemma-2-2b-it"
 
 model_cache_dir: ${env.hf_home}
 device: "cuda:0"
@@ -21,13 +23,17 @@ device: "cuda:0"
 # from_flat_file: true
 # data_flat_fname: /data/group_data/rl/datasets/redteaming/quality_filtered/high_contrast_1000.json
 
-from_flat_file: true
-data_flat_fname: /data/group_data/rl/datasets/redteaming/best_of_n/mistral/deduplicated/combined_mistral_best_of_n_value_labeled_deduplicated.json
+# from_flat_file: true
+# data_flat_fname: /data/group_data/rl/datasets/redteaming/best_of_n/mistral/deduplicated/combined_mistral_best_of_n_value_labeled_deduplicated.json
 
 # from_flat_file: true
 # data_flat_fname: "/data/group_data/rl/datasets/redteaming/best_of_n/paired/best_of_n_repaired_conversations_hard_negatives_1000_unlabeled.json"
 
-data_dir: "/data/group_data/rl/datasets/redteaming/combined"
+from_flat_file: true
+data_flat_fname: /scratch/bcgv/datasets/redteaming/gemma_best_of_n/high_contrast_gemma_best_of_n.json
+
+
+data_dir: "/scratch/bcgv/datasets/redteaming/gemma_best_of_n"
 agent_type: "defender"
 length_key: "Meta-Llama-3.1-8B-Instruct_length"
 dataset_type: "hard_negatives"

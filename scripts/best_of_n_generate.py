@@ -64,6 +64,7 @@ def main(config: DictConfig):
     #     records = records[config.start_idx:]
     
     if config.chunk != -1:
+        config.chunk = int(config.chunk)
         idxs = np.arange(len(records))
         chunked_idxs = np.array_split(idxs, np.ceil(len(idxs) / config.max_chunk_size))
         assert config.chunk < len(chunked_idxs), f"Chunk {config.chunk} is out of bounds"

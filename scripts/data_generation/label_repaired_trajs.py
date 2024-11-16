@@ -23,7 +23,7 @@ def get_labels(rewards):
 
 LABELS = {
     (1.0, 1.0, 1.0): ["<SAFE> ", "<SAFE> ", "<SAFE> "],
-    (1.0, 1.0, 0.0): ["<SAFE> ", "<SAFE> ", "<UNSAFE> "],
+    (1.0, 1.0, 0.0): ["<SAFE> ", "<MODERATE> ", "<UNSAFE> "],
     (1.0, 0.0, 1.0): ["<MODERATE> ", "<UNSAFE> ", "<SAFE> "],
     (1.0, 0.0, 0.0): ["<MODERATE> ", "<UNSAFE> ", "<UNSAFE> "],
     (0.0, 1.0, 1.0): ["<UNSAFE> ", "<SAFE> ", "<SAFE> "],
@@ -34,7 +34,7 @@ LABELS = {
 
 REPAIRED_LABELS = {
     (1.0, 1.0, 1.0): ["<SAFE> ", "<SAFE> ", "<SAFE> "],
-    (1.0, 1.0, 0.0): ["<SAFE> ", "<SAFE> ", "<UNSAFE> <FIX>  "],
+    (1.0, 1.0, 0.0): ["<SAFE> ", "<MODERATE> ", "<UNSAFE> <FIX>  "],
     (1.0, 0.0, 1.0): ["<MODERATE> ", "<UNSAFE> <FIX>  ", "<SAFE> "],
     (1.0, 0.0, 0.0): ["<MODERATE> ", "<UNSAFE> <FIX>  ", "<UNSAFE> <FIX>  "],
     (0.0, 1.0, 1.0): ["<UNSAFE> <FIX>  ", "<SAFE> ", "<SAFE> "],
@@ -76,7 +76,7 @@ def save_labeled_conversations(fname):
         rejected_reward = record["rejected_reward"]
         rejected_conversation = record["rejected_conversation"]
         rejected_labeled_conversation = label_conversation(
-            rejected_conversation, rejected_reward
+            rejected_conversation, rejected_reward,
         )
         new_record["rejected_conversation"] = rejected_labeled_conversation
         new_record["rejected_reward"] = rejected_reward
@@ -146,8 +146,12 @@ if __name__ == "__main__":
         # "/data/group_data/rl/datasets/redteaming/hard_negatives_1000/2024.09.26/00-19-1727324358/best_of_n_repaired_conversations_hard_negatives_1000.json",
         # "/data/group_data/rl/datasets/redteaming/best_of_n/mistral/hard_negatives_mistral_best_of_n.json",
         # "/data/group_data/rl/datasets/redteaming/best_of_n/mistral/high_contrast_mistral_best_of_n.json",
-        "/data/group_data/rl/datasets/redteaming/quality_filtered/hard_negatives_1000.json",
-        "/data/group_data/rl/datasets/redteaming/quality_filtered/high_contrast_1000.json",
+        # "/data/group_data/rl/datasets/redteaming/quality_filtered/hard_negatives_1000.json",
+        # "/data/group_data/rl/datasets/redteaming/quality_filtered/high_contrast_1000.json",
+        "/scratch/bcgv/datasets/redteaming/gemma_best_of_n/hard_negatives_gemma_best_of_n.json",
+        "/scratch/bcgv/datasets/redteaming/gemma_best_of_n/high_contrast_gemma_best_of_n.json",
+        "/scratch/bcgv/datasets/redteaming/quality_filtered/high_contrast_1000.json",
+        "/scratch/bcgv/datasets/redteaming/quality_filtered/hard_negatives_1000.json",
     ]
 
     for fname in fnames:
