@@ -30,8 +30,7 @@ device: "cuda:0"
 # data_flat_fname: "/data/group_data/rl/datasets/redteaming/best_of_n/paired/best_of_n_repaired_conversations_hard_negatives_1000_unlabeled.json"
 
 from_flat_file: true
-data_flat_fname: /scratch/bcgv/datasets/redteaming/gemma_best_of_n/high_contrast_gemma_best_of_n.json
-
+data_flat_fname: /scratch/bcgv/datasets/redteaming/best_of_n/gemma/combined/combined_gemma_best_of_n_unlabelled.json
 
 data_dir: "/scratch/bcgv/datasets/redteaming/gemma_best_of_n"
 agent_type: "defender"

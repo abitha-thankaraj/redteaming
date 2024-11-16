@@ -103,6 +103,7 @@ def main(config: DictConfig):
     )
     print(config)
     if config.from_flat_file:
+        slack_notification(f"Loading flat file: {config.data_flat_fname.split('/')[-1]}")
         conversations = from_flat_file(config.data_flat_fname)
         # f = config.data_flat_fname.split("/")[-1]
         # config.out_fname = config.out_fname.replace(".pt", f"{f}_flat.pt")
@@ -153,8 +154,10 @@ def main(config: DictConfig):
 
     inference_engine = HuggingFaceLM(config.model_name, model, tokenizer)
     out = precompute_logits(dataset, inference_engine)
+    os.makedirs(os.path.dirname(config.out_fname), exist_ok=True)
     torch.save(out, config.out_fname)
     print(f"Saved output to {config.out_fname}")
+    slack_notification(f"Saved output to {config.out_fname}")
 
 
 if __name__ == "__main__":
