@@ -4,7 +4,7 @@
 #SBATCH --error=/data/tir/projects/tir7/user_data/athankar/slurm/%A_%a.err
 #SBATCH --mail-user=athankar@cs.cmu.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --gres=gpu:A6000:2
+#SBATCH --gres=gpu:L40S:2
 #SBATCH --mem=32G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
