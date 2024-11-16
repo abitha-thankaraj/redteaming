@@ -36,7 +36,7 @@ ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_meta-llama/Meta-Llama
 ATTACKER_MODEL_TYPE="sft_trained_attacker"
 
 # Openai evals
-python $REPO_DIR/scripts/evaluate.py env=babel \
+python $REPO_DIR/scripts/evaluate.py env=delta \
                 dataset_configs=openai \
                 dataset_configs.dataset_path=$DATA_DIR/cfg_multiturn_generation_prompts/json_files/gpt4_redteaming_questions.json \
                 attacker.model_dir=$ATTACKER_MODEL_DIR \

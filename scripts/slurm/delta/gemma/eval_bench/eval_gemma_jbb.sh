@@ -37,7 +37,7 @@ ATTACKER_MODEL_TYPE="sft_trained_attacker"
 
 
 # Jailbreakbench evals
-python $REPO_DIR/scripts/evaluate.py env=babel \
+python $REPO_DIR/scripts/evaluate.py env=delta \
                 dataset_configs=jailbreakbench \
                 attacker.model_dir=$ATTACKER_MODEL_DIR \
                 attacker.model_type=$ATTACKER_MODEL_TYPE \

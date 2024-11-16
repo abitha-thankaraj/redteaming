@@ -36,7 +36,7 @@ ATTACKER_MODEL_DIR=$MODEL_PARENT_DIR/multiturnsft_attacker_meta-llama/Meta-Llama
 ATTACKER_MODEL_TYPE="sft_trained_attacker"
 
 # Simple safety tests evals
-python $REPO_DIR/scripts/evaluate.py env=babel \
+python $REPO_DIR/scripts/evaluate.py env=delta \
                 dataset_configs=simplesafetytests \
                 attacker.model_dir=$ATTACKER_MODEL_DIR \
                 attacker.model_type=$ATTACKER_MODEL_TYPE \
