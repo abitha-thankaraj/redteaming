@@ -4,7 +4,7 @@
 source ~/.bashrc
 source /scratch/bcgv/athankaraj/redteaming/scripts/slurm/env_files/.delta_env
 # Schedule the evals to run after the first job; 0, 0.7, 1.0 temperature
-EXPERIMENT_DESC=""
+EXPERIMENT_DESC="qwen_untrained_evals"
 UNTRAINED_DEFENDER_MODEL_NAME="untrained_defender"
 # Model parent dir is the parent directory for the checkpoint folder 
 # The checkpoint folder is where the model is loaded from
@@ -14,7 +14,7 @@ UNTRAINED_DEFENDER_MODEL_DIR="Qwen/Qwen1.5-1.8B-Chat"
 # for loop through temperatures
 for temperature in 0.0 0.7 1.0
 do
-    sbatch $REPO_DIR/scripts/slurm/delta/qwen/eval_bench/eval_qwen_oai.sh $temperature $UNTRAINED_DEFENDER_MODEL_DIR $UNTRAINED_DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.$SFT_ATTACKER_MODEL_TYPE.temp$temperature"
-    sbatch $REPO_DIR/scripts/slurm/delta/qwen/eval_bench/eval_qwen_jbb.sh $temperature $UNTRAINED_DEFENDER_MODEL_DIR $UNTRAINED_DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.$SFT_ATTACKER_MODEL_TYPE.temp$temperature"
-    sbatch $REPO_DIR/scripts/slurm/delta/qwen/eval_bench/eval_qwen_ss.sh $temperature $UNTRAINED_DEFENDER_MODEL_DIR $UNTRAINED_DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.$SFT_ATTACKER_MODEL_TYPE.temp$temperature"
+    sbatch $REPO_DIR/scripts/slurm/delta/qwen/eval_bench/eval_qwen_oai.sh $temperature $UNTRAINED_DEFENDER_MODEL_DIR $UNTRAINED_DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
+    sbatch $REPO_DIR/scripts/slurm/delta/qwen/eval_bench/eval_qwen_jbb.sh $temperature $UNTRAINED_DEFENDER_MODEL_DIR $UNTRAINED_DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
+    sbatch $REPO_DIR/scripts/slurm/delta/qwen/eval_bench/eval_qwen_ss.sh $temperature $UNTRAINED_DEFENDER_MODEL_DIR $UNTRAINED_DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
 done
