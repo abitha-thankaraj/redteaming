@@ -47,6 +47,12 @@ def get_tokenizer_separators(
             assistant_suffix="<end_of_turn>\n",
             prefix_offset=0
         )
+    elif tokenizer.name_or_path == "Qwen/Qwen1.5-1.8B-Chat":
+        tokenizer_separator = TokenizerSeparators(
+            assistant_prefix="<|im_start|>assistant\n",
+            assistant_suffix="<|im_end|>\n",
+            prefix_offset=0
+        )    
         
     else:
         raise ValueError(f"Tokenizer {tokenizer.name_or_path} not supported")

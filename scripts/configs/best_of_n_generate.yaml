@@ -12,9 +12,13 @@ defender:
   # model_dir: "meta-llama/Meta-Llama-3.1-8B-Instruct"
   # model_type: "meta-llama/Meta-Llama-3.1-8B-Instruct"
   
-  model_name: "google/gemma-2-2b-it"
-  model_dir: "google/gemma-2-2b-it"
-  model_type: "google/gemma-2-2b-it"
+  # model_name: "google/gemma-2-2b-it"
+  # model_dir: "google/gemma-2-2b-it"
+  # model_type: "google/gemma-2-2b-it"
+
+  model_name: "Qwen/Qwen1.5-1.8B-Chat"
+  model_dir: "Qwen/Qwen1.5-1.8B-Chat"
+  model_type: "Qwen/Qwen1.5-1.8B-Chat"
 
   model_cache_dir: ${env.hf_home}
   device: "cuda"
@@ -36,7 +40,7 @@ max_chunk_size: 100
 
 # start_idx: 0
 # Result of simulating the game will be saved in this file
-experiment_desc: gemma_best_of_n/high_contrast_1000_chunk_${chunk}
+experiment_desc: qwen_best_of_n/high_contrast_1000_chunk_${chunk}
 out_dir: ${env.data_dir}/${experiment_desc}/${now:%Y.%m.%d}/${now:%H-%M-%s}
 out_fname: best_of_n_repaired_conversations_${experiment_desc}.json
 hydra:
