@@ -1,29 +1,26 @@
 #!/bin/bash
 #SBATCH --job-name=evaluation
-#SBATCH --output=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.out
-#SBATCH --error=/scratch/bcgv/athankaraj/logs/slurm/%A_%a.err
-#SBATCH --account=bcgv-delta-gpu
+#SBATCH --output=/data/tir/projects/tir7/user_data/athankar/slurm/%A_%a.out
+#SBATCH --error=/data/tir/projects/tir7/user_data/athankar/slurm/%A_%a.err
 #SBATCH --mail-user=athankar@cs.cmu.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --partition=gpuA40x4
-#SBATCH --mem=64G
+#SBATCH --gres=gpu:A6000:2
+#SBATCH --mem=32G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=32 
-#SBATCH --gpus-per-node=2
+#SBATCH --cpus-per-task=24 
 #SBATCH --gpu-bind=closest 
 #SBATCH --no-requeue
+#SBATCH --partition=general
 #SBATCH --time=06:00:00
-#SBATCH --exclude=gpub054
 
 
-source ~/.bashrc
-source /sw/external/python/anaconda3/etc/profile.d/conda.sh
-module load cuda/12.3.0
+source /home/athankar/.bashrc
+source /home/athankar/miniconda3/etc/profile.d/conda.sh
+module load cuda-12.3
 conda activate redteam
+source /data/user_data/athankar/redteaming/scripts/slurm/env_files/.babel_env
 
-# Loads common environment variables
-source /scratch/bcgv/athankaraj/redteaming/scripts/slurm/env_files/.delta_env
 
 TEMPERATURE=$1
 
