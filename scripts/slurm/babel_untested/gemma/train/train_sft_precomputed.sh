@@ -75,8 +75,8 @@ if [ -z "$LATEST_CHECKPOINT" ]; then
     exit 1
 fi
 
-DEFENDER_MODEL_DIR=$LATEST_CHECKPOINT
-DEFENDER_MODEL_NAME="$EXPERIMENT_DESC.lr$$LEARNING_RATE"
+DEFENDER_MODEL_DIR="$LATEST_CHECKPOINT"
+DEFENDER_MODEL_NAME="$EXPERIMENT_DESC.lr$LEARNING_RATE"
 
 # Launch evals only if algo is sft_precomputed. 
 # SFT^* does not need to be evaluated. Directly launch DPO runs
@@ -94,5 +94,9 @@ else
     echo "Skipping evals because algo is not sft_precomputed. Current algo: $ALGO"
 fi
 # Launch DPO runs
+# echo "Launching DPO runs"
+# set -x
 
-sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/train/train_dpo.sh $DATASET_TYPE $DATA_PATH $MASTER_PORT $LEARNING_RATE "dpo_$EXPERIMENT_DESC" $DEFENDER_MODEL_DIR
+# sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/launch_train_dpo.sh $DATASET_TYPE $DATA_PATH $MASTER_PORT 5e-7 "dpo_$EXPERIMENT_DESC.lr$$LEARNING_RATE" $DEFENDER_MODEL_DIR
+
+# set +x

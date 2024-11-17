@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=eval_jbb
+#SBATCH --job-name=eval_all
 #SBATCH --output=/data/tir/projects/tir7/user_data/athankar/slurm/%A_%a.out
 #SBATCH --error=/data/tir/projects/tir7/user_data/athankar/slurm/%A_%a.err
 #SBATCH --mail-user=athankar@cs.cmu.edu

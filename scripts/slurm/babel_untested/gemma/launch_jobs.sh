@@ -26,7 +26,7 @@ fi
 num_jobs=$(yq '.configs | length' "$CONFIG_FILE")
 echo "Found $num_jobs jobs in the configuration file."
 
-set -x
+# set -x
 for i in $(seq 0 $((num_jobs - 1))); do
     # Properly extract values from the YAML file
     dataset_type=$(yq ".configs[$i].dataset_type" "$CONFIG_FILE" | tr -d '"')
@@ -47,7 +47,7 @@ for i in $(seq 0 $((num_jobs - 1))); do
         "$algo" \
         "$experiment_desc"
 done
-set +x  # Disables debugging output
+# set +x  # Disables debugging output
 
 
 echo "All jobs launched."

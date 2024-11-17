@@ -17,34 +17,10 @@ EXPERIMENT_DESC=${5:-""}
 BASE_MODEL_PATH=${6:-""}
 
 
-
 MODEL_PATH="google/gemma-2-2b-it"
 AGENT_TYPE="defender"
 
 
-# dpo on labelled sft paired
-# BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-01-48-46-440/checkpoint-44/"}
-
-# Vanilla dpo on paired
-# BASE_MODEL_PATH=${11:-"meta-llama/Meta-Llama-3.1-8B-Instruct"}
-
-# dpo_on_unlabeled_sft_paired
-# BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-12-25-28-872/checkpoint-40/"}
-
-# dpo_on_unlabeled_sft_all
-# BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-27-15-06-25-868/checkpoint-45/"}
-
-
-# dpo_on_sft_paired_no_fixed_trajs
-# BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-29-11-34-39-682/checkpoint-30"}
-
-# dpo_on_vanilla_sft_paired_by_goal_no_fixed_trajs_labelled
-# BASE_MODEL_PATH=${11:-"/data/group_data/rl/experiments/redteaming/multiturn_sft_defender_meta-llama/Meta-Llama-3.1-8B-Instruct_2024-09-29-15-26-35-369/checkpoint-22"}
-# MAX_LENGTH=4096
-# RUN_NAME="multiturn_dpo_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
-# LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
-
-# new_value_labeled_with_best_of_n
 MAX_LENGTH=4096
 RUN_NAME="multiturn_dpo_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
 LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
@@ -69,7 +45,7 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --cache_dir $HF_HOME \
         --run_name $RUN_NAME \
         --exp_desc $EXPERIMENT_DESC \
-        --deepspeed $REPO_DIR/scripts/configs/deepspeed/zero3_mem_eff.json \
+        --deepspeed $REPO_DIR/scripts/configs/deepspeed/zero3_cpu_offload.json \
         --bf16 True \
         --num_train_epochs 1  \
         --per_device_train_batch_size 1 \
@@ -93,7 +69,13 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
 
 
 # Find the latest checkpoint directory inside the output path
-LATEST_CHECKPOINT=$(ls -td $LOGDIR/checkpoint-* | head -1)
+# LATEST_CHECKPOINT=$(ls -td $LOGDIR/checkpoint-* | head -1)
+
+LATEST_CHECKPOINT=$(ls -td "$LOGDIR"/checkpoint-* 2>/dev/null | head -1)
+if [ -z "$LATEST_CHECKPOINT" ]; then
+    echo "No checkpoint found in $LOGDIR. Exiting."
+    exit 1
+fi
 
 DEFENDER_MODEL_DIR=$LATEST_CHECKPOINT
 DEFENDER_MODEL_NAME="$EXPERIMENT_DESC"

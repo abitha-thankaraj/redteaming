@@ -25,6 +25,6 @@ MASTER_PORT=${3:-29500}
 LEARNING_RATE=${4:-1e-6}
 NUM_EPOCHS=${5:-2}
 ALGO=${6:-""}
-EXPERIMENT_DESC=${6:-""}
+EXPERIMENT_DESC=${7:-""}
 
 bash $REPO_DIR/scripts/slurm/babel_untested/gemma/train/train_sft_precomputed.sh $DATASET_TYPE $DATA_PATH $MASTER_PORT $LEARNING_RATE $NUM_EPOCHS $ALGO $EXPERIMENT_DESC
