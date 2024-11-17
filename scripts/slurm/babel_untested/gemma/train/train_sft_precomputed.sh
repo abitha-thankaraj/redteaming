@@ -20,6 +20,8 @@ MAX_LENGTH=4096
 RUN_NAME="multiturn_sft_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
 LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
 
+export NCCL_P2P_DISABLE=1
+
 # Run the first job
 deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --algo $ALGO \
@@ -27,9 +29,11 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --seed 42   \
         --data_path $DATA_PATH \
         --eval_data_path "" \
+        --value_function_type "" \
+        --value_function_experiment "" \
+        --max_length $MAX_LENGTH \
         --agent_type $AGENT_TYPE \
         --dataset_type $DATASET_TYPE \
-        --max_length $MAX_LENGTH \
         --model_name $MODEL_PATH \
         --output_dir $LOGDIR  \
         --cache_dir $HF_HOME \
@@ -38,7 +42,7 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --deepspeed $REPO_DIR/scripts/configs/deepspeed/zero3.json \
         --bf16 True \
         --num_train_epochs 2  \
-        --per_device_train_batch_size 8 \
+        --per_device_train_batch_size 1 \
         --per_device_eval_batch_size 1   \
         --gradient_accumulation_steps 16 \
         --evaluation_strategy "steps" \

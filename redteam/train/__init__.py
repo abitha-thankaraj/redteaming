@@ -27,7 +27,7 @@ class ModelArguments:
 class DataArguments:
     data_path: str = field(default=None, metadata={"help": "Path to the training data."})
     eval_data_path: str = field(
-        default=None, metadata={"help": "Path to the evaluation data."}
+        default="", metadata={"help": "Path to the evaluation data."}
     )
     agent_type: str = field(
         default="attacker",
@@ -48,7 +48,7 @@ class DataArguments:
     model_name: str = field(default="meta-llama/Meta-Llama-3.1-8B-Instruct")
 
     value_function_type: str = (field(default=""),)
-    value_function_experiment: str = field(default=None)
+    value_function_experiment: str = field(default="")
     dataset_type_weights: List[float] = field(
         default_factory=lambda: [0.5, 0.25, 0.25],
         metadata={"help": "Weights for different dataset types"},
@@ -60,7 +60,7 @@ class DataArguments:
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
     algo: str = field(default="sft")
-    cache_dir: Optional[str] = field(
+    cache_dir: str = field(
         default="/data/tir/projects/tir6/bisk/athankar/projects/.cache"
     )
     optim: str = field(default="adamw_torch")
@@ -77,8 +77,8 @@ class TrainingArguments(transformers.TrainingArguments):
         default=True, metadata={"help": "Save only the model and not the trainer."}
     )
     # Adding args for data, model
-    data_args: Any = field(default=None)
-    model_args: Any = field(default=None)
+    data_args: Any = field(default=DataArguments())
+    model_args: Any = field(default=ModelArguments())
     exp_desc: str = field(default="")
     # dataset_stats: DatasetStats = field(default=None)
 

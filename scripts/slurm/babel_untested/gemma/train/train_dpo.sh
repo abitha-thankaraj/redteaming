@@ -49,6 +49,9 @@ MAX_LENGTH=4096
 RUN_NAME="multiturn_dpo_${AGENT_TYPE}_${MODEL_PATH}_$(date +'%Y-%m-%d-%H-%M-%S-%3N')"
 LOGDIR="$MODEL_PARENT_DIR/$RUN_NAME"
 
+# L40S
+export NCCL_P2P_DISABLE=1
+
 # Run the first job
 deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --algo "dpo" \
@@ -56,15 +59,17 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --seed 42   \
         --data_path $DATA_PATH \
         --eval_data_path "" \
+        --value_function_type "" \
+        --value_function_experiment "" \
+        --max_length $MAX_LENGTH \
         --agent_type $AGENT_TYPE \
         --dataset_type $DATASET_TYPE \
-        --max_length $MAX_LENGTH \
         --model_name $MODEL_PATH \
         --output_dir $LOGDIR  \
         --cache_dir $HF_HOME \
         --run_name $RUN_NAME \
         --exp_desc $EXPERIMENT_DESC \
-        --deepspeed $REPO_DIR/scripts/configs/deepspeed/zero3.json \
+        --deepspeed $REPO_DIR/scripts/configs/deepspeed/zero3_mem_eff.json \
         --bf16 True \
         --num_train_epochs 1  \
         --per_device_train_batch_size 1 \

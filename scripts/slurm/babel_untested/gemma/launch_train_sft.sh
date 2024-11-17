@@ -4,7 +4,7 @@
 #SBATCH --error=/data/tir/projects/tir7/user_data/athankar/slurm/%A_%a.err
 #SBATCH --mail-user=athankar@cs.cmu.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --gres=gpu:A6000:4
+#SBATCH --gres=gpu:L40S:4
 #SBATCH --mem=128G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
@@ -12,7 +12,7 @@
 #SBATCH --gpu-bind=closest 
 #SBATCH --no-requeue
 #SBATCH --partition=general
-#SBATCH --time=06:00:00
+#SBATCH --time=03:00:00
 
 
 source /home/athankar/.bashrc
