@@ -101,8 +101,9 @@ DEFENDER_MODEL_NAME="$EXPERIMENT_DESC"
 # Launch evals
 for temperature in 0.0 0.7 1.0
 do
-    sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_oai.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
-    sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_jbb.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
-    sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_ss.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
+    sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_all.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
+    # sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_oai.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
+    # sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_jbb.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
+    # sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_ss.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
 done
 

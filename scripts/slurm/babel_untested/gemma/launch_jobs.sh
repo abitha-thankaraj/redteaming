@@ -26,17 +26,28 @@ fi
 num_jobs=$(yq '.configs | length' "$CONFIG_FILE")
 echo "Found $num_jobs jobs in the configuration file."
 
+set -x
 for i in $(seq 0 $((num_jobs - 1))); do
-    dataset_type=$(yq ".configs[$i].dataset_type" "$CONFIG_FILE")
-    data_path=$(yq ".configs[$i].data_path" "$CONFIG_FILE")
+    # Properly extract values from the YAML file
+    dataset_type=$(yq ".configs[$i].dataset_type" "$CONFIG_FILE" | tr -d '"')
+    data_path=$(yq ".configs[$i].data_path" "$CONFIG_FILE" | tr -d '"')
     master_port=$(yq ".configs[$i].master_port" "$CONFIG_FILE")
     learning_rate=$(yq ".configs[$i].learning_rate" "$CONFIG_FILE")
     num_epochs=$(yq ".configs[$i].num_epochs" "$CONFIG_FILE")
-    algo=$(yq ".configs[$i].algo" "$CONFIG_FILE")
-    experiment_desc=$(yq ".configs[$i].experiment_desc" "$CONFIG_FILE")
+    algo=$(yq ".configs[$i].algo" "$CONFIG_FILE" | tr -d '"')
+    experiment_desc=$(yq ".configs[$i].experiment_desc" "$CONFIG_FILE" | tr -d '"')
     
-    echo "Launching job $((i + 1))..."
-    sbatch $LAUNCH_SCRIPTS_DIR/launch_train_sft.sh "$dataset_type" "$data_path" "$master_port" "$learning_rate" "$num_epochs" "$algo" "$experiment_desc"
+    # Pass arguments to sbatch without redundant quoting
+    sbatch "$LAUNCH_SCRIPTS_DIR/launch_train_sft.sh" \
+        "$dataset_type" \
+        "$data_path" \
+        "$master_port" \
+        "$learning_rate" \
+        "$num_epochs" \
+        "$algo" \
+        "$experiment_desc"
 done
+set +x  # Disables debugging output
+
 
 echo "All jobs launched."

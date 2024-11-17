@@ -1,83 +1,83 @@
 configs:
 
-  - dataset_type: "unlabeled"
-    data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_no_best_of_n_unlabelled.pt"
-    master_port: 29501
-    learning_rate: 1e-6
-    num_epochs: 2
-    algo: "sft_precomputed"
-    experiment_desc: "gemma_sft_unlabeled"
+  # - dataset_type: "unlabeled"
+  #   data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_no_best_of_n_unlabelled.pt"
+  #   master_port: 29501
+  #   learning_rate: 1e-6
+  #   num_epochs: 2
+  #   algo: "sft_precomputed"
+  #   experiment_desc: "gemma_sft_unlabeled"
   
-  - dataset_type: "unlabeled_w_bon"
-    data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_best_of_n_unlabelled.pt"
+  - dataset_type: unlabeled_w_bon
+    data_path: /data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_best_of_n_unlabelled.pt
     master_port: 29502
     learning_rate: 1e-6
     num_epochs: 2
-    algo: "sft_precomputed"
-    experiment_desc: "gemma_sft_unlabeled_w_bon"
+    algo: sft_precomputed
+    experiment_desc: gemma_sft_unlabeled_w_bon
   
-  - dataset_type: "value_labeled"
-    data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_no_best_of_n_value_labeled.pt"
-    master_port: 29503
-    learning_rate: 1e-6
-    num_epochs: 2
-    algo: "sft_precomputed"
-    experiment_desc: "gemma_sft_value_labeled"
+#   - dataset_type: "value_labeled"
+#     data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_no_best_of_n_value_labeled.pt"
+#     master_port: 29503
+#     learning_rate: 1e-6
+#     num_epochs: 2
+#     algo: "sft_precomputed"
+#     experiment_desc: "gemma_sft_value_labeled"
   
-  - dataset_type: "value_labeled_w_bon"
-    data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_best_of_n_value_labeled.pt"
-    master_port: 29504
-    learning_rate: 1e-6
-    num_epochs: 2
-    algo: "sft_precomputed"
-    experiment_desc: "gemma_sft_value_labeled_w_bon"
-# sft_star only one epoch for sft  
-  - dataset_type: "value_labeled"
-    data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_no_best_of_n_value_labeled.pt"
-    master_port: 29505
-    learning_rate: 5e-7
-    num_epochs: 1
-    algo: "sft_precomputed_all"
-    experiment_desc: "gemma_sft_star_value_labeled"
+#   - dataset_type: "value_labeled_w_bon"
+#     data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_best_of_n_value_labeled.pt"
+#     master_port: 29504
+#     learning_rate: 1e-6
+#     num_epochs: 2
+#     algo: "sft_precomputed"
+#     experiment_desc: "gemma_sft_value_labeled_w_bon"
+# # sft_star only one epoch for sft  
+#   - dataset_type: "value_labeled"
+#     data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_no_best_of_n_value_labeled.pt"
+#     master_port: 29505
+#     learning_rate: 5e-7
+#     num_epochs: 1
+#     algo: "sft_precomputed_all"
+#     experiment_desc: "gemma_sft_star_value_labeled"
   
-  - dataset_type: "value_labeled_w_bon"
-    data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_best_of_n_value_labeled.pt"
-    master_port: 29506
-    learning_rate: 5e-7
-    num_epochs: 1
-    algo: "sft_precomputed_all"
-    experiment_desc: "gemma_sft_star_value_labeled_w_bon"
+#   - dataset_type: "value_labeled_w_bon"
+#     data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_best_of_n_value_labeled.pt"
+#     master_port: 29506
+#     learning_rate: 5e-7
+#     num_epochs: 1
+#     algo: "sft_precomputed_all"
+#     experiment_desc: "gemma_sft_star_value_labeled_w_bon"
 
-# Sweeps with lower learning rate
+# # Sweeps with lower learning rate
 
-  - dataset_type: "unlabeled"
-    data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_no_best_of_n_unlabelled.pt"
-    master_port: 29507
-    learning_rate: 5e-7
-    num_epochs: 2
-    algo: "sft_precomputed"
-    experiment_desc: "gemma_sft_unlabeled"
+#   - dataset_type: "unlabeled"
+#     data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_no_best_of_n_unlabelled.pt"
+#     master_port: 29507
+#     learning_rate: 5e-7
+#     num_epochs: 2
+#     algo: "sft_precomputed"
+#     experiment_desc: "gemma_sft_unlabeled"
   
-  - dataset_type: "unlabeled_w_bon"
-    data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_best_of_n_unlabelled.pt"
-    master_port: 29508
-    learning_rate: 5e-7
-    num_epochs: 2
-    algo: "sft_precomputed"
-    experiment_desc: "gemma_sft_unlabeled_w_bon"
+#   - dataset_type: "unlabeled_w_bon"
+#     data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_best_of_n_unlabelled.pt"
+#     master_port: 29508
+#     learning_rate: 5e-7
+#     num_epochs: 2
+#     algo: "sft_precomputed"
+#     experiment_desc: "gemma_sft_unlabeled_w_bon"
   
-  - dataset_type: "value_labeled"
-    data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_no_best_of_n_value_labeled.pt"
-    master_port: 29509
-    learning_rate: 5e-7
-    num_epochs: 2
-    algo: "sft_precomputed"
-    experiment_desc: "gemma_sft_value_labeled"
+#   - dataset_type: "value_labeled"
+#     data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_no_best_of_n_value_labeled.pt"
+#     master_port: 29509
+#     learning_rate: 5e-7
+#     num_epochs: 2
+#     algo: "sft_precomputed"
+#     experiment_desc: "gemma_sft_value_labeled"
   
-  - dataset_type: "value_labeled_w_bon"
-    data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_best_of_n_value_labeled.pt"
-    master_port: 29510
-    learning_rate: 5e-7
-    num_epochs: 2
-    algo: "sft_precomputed"
-    experiment_desc: "gemma_sft_value_labeled_w_bon"
+#   - dataset_type: "value_labeled_w_bon"
+#     data_path: "/data/group_data/rl/datasets/redteaming/precomputed_datasets/google/gemma-2-2b-it_defender_precomputed_logits_combined_gemma_best_of_n_value_labeled.pt"
+#     master_port: 29510
+#     learning_rate: 5e-7
+#     num_epochs: 2
+#     algo: "sft_precomputed"
+#     experiment_desc: "gemma_sft_value_labeled_w_bon"

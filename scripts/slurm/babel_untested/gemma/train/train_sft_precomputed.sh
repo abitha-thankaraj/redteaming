@@ -61,8 +61,19 @@ deepspeed --master_port $MASTER_PORT $REPO_DIR/redteam/train/train.py  \
         --gradient_checkpointing True \
         --remove_unused_columns False
 
+if [ $? -ne 0 ]; then
+    echo "Deepspeed training failed. Exiting."
+    exit 1
+fi
+
+
 # Find the latest checkpoint directory inside the output path
-LATEST_CHECKPOINT=$(ls -td $LOGDIR/checkpoint-* | head -1)
+# LATEST_CHECKPOINT=$(ls -td $LOGDIR/checkpoint-* | head -1)
+LATEST_CHECKPOINT=$(ls -td "$LOGDIR"/checkpoint-* 2>/dev/null | head -1)
+if [ -z "$LATEST_CHECKPOINT" ]; then
+    echo "No checkpoint found in $LOGDIR. Exiting."
+    exit 1
+fi
 
 DEFENDER_MODEL_DIR=$LATEST_CHECKPOINT
 DEFENDER_MODEL_NAME="$EXPERIMENT_DESC.lr$$LEARNING_RATE"
@@ -73,9 +84,11 @@ if [ "$ALGO" == "sft_precomputed" ]; then
     echo "Launching evals for algo: $ALGO"
     for temperature in 0.0 0.7 1.0
     do
-        sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_oai.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
-        sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_jbb.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
-        sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_ss.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
+        sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_all.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
+
+        # sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_oai.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
+        # sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_jbb.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
+        # sbatch $REPO_DIR/scripts/slurm/babel_untested/gemma/eval_bench/eval_gemma_ss.sh $temperature $DEFENDER_MODEL_DIR $DEFENDER_MODEL_NAME "$EXPERIMENT_DESC.temp$temperature"
     done
 else
     echo "Skipping evals because algo is not sft_precomputed. Current algo: $ALGO"

@@ -11,7 +11,7 @@
 #SBATCH --cpus-per-task=24 
 #SBATCH --gpu-bind=closest 
 #SBATCH --no-requeue
-#SBATCH --partition=general
+#SBATCH --partition=preempt
 #SBATCH --time=02:30:00
 
 
